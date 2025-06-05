@@ -3,7 +3,6 @@
 import { makeStyles } from "@fluentui/react-components"
 import { COLORS, UI_CONFIG } from "@/config/app.config.server"
 
-
 export const useSidebarStyles = makeStyles({
   sidebar: {
     display: "flex",
@@ -12,7 +11,7 @@ export const useSidebarStyles = makeStyles({
     backgroundColor: COLORS.primary,
     color: "white",
     height: "100vh",
-    transition: `width ${UI_CONFIG.sidebar.transitionDuration} ease`,
+    transition: `width ${UI_CONFIG.sidebar.transitionDuration}`, 
     overflow: "hidden",
   },
   sidebarCollapsed: {
@@ -48,6 +47,7 @@ export const useSidebarStyles = makeStyles({
     flexDirection: "column",
     flex: 1,
     overflowY: "auto",
+    padding: "0 1rem",
   },
   menuItem: {
     display: "flex",
@@ -57,6 +57,8 @@ export const useSidebarStyles = makeStyles({
     color: "rgba(255, 255, 255, 0.85)",
     cursor: "pointer",
     textDecoration: "none",
+    borderRadius: "6px",
+    marginBottom: "4px",
     transition: "all 0.2s ease",
     "&:hover": {
       backgroundColor: "rgba(255, 255, 255, 0.08)",
@@ -85,9 +87,11 @@ export const useSidebarStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     backgroundColor: "rgba(0, 0, 0, 0.15)",
+    borderRadius: "6px",
     overflow: "hidden",
     maxHeight: "0",
     transition: "max-height 0.3s ease",
+    marginBottom: "8px",
   },
   submenuOpen: {
     maxHeight: "500px",
@@ -129,6 +133,7 @@ export const useSidebarStyles = makeStyles({
   footer: {
     borderTop: "1px solid rgba(255, 255, 255, 0.1)",
     padding: "1rem",
+    marginTop: "auto",
   },
   signOutButton: {
     display: "flex",
@@ -137,6 +142,8 @@ export const useSidebarStyles = makeStyles({
     color: "rgba(255, 255, 255, 0.85)",
     width: "100%",
     justifyContent: "flex-start",
+    padding: "0.75rem",
+    borderRadius: "6px",
     transition: "all 0.2s ease",
     "&:hover": {
       backgroundColor: "rgba(255, 255, 255, 0.1)",

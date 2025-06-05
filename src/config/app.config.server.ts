@@ -1,9 +1,5 @@
-/**
- * Configuración central de la aplicación - PARTE SERVIDOR
- * Single Source of Truth - SIN duplicaciones
- */
-import type { Metadata } from "next"
 
+import type { Metadata } from "next"
 // ============================================================================
 // INFORMACIÓN BASE DE LA APLICACIÓN (ÚNICA FUENTE DE VERDAD)
 // ============================================================================
@@ -18,16 +14,12 @@ const BASE_APP_INFO = {
 // INFORMACIÓN DERIVADA (SE CALCULA AUTOMÁTICAMENTE)
 // ============================================================================
 export const APP_INFO = {
-  // Información base
   ...BASE_APP_INFO,
-
-  // Información derivada para el tema
   theme: {
     name: `${BASE_APP_INFO.company} Light Theme`,
     version: "1.0.0",
   },
 
-  // Metadata derivada para Next.js
   metadata: {
     title: BASE_APP_INFO.name,
     description: BASE_APP_INFO.description,
@@ -40,21 +32,23 @@ export const APP_INFO = {
 // SISTEMA DE COLORES CENTRALIZADO
 // ============================================================================
 export const COLORS = {
-  // Colores principales de TASA
+  // Colores principales
   primary: "#1e4a72",
   primaryLight: "#2563eb",
   primaryDark: "#1e3a8a",
   accent: "#fbbf24",
 
-  // Colores de superficie
+  // Superficie y fondo
   background: "#f8fafc",
   surface: "#ffffff",
+  surfaceHover: "#f1f5f9", 
 
-  // Colores de texto
+  // Texto
   text: "#1e293b",
   textSecondary: "#64748b",
+  textMuted: "#94a3b8", 
 
-  // Colores de módulos
+  // Módulos
   modules: {
     logistica: "#22c55e",
     calidad: "#3b82f6",
@@ -66,6 +60,10 @@ export const COLORS = {
   warning: "#f59e0b",
   error: "#ef4444",
   info: "#3b82f6",
+
+  // Bordes y divisores
+  border: "#e2e8f0",
+  borderHover: "#cbd5e1", 
 } as const
 
 // ============================================================================

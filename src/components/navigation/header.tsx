@@ -1,70 +1,36 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useMemo } from "react"
 import { Button, Text } from "@fluentui/react-components"
 import { NavigationRegular } from "@fluentui/react-icons"
-import { getSelectedModule, hasAccessToRoute, getDefaultRouteForModule, type ModuleId } from "@/utils/module-manager"
 import { MODULE_BREADCRUMBS, MODULE_NAMES } from "@/config/app.config.client"
+import { getSelectedModule } from "@/utils/module-manager"
 import { useHeaderStyles } from "@/styles/header.styles"
 
 interface HeaderProps {
   toggleSidebar: () => void
 }
-
 export function Header({ toggleSidebar }: HeaderProps) {
   const styles = useHeaderStyles()
   const pathname = usePathname()
-  const [isClient, setIsClient] = useState(false)
-  const [selectedModule, setSelectedModule] = useState<ModuleId | null>(null)
-
-  useEffect(() => {
-    setIsClient(true)
-    try {
-      const currentModule = getSelectedModule()
-      setSelectedModule(currentModule)
-      if (currentModule) {
-        console.log(`📦 Header: Módulo detectado: ${currentModule}`)
-      }
-    } catch (error) {
-      console.warn("Error reading module:", error)
-      setSelectedModule(null)
-    }
-  }, []) 
 
   const breadcrumbInfo = useMemo(() => {
-    if (pathname === "/" || !selectedModule) {
-      return {
-        breadcrumb: "Dashboard",
-        currentModule: null,
-      }
-    }
-    const hasAccess = hasAccessToRoute(pathname, selectedModule)
-    const moduleBreadcrumbs = MODULE_BREADCRUMBS[selectedModule]
-
-    let breadcrumb: string
-
-    if (!hasAccess) {
-
-      const defaultRoute = getDefaultRouteForModule(selectedModule)
-      breadcrumb = moduleBreadcrumbs?.[defaultRoute as keyof typeof moduleBreadcrumbs] || "Dashboard"
-      console.log(`🚫 Header: Sin acceso a ${pathname}, mostrando breadcrumb por defecto: ${breadcrumb}`)
-    } else {
-      breadcrumb = moduleBreadcrumbs?.[pathname as keyof typeof moduleBreadcrumbs] || "Dashboard"
-      console.log(`✅ Header: Acceso válido a ${pathname}, breadcrumb: ${breadcrumb}`)
+    if (pathname === "/") {
+      return { breadcrumb: "Dashboard", currentModule: null }
     }
 
-    return {
-      breadcrumb,
-      currentModule: MODULE_NAMES[selectedModule] || null,
+    const selectedModule = getSelectedModule()
+    if (!selectedModule) {
+      return { breadcrumb: "Dashboard", currentModule: null }
     }
-  }, [pathname, selectedModule])
 
- 
-  const handleToggleSidebar = useCallback(() => {
-    toggleSidebar()
-  }, [toggleSidebar])
+    const moduleBreadcrumbs = MODULE_BREADCRUMBS[selectedModule as keyof typeof MODULE_BREADCRUMBS]
+    const breadcrumb = moduleBreadcrumbs?.[pathname as keyof typeof moduleBreadcrumbs] || "Dashboard"
+    const moduleName = MODULE_NAMES[selectedModule as keyof typeof MODULE_NAMES]
 
+    return { breadcrumb, currentModule: moduleName || null }
+  }, [pathname])
 
   return (
     <header className={styles.header}>
@@ -72,19 +38,23 @@ export function Header({ toggleSidebar }: HeaderProps) {
         <Button
           appearance="subtle"
           icon={<NavigationRegular />}
-          onClick={handleToggleSidebar}
+          onClick={toggleSidebar}
           className={styles.menuButton}
           aria-label="Toggle navigation menu"
         />
-        <Text className={styles.breadcrumb}>{breadcrumbInfo.breadcrumb}</Text>
+        <Text className={styles.breadcrumb}>
+          {breadcrumbInfo.breadcrumb}
+        </Text>
       </div>
-
+      
       <div className={styles.headerRight}>
         <div className={styles.userInfo}>
-          <div className={styles.userGreeting} suppressHydrationWarning>
-            <Text className={styles.userName}>¡Hola Juan Perez!</Text>
-            {isClient && breadcrumbInfo.currentModule && (
-              <Text className={styles.moduleIndicator}>{breadcrumbInfo.currentModule}</Text>
+          <div className={styles.userGreeting}>
+            <Text className={styles.userName}>¡Hola Juan Pérez!</Text>
+            {breadcrumbInfo.currentModule && (
+              <Text className={styles.moduleIndicator}>
+                {breadcrumbInfo.currentModule}
+              </Text>
             )}
           </div>
         </div>

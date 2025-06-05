@@ -2,7 +2,6 @@
 import { NAVIGATION_MENU, type ModuleId, type MenuItem } from "@/config/app.config.client"
 import { MODULES } from "@/config/app.config.server"
 import { getSelectedModule, hasAccessToRoute } from "@/utils/module-manager"
-
 export type { MenuItem } from "@/config/app.config.client"
 
 export function getBreadcrumbFromPath(pathname: string): string {

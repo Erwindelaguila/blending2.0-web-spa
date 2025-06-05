@@ -1,10 +1,11 @@
 import type React from "react"
-import "./globals.css"
 import { AppShell } from "@/components/layouts/app-shell"
-import { APP_INFO } from "@/config/app.config.server"
+import "./globals.css"
 
-
-export const metadata = APP_INFO.metadata
+export const metadata = {
+  title: "Blending 2.0 - TASA",
+  description: "Sistema de gestión de homogenización TASA",
+}
 
 export default function RootLayout({
   children,
@@ -13,7 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head />
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body>
         <AppShell>{children}</AppShell>
       </body>

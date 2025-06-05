@@ -156,5 +156,4 @@ export const MODULE_NAMES = {
   administrador: "Administrador",
 } as const
 
-// Re-exportar todo de app.config.server para mantener compatibilidad
 export * from "./app.config.server"

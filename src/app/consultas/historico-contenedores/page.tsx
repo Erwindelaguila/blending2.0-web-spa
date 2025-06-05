@@ -1,3 +1,5 @@
+"use client"
+
 export default function HistoricoContenedoresPage() {
   return (
     <div className="max-w-4xl mx-auto">

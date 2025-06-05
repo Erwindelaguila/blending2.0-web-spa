@@ -1,18 +1,18 @@
 "use client"
 
+import type React from "react"
 import { useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { getSelectedModule, hasAccessToRoute, getDefaultRouteForModule } from "@/utils/module-manager"
 
-
-export function useProtectedNavigation() {
-  const router = useRouter()
+interface ProtectedRouteProps {
+  children: React.ReactNode
+}
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
-
-    if (typeof window === "undefined") return
-
     if (pathname === "/") return
 
     const selectedModule = getSelectedModule()
@@ -20,15 +20,13 @@ export function useProtectedNavigation() {
       router.replace("/")
       return
     }
-
     const hasAccess = hasAccessToRoute(pathname, selectedModule)
-
+    
     if (!hasAccess) {
-      console.log(`🚫 Navegación bloqueada: ${pathname} no permitido para ${selectedModule}`)
-
       const defaultRoute = getDefaultRouteForModule(selectedModule)
-
       router.replace(defaultRoute)
     }
   }, [pathname, router])
+
+  return <>{children}</>
 }

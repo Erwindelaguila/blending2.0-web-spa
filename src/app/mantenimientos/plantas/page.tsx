@@ -1,3 +1,4 @@
+"use client"
 export default function PlantasHomogenizacionPage() {
   return (
     <div className="max-w-4xl mx-auto">
