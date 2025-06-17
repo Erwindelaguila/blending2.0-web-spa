@@ -1,7 +1,6 @@
 "use client"
 
 import { 
-  webLightTheme, 
   createLightTheme, 
   type BrandVariants, 
   type Theme 
@@ -48,7 +47,7 @@ const THEME_SHADES = {
   DARK_PRIMARY: "#1e293b",
   
   INTERACTION_HOVER: "#60a5fa",
-  INTERACTION_ACTIVE: "#93c5fd",
+  INTERACTION_ACTIVE: "#0085fc",
   INTERACTION_FOCUSED: "#dbeafe",
   
   SURFACE_LIGHT: "#eff6ff",

@@ -23,8 +23,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const [selectedModule, setSelectedModule] = useState<ModuleId | null>(null)
 
   useEffect(() => {
-    const module = getSelectedModule()
-    setSelectedModule(module)
+    const moduleSelect = getSelectedModule()
+    setSelectedModule(moduleSelect)
   }, [pathname])
 
   useEffect(() => {

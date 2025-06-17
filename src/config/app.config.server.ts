@@ -1,5 +1,4 @@
-
-import type { Metadata } from "next"
+import type { Metadata } from "next";
 // ============================================================================
 // INFORMACIÓN BASE DE LA APLICACIÓN (ÚNICA FUENTE DE VERDAD)
 // ============================================================================
@@ -8,7 +7,7 @@ const BASE_APP_INFO = {
   version: "2.0.0",
   description: "Sistema de gestión de homogenización TASA",
   company: "TASA",
-} as const
+} as const;
 
 // ============================================================================
 // INFORMACIÓN DERIVADA (SE CALCULA AUTOMÁTICAMENTE)
@@ -24,9 +23,15 @@ export const APP_INFO = {
     title: BASE_APP_INFO.name,
     description: BASE_APP_INFO.description,
     authors: [{ name: BASE_APP_INFO.company }],
-    keywords: ["blending", "homogenización", BASE_APP_INFO.company.toLowerCase(), "contenedores", "harina"],
+    keywords: [
+      "blending",
+      "homogenización",
+      BASE_APP_INFO.company.toLowerCase(),
+      "contenedores",
+      "harina",
+    ],
   } as Metadata,
-} as const
+} as const;
 
 // ============================================================================
 // SISTEMA DE COLORES CENTRALIZADO
@@ -41,12 +46,12 @@ export const COLORS = {
   // Superficie y fondo
   background: "#f8fafc",
   surface: "#ffffff",
-  surfaceHover: "#f1f5f9", 
+  surfaceHover: "#f1f5f9",
 
   // Texto
   text: "#1e293b",
   textSecondary: "#64748b",
-  textMuted: "#94a3b8", 
+  textMuted: "#94a3b8",
 
   // Módulos
   modules: {
@@ -63,22 +68,44 @@ export const COLORS = {
 
   // Bordes y divisores
   border: "#e2e8f0",
-  borderHover: "#cbd5e1", 
-} as const
+  borderHover: "#cbd5e1",
+} as const;
 
 // ============================================================================
 // CONFIGURACIÓN DE UI
 // ============================================================================
 export const UI_CONFIG = {
   sidebar: {
-    width: "280px",
-    collapsedWidth: "60px",
+    width: "20%",
+    collapsedWidth: "5%",
     transitionDuration: "0.3s",
   },
   header: {
     height: "64px",
   },
-} as const
+
+  footer: {
+    height: "48px",
+  },
+  
+} as const;
+
+export const OrgColors = {
+  // Colores principales
+  azulOscuro: "#184a7d", // RGB(24,74,125)
+  verde: "#76a140", // RGB(118,162,64)
+  celeste: "#56bdeb", // RGB(86,189,236)
+
+  // Colores secundarios
+  blanco: "#ffffff",
+  grisTexto: "#808080",
+
+  // Complementarios (Paleta SEROT)
+  serotVerde: "#76a140", // mismo que verde principal
+  serotAmarillo: "#ffc700", // RGB(255,199,0)
+  serotAzul: "#1c73ae", // RGB(28,115,174)
+  serotRojo: "#ca2d00", // RGB(200,45,0)
+};
 
 // ============================================================================
 // CONFIGURACIÓN DE STORAGE
@@ -87,20 +114,20 @@ export const STORAGE_KEYS = {
   selectedModule: "selectedModule",
   userPreferences: "userPreferences",
   sidebarState: "sidebarState",
-} as const
+} as const;
 
 // ============================================================================
 // TIPOS DE MÓDULOS Y CONFIGURACIÓN
 // ============================================================================
-export type ModuleId = "logistica" | "calidad" | "administrador"
+export type ModuleId = "logistica" | "calidad" | "administrador";
 
 export interface ModuleConfig {
-  id: ModuleId
-  name: string
-  description: string
-  defaultRoute: string
-  color: string
-  routes: string[]
+  id: ModuleId;
+  name: string;
+  description: string;
+  defaultRoute: string;
+  color: string;
+  routes: string[];
 }
 
 // ============================================================================
@@ -137,25 +164,25 @@ export const MODULES: Record<ModuleId, ModuleConfig> = {
       "/configuraciones/aplicacion",
     ],
   },
-} as const
+} as const;
 
 // ============================================================================
 // UTILIDADES DERIVADAS
 // ============================================================================
-export const AVAILABLE_MODULES = Object.values(MODULES)
+export const AVAILABLE_MODULES = Object.values(MODULES);
 
 export function getModuleConfig(moduleId: string): ModuleConfig | undefined {
-  return MODULES[moduleId as ModuleId]
+  return MODULES[moduleId as ModuleId];
 }
 
 export function isValidModuleId(moduleId: string): moduleId is ModuleId {
-  return moduleId in MODULES
+  return moduleId in MODULES;
 }
 
 export function getModuleRoutes(moduleId: ModuleId): string[] {
-  return MODULES[moduleId].routes
+  return MODULES[moduleId].routes;
 }
 
 export function getModuleColor(moduleId: ModuleId): string {
-  return MODULES[moduleId].color
+  return MODULES[moduleId].color;
 }
