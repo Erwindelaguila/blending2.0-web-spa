@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Input, Button, Label } from "@fluentui/react-components"
+import { Input, Button, Label, Checkbox } from "@fluentui/react-components"
 import { Add20Regular, Subtract20Regular } from "@fluentui/react-icons"
-import { useQualityParametersStyles } from "@/styles/quality-parameters.styles"
+import { useCustomProductStyles } from "@/styles/custom-product.styles"
 
 interface FilaDato {
   [key: string]: string
@@ -24,18 +24,10 @@ interface ColumnConfig {
   paramsGridColumns: string
 }
 
-interface ProcessConfig {
-  numeroRumas: number
-  divisionRumas: number
-  parametros: FilaDato[]
-  totalParametros: number
-}
-
 const MIN_RUMAS = 2
 const MAX_DIVISION = 50
 const MIN_DIVISION = 1
 const CALIDAD_MAX_LENGTH = 8
-const PARAM_MAX_LENGTH = 6
 const DECIMAL_REGEX = /^\d*\.?\d$/
 const SIGNED_DECIMAL_REGEX = /^-?\d*\.?\d$/
 
@@ -44,115 +36,48 @@ const filasIniciales: FilaDato[] = [
     CALIDAD: "CALIDAD-01",
     P: "67.9",
     PARAM02: "480",
-    PARAM03: "15.2",
-    PARAM04: "456",
-    PARAM05: "14.8",
-    PARAM06: "456",
-    PARAM07: "14.8",
-    PARAM08: "456",
-    PARAM09: "14.8",
-    PARAM010: "14.8",
-    PARAM011: "14.8",
-    PARAM012: "14.8",
-    PARAM013: "14.8",
-    PARAM014: "14.8",
-    PARAM015: "14.8",
-    PARAM016: "14.8",
-    PARAM017: "14.8",
-    PARAM018: "14.8",
+    PARAM03: "480",
+    PARAM04: "480",
+    PARAM05: "480",
+    PARAM06: "480",
     CADMIO: "678",
     TOTAL: "3335",
   },
   {
     CALIDAD: "CALIDAD-02",
-    P: "67.0",
+    P: "67",
     PARAM02: "456",
-    PARAM03: "14.8",
-    PARAM04: "456",
-    PARAM05: "14.8",
-    PARAM06: "456",
-    PARAM07: "14.8",
-    PARAM08: "456",
-    PARAM09: "14.8",
-    PARAM010: "14.8",
-    PARAM011: "14.8",
-    PARAM012: "14.8",
-    PARAM013: "14.8",
-    PARAM014: "14.8",
-    PARAM015: "14.8",
-    PARAM016: "14.8",
-    PARAM017: "14.8",
-    PARAM018: "14.8",
+    PARAM03: "480",
+    PARAM04: "480",
+    PARAM05: "480",
+    PARAM06: "480",
     CADMIO: "12",
     TOTAL: "1000",
   },
   {
-    CALIDAD: "CALIDAD-03",
+    CALIDAD: "CALIDAD-SUPER-LARGA-NOMBRE-EXTENSO-03",
     P: "66.9",
     PARAM02: "234",
-    PARAM03: "16.1",
+    PARAM03: "480",
+    PARAM04: "480",
+    PARAM05: "480",
+    PARAM06: "480",
     CADMIO: "763",
     TOTAL: "8618",
   },
-  {
-    CALIDAD: "CALIDAD-04",
-    P: "68.2",
-    PARAM02: "512",
-    PARAM03: "14.5",
-    PARAM04: "456",
-    PARAM05: "14.8",
-    PARAM06: "456",
-    PARAM07: "14.8",
-    PARAM08: "456",
-    PARAM09: "14.8",
-    PARAM010: "14.8",
-    PARAM011: "14.8",
-    PARAM012: "14.8",
-    PARAM013: "14.8",
-    PARAM014: "14.8",
-    PARAM015: "14.8",
-    PARAM016: "14.8",
-    PARAM017: "14.8",
-    PARAM018: "14.8",
-    CADMIO: "421",
-    TOTAL: "2145",
-  },
-  {
-    CALIDAD: "CALIDAD-05",
-    P: "69.1",
-    PARAM02: "398",
-    PARAM03: "15.8",
-     PARAM04: "456",
-    PARAM05: "14.8",
-    PARAM06: "456",
-    PARAM07: "14.8",
-    PARAM08: "456",
-    PARAM09: "14.8",
-    PARAM010: "14.8",
-    PARAM011: "14.8",
-    PARAM012: "14.8",
-    PARAM013: "14.8",
-    PARAM014: "14.8",
-    PARAM015: "14.8",
-    PARAM016: "14.8",
-    PARAM017: "14.8",
-    PARAM018: "14.8",
-    CADMIO: "892",
-    TOTAL: "4567",
-  },
 ]
 
-class TextUtilityService {
+class TextUtilities {
   static shouldTruncateBasedOnSpace(text: string, availableColumns: number): boolean {
     if (availableColumns <= 3) return text.length > 12
     if (availableColumns <= 6) return text.length > 8
-    return text.length > PARAM_MAX_LENGTH
+    return text.length > 6
   }
 
   static getTruncatedText(text: string, availableColumns: number): string {
     if (!this.shouldTruncateBasedOnSpace(text, availableColumns)) return text
 
-    let maxLength = PARAM_MAX_LENGTH
+    let maxLength = 6
     if (availableColumns <= 3) maxLength = 12
     else if (availableColumns <= 6) maxLength = 8
 
@@ -160,22 +85,18 @@ class TextUtilityService {
   }
 
   static truncateCalidad(text: string): string {
-    return text.length > CALIDAD_MAX_LENGTH
-      ? `${text.substring(0, CALIDAD_MAX_LENGTH)}...`
+    return text.length > CALIDAD_MAX_LENGTH 
+      ? `${text.substring(0, CALIDAD_MAX_LENGTH)}...` 
       : text
   }
 
   static shouldShowTooltipCalidad(text: string): boolean {
     return text.length > CALIDAD_MAX_LENGTH
   }
-
-  static shouldShowTooltip(text: string, maxLength: number = PARAM_MAX_LENGTH): boolean {
-    return text.length > maxLength
-  }
 }
 
-class ColumnConfigurationService {
-  static buildConfiguration(filas: FilaDato[]): ColumnConfig {
+class ColumnConfigBuilder {
+  static buildConfig(filas: FilaDato[]): ColumnConfig {
     const keys = Object.keys(filas[0])
     const keyCalidad = keys[0]
     const columnas = keys.slice(1)
@@ -207,10 +128,6 @@ class ValidationService {
     const parsed = Number.parseFloat(value)
     return isNaN(parsed) ? fallback : parsed
   }
-
-  static clampNumber(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max)
-  }
 }
 
 class DataTransformationService {
@@ -231,7 +148,7 @@ class DataTransformationService {
     return nuevasFilas
   }
 
-  static applyAdjustmentToColumn(
+  static applyAdjustment(
     filas: FilaDato[],
     columnasParams: string[],
     adjustmentIndex: number,
@@ -255,7 +172,7 @@ class DataTransformationService {
   }
 }
 
-class ScrollSynchronizationService {
+class ScrollSyncService {
   static createSyncHandler(
     elements: HTMLElement[],
     isScrollingRef: React.MutableRefObject<boolean>
@@ -278,7 +195,7 @@ class ScrollSynchronizationService {
     }
   }
 
-  static attachScrollListeners(
+  static attachListeners(
     elements: HTMLElement[],
     handlers: ((event: Event) => void)[]
   ): () => void {
@@ -294,26 +211,31 @@ class ScrollSynchronizationService {
   }
 }
 
-const useQualityDataManagement = (initialData: FilaDato[]) => {
+const useDataManagement = (initialData: FilaDato[]) => {
   const [filas, setFilas] = useState<FilaDato[]>(initialData)
   const [filasOriginales] = useState<FilaDato[]>(
     DataTransformationService.deepClone(initialData)
   )
   const [hasChanges, setHasChanges] = useState(false)
 
-  const detectChanges = () => {
-    const changesDetected = DataTransformationService.detectChanges(filas, filasOriginales)
-    setHasChanges(changesDetected)
+  const detectChanges = (currentFilas: FilaDato[], selectedRow: number | null) => {
+    const hasDataChanges = DataTransformationService.detectChanges(currentFilas, filasOriginales)
+    setHasChanges(hasDataChanges || selectedRow !== null)
   }
 
   const updateCell = (filaIndex: number, columna: string, value: string) => {
-    const updatedFilas = DataTransformationService.updateCellValue(filas, filaIndex, columna, value)
+    const updatedFilas = DataTransformationService.updateCellValue(
+      filas,
+      filaIndex,
+      columna,
+      value
+    )
     if (updatedFilas !== filas) {
       setFilas(updatedFilas)
     }
   }
 
-  const resetToOriginal = () => {
+  const resetData = () => {
     setFilas(DataTransformationService.deepClone(filasOriginales))
     setHasChanges(false)
   }
@@ -324,11 +246,11 @@ const useQualityDataManagement = (initialData: FilaDato[]) => {
     hasChanges,
     detectChanges,
     updateCell,
-    resetToOriginal,
+    resetData,
   }
 }
 
-const useAdjustmentManagement = (columnasParams: string[]) => {
+const useAdjustments = (columnasParams: string[]) => {
   const [encabezadoSuperior, setEncabezadoSuperior] = useState<string[]>(
     columnasParams.map(() => "0")
   )
@@ -346,10 +268,13 @@ const useAdjustmentManagement = (columnasParams: string[]) => {
     filas: FilaDato[],
     onFilasUpdate: (newFilas: FilaDato[]) => void
   ) => {
-    const adjustmentValue = ValidationService.parseNumberSafely(encabezadoSuperior[index])
+    const adjustmentValue = ValidationService.parseNumberSafely(
+      encabezadoSuperior[index]
+    )
+
     if (adjustmentValue === 0) return
 
-    const updatedFilas = DataTransformationService.applyAdjustmentToColumn(
+    const updatedFilas = DataTransformationService.applyAdjustment(
       filas,
       columnasParams,
       index,
@@ -363,7 +288,7 @@ const useAdjustmentManagement = (columnasParams: string[]) => {
     setEncabezadoSuperior(resetAdjustments)
   }
 
-  const resetAllAdjustments = () => {
+  const resetAdjustments = () => {
     setEncabezadoSuperior(columnasParams.map(() => "0"))
   }
 
@@ -371,43 +296,11 @@ const useAdjustmentManagement = (columnasParams: string[]) => {
     encabezadoSuperior,
     updateAdjustment,
     applyAdjustment,
-    resetAllAdjustments,
+    resetAdjustments,
   }
 }
 
-const useProcessConfiguration = () => {
-  const [numeroRumas, setNumeroRumas] = useState<number>(MIN_RUMAS)
-  const [divisionRumas, setDivisionRumas] = useState<number>(MAX_DIVISION)
-
-  const incrementRumas = () => setNumeroRumas((prev) => prev + 1)
-  const decrementRumas = () => setNumeroRumas((prev) => Math.max(MIN_RUMAS, prev - 1))
-  const incrementDivision = () => setDivisionRumas((prev) => Math.min(MAX_DIVISION, prev + 1))
-  const decrementDivision = () => setDivisionRumas((prev) => Math.max(MIN_DIVISION, prev - 1))
-
-  const updateRumasFromInput = (value: string) => {
-    const numValue = Number.parseInt(value) || MIN_RUMAS
-    if (numValue >= MIN_RUMAS) setNumeroRumas(numValue)
-  }
-
-  const updateDivisionFromInput = (value: string) => {
-    const numValue = Number.parseInt(value) || MIN_DIVISION
-    const clampedValue = ValidationService.clampNumber(numValue, MIN_DIVISION, MAX_DIVISION)
-    setDivisionRumas(clampedValue)
-  }
-
-  return {
-    numeroRumas,
-    divisionRumas,
-    incrementRumas,
-    decrementRumas,
-    incrementDivision,
-    decrementDivision,
-    updateRumasFromInput,
-    updateDivisionFromInput,
-  }
-}
-
-const useScrollSynchronization = () => {
+const useScrollSync = () => {
   const scrollAdjustmentRef = useRef<HTMLDivElement>(null)
   const scrollHeaderRef = useRef<HTMLDivElement>(null)
   const scrollDataRef = useRef<HTMLDivElement>(null)
@@ -422,10 +315,10 @@ const useScrollSynchronization = () => {
 
     if (elements.length !== 3) return
 
-    const syncHandler = ScrollSynchronizationService.createSyncHandler(elements, isScrollingRef)
+    const syncHandler = ScrollSyncService.createSyncHandler(elements, isScrollingRef)
     const handlers = elements.map(syncHandler)
 
-    return ScrollSynchronizationService.attachScrollListeners(elements, handlers)
+    return ScrollSyncService.attachListeners(elements, handlers)
   }, [])
 
   return {
@@ -435,50 +328,75 @@ const useScrollSynchronization = () => {
   }
 }
 
-export function QualityParametersLayout() {
-  const styles = useQualityParametersStyles()
+export function CustomProductLayout() {
+  const styles = useCustomProductStyles()
 
-  const dataManagement = useQualityDataManagement(filasIniciales)
-  const scrollSync = useScrollSynchronization()
-  const processConfig = useProcessConfiguration()
+  const dataManagement = useDataManagement(filasIniciales)
+  const scrollSync = useScrollSync()
 
-  const columnConfig = ColumnConfigurationService.buildConfiguration(dataManagement.filas)
-  const adjustmentManagement = useAdjustmentManagement(columnConfig.columnasParams)
+  const columnConfig = ColumnConfigBuilder.buildConfig(dataManagement.filas)
+  const adjustments = useAdjustments(columnConfig.columnasParams)
 
+  const [numeroRumas, setNumeroRumas] = useState<number>(MIN_RUMAS)
+  const [divisionRumas, setDivisionRumas] = useState<number>(MAX_DIVISION)
   const [hoveredCell, setHoveredCell] = useState<HoveredCell | null>(null)
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
 
   useEffect(() => {
-    dataManagement.detectChanges()
-  }, [dataManagement.filas])
+    dataManagement.detectChanges(dataManagement.filas, selectedRowIndex)
+  }, [dataManagement.filas, selectedRowIndex])
+
+  const handleCheckboxChange = (rowIndex: number, checked: boolean) => {
+    setSelectedRowIndex(checked ? rowIndex : null)
+  }
 
   const handleCellUpdate = (filaIndex: number, columna: string, value: string) => {
     dataManagement.updateCell(filaIndex, columna, value)
   }
 
   const handleAdjustmentUpdate = (index: number, value: string) => {
-    adjustmentManagement.updateAdjustment(index, value)
+    adjustments.updateAdjustment(index, value)
   }
 
   const handleAdjustmentApply = (index: number) => {
-    adjustmentManagement.applyAdjustment(index, dataManagement.filas, (newFilas) => {
+    adjustments.applyAdjustment(index, dataManagement.filas, (newFilas) => {
       dataManagement.filas.splice(0, dataManagement.filas.length, ...newFilas)
     })
   }
 
+  const handleRumasIncrement = () => setNumeroRumas((prev) => prev + 1)
+  const handleRumasDecrement = () => setNumeroRumas((prev) => Math.max(MIN_RUMAS, prev - 1))
+  const handleDivisionIncrement = () => setDivisionRumas((prev) => Math.min(MAX_DIVISION, prev + 1))
+  const handleDivisionDecrement = () => setDivisionRumas((prev) => Math.max(MIN_DIVISION, prev - 1))
+
+  const handleRumasInputChange = (value: string) => {
+    const numValue = Number.parseInt(value) || MIN_RUMAS
+    if (numValue >= MIN_RUMAS) setNumeroRumas(numValue)
+  }
+
+  const handleDivisionInputChange = (value: string) => {
+    const numValue = Number.parseInt(value) || MIN_DIVISION
+    if (numValue >= MIN_DIVISION && numValue <= MAX_DIVISION) {
+      setDivisionRumas(numValue)
+    }
+  }
+
   const handleReset = () => {
-    dataManagement.resetToOriginal()
-    adjustmentManagement.resetAllAdjustments()
+    dataManagement.resetData()
+    adjustments.resetAdjustments()
+    setSelectedRowIndex(null)
   }
 
   const handleStartProcess = () => {
-    const processData: ProcessConfig = {
-      numeroRumas: processConfig.numeroRumas,
-      divisionRumas: processConfig.divisionRumas,
+    const processData = {
+      numeroRumas,
+      divisionRumas,
       parametros: dataManagement.filas,
+      filaSeleccionada: selectedRowIndex !== null ? dataManagement.filas[selectedRowIndex] : null,
       totalParametros: columnConfig.columnasParams.length,
     }
-
-    console.log("Iniciando proceso con:", processData)
+    
+    console.log("Iniciando proceso de producto a medida:", processData)
   }
 
   const renderAdjustmentInputs = () => (
@@ -496,7 +414,7 @@ export function QualityParametersLayout() {
           }}
         >
           <Input
-            value={adjustmentManagement.encabezadoSuperior[idx]?.toString() ?? ""}
+            value={adjustments.encabezadoSuperior[idx] ?? ""}
             onKeyDown={(e) => e.key === "Enter" && handleAdjustmentApply(idx)}
             onChange={(e, data) => handleAdjustmentUpdate(idx, data.value)}
             className={styles.adjustmentInput}
@@ -515,13 +433,13 @@ export function QualityParametersLayout() {
           className={styles.headerCell}
           onMouseEnter={() => setHoveredCell({ row: -1, col, type: "header" })}
           onMouseLeave={() => setHoveredCell(null)}
-          title={TextUtilityService.shouldTruncateBasedOnSpace(col, columnConfig.columnasParams.length) ? col : undefined}
+          title={TextUtilities.shouldTruncateBasedOnSpace(col, columnConfig.columnasParams.length) ? col : undefined}
         >
-          {TextUtilityService.getTruncatedText(col, columnConfig.columnasParams.length)}
+          {TextUtilities.getTruncatedText(col, columnConfig.columnasParams.length)}
           {hoveredCell?.row === -1 &&
             hoveredCell?.col === col &&
             hoveredCell?.type === "header" &&
-            TextUtilityService.shouldTruncateBasedOnSpace(col, columnConfig.columnasParams.length) && (
+            TextUtilities.shouldTruncateBasedOnSpace(col, columnConfig.columnasParams.length) && (
               <div className={styles.tooltip}>{col}</div>
             )}
         </div>
@@ -532,22 +450,30 @@ export function QualityParametersLayout() {
   const renderFixedHeaders = () => (
     <div className={styles.headerRight}>
       {columnConfig.columnasFijas.map((col, idx) => (
-        <div
-          key={`header-fixed-${idx}`}
-          className={styles.headerCellFixed}
-          onMouseEnter={() => setHoveredCell({ row: -1, col, type: "header" })}
-          onMouseLeave={() => setHoveredCell(null)}
-          title={TextUtilityService.shouldTruncateBasedOnSpace(col, columnConfig.columnasFijas.length) ? col : undefined}
+        <div 
+          key={`header-fixed-${idx}`} 
+          className={styles.headerCellFixed} 
+          title={TextUtilities.shouldTruncateBasedOnSpace(col, columnConfig.columnasFijas.length) ? col : undefined}
         >
-          {TextUtilityService.getTruncatedText(col, columnConfig.columnasFijas.length)}
-          {hoveredCell?.row === -1 &&
-            hoveredCell?.col === col &&
-            hoveredCell?.type === "header" &&
-            TextUtilityService.shouldTruncateBasedOnSpace(col, columnConfig.columnasFijas.length) && (
-              <div className={styles.tooltip}>{col}</div>
-            )}
+          {TextUtilities.getTruncatedText(col, columnConfig.columnasFijas.length)}
         </div>
       ))}
+    </div>
+  )
+
+  const renderCheckboxColumn = () => (
+    <div className={styles.dataCheckbox}>
+      <div className={styles.dataCheckboxContent}>
+        {dataManagement.filas.map((_, filaIdx) => (
+          <div key={`checkbox-${filaIdx}`} className={styles.checkboxCell}>
+            <Checkbox
+              checked={selectedRowIndex === filaIdx}
+              onChange={(e, data) => handleCheckboxChange(filaIdx, data.checked === true)}
+              size="medium"
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 
@@ -555,20 +481,12 @@ export function QualityParametersLayout() {
     <div className={styles.dataLeft}>
       <div className={styles.dataLeftContent}>
         {dataManagement.filas.map((fila, filaIdx) => (
-          <div
-            key={`calidad-${filaIdx}`}
-            className={styles.dataCellLeft}
-            onMouseEnter={() => setHoveredCell({ row: filaIdx, col: columnConfig.keyCalidad, type: "data" })}
-            onMouseLeave={() => setHoveredCell(null)}
-            title={TextUtilityService.shouldShowTooltipCalidad(fila[columnConfig.keyCalidad]) ? fila[columnConfig.keyCalidad] : undefined}
+          <div 
+            key={`calidad-${filaIdx}`} 
+            className={styles.dataCellLeft} 
+            title={TextUtilities.shouldShowTooltipCalidad(fila[columnConfig.keyCalidad]) ? fila[columnConfig.keyCalidad] : undefined}
           >
-            {TextUtilityService.truncateCalidad(fila[columnConfig.keyCalidad])}
-            {hoveredCell?.row === filaIdx &&
-              hoveredCell?.col === columnConfig.keyCalidad &&
-              hoveredCell?.type === "data" &&
-              TextUtilityService.shouldShowTooltipCalidad(fila[columnConfig.keyCalidad]) && (
-                <div className={styles.tooltip}>{fila[columnConfig.keyCalidad]}</div>
-              )}
+            {TextUtilities.truncateCalidad(fila[columnConfig.keyCalidad])}
           </div>
         ))}
       </div>
@@ -579,18 +497,18 @@ export function QualityParametersLayout() {
     <div className={styles.dataMiddle} ref={scrollSync.scrollDataRef}>
       <div className={styles.dataMiddleContent}>
         {dataManagement.filas.map((fila, filaIdx) => (
-          <div
-            key={`fila-params-${filaIdx}`}
-            className={styles.dataRowGrid}
+          <div 
+            key={`fila-params-${filaIdx}`} 
+            className={styles.dataRowGrid} 
             style={{ gridTemplateColumns: columnConfig.paramsGridColumns }}
           >
             {columnConfig.columnasParams.map((col, colIdx) => (
               <div key={`param-${filaIdx}-${colIdx}`} className={styles.dataCell}>
-                <Input
-                  value={fila[col] ?? ""}
-                  onChange={(e, data) => handleCellUpdate(filaIdx, col, data.value)}
-                  className={styles.dataInput}
-                  type="text"
+                <Input 
+                  value={fila[col] ?? ""} 
+                  onChange={(e, data) => handleCellUpdate(filaIdx, col, data.value)} 
+                  className={styles.dataInput} 
+                  type="text" 
                 />
               </div>
             ))}
@@ -607,12 +525,12 @@ export function QualityParametersLayout() {
           <div key={`fila-fixed-${filaIdx}`} className={styles.dataRowGridFixed}>
             {columnConfig.columnasFijas.map((col, colIdx) => (
               <div key={`fixed-${filaIdx}-${colIdx}`} className={styles.dataCellFixed}>
-                <Input
-                  value={fila[col] ?? ""}
-                  onChange={(e, data) => handleCellUpdate(filaIdx, col, data.value)}
-                  className={styles.dataInput}
-                  type="text"
-                  readOnly={true}
+                <Input 
+                  value={fila[col] ?? ""} 
+                  onChange={(e, data) => handleCellUpdate(filaIdx, col, data.value)} 
+                  className={styles.dataInput} 
+                  type="text" 
+                  readOnly={true} 
                 />
               </div>
             ))}
@@ -622,25 +540,25 @@ export function QualityParametersLayout() {
     </div>
   )
 
-  const renderProcessControls = () => (
+  const renderControls = () => (
     <div className={styles.controlsContainer}>
       <div className={styles.controlsLeft}>
         <div className={styles.controlGroup}>
           <Label className={styles.controlLabel}>Número de rumas</Label>
           <div className={styles.controlInputContainer}>
-            <button
-              className={styles.incrementButton}
-              onClick={processConfig.decrementRumas}
-              disabled={processConfig.numeroRumas <= MIN_RUMAS}
+            <button 
+              className={styles.incrementButton} 
+              onClick={handleRumasDecrement} 
+              disabled={numeroRumas <= MIN_RUMAS}
             >
               <Subtract20Regular />
             </button>
             <Input
-              value={processConfig.numeroRumas.toString()}
-              onChange={(e, data) => processConfig.updateRumasFromInput(data.value)}
+              value={numeroRumas.toString()}
+              onChange={(e, data) => handleRumasInputChange(data.value)}
               className={styles.controlInput}
             />
-            <button className={styles.incrementButton} onClick={processConfig.incrementRumas}>
+            <button className={styles.incrementButton} onClick={handleRumasIncrement}>
               <Add20Regular />
             </button>
           </div>
@@ -649,22 +567,22 @@ export function QualityParametersLayout() {
         <div className={styles.controlGroup}>
           <Label className={styles.controlLabel}>División de rumas (toneladas)</Label>
           <div className={styles.controlInputContainer}>
-            <button
-              className={styles.incrementButton}
-              onClick={processConfig.decrementDivision}
-              disabled={processConfig.divisionRumas <= MIN_DIVISION}
+            <button 
+              className={styles.incrementButton} 
+              onClick={handleDivisionDecrement} 
+              disabled={divisionRumas <= MIN_DIVISION}
             >
               <Subtract20Regular />
             </button>
             <Input
-              value={processConfig.divisionRumas.toString()}
-              onChange={(e, data) => processConfig.updateDivisionFromInput(data.value)}
+              value={divisionRumas.toString()}
+              onChange={(e, data) => handleDivisionInputChange(data.value)}
               className={styles.controlInput}
             />
-            <button
-              className={styles.incrementButton}
-              onClick={processConfig.incrementDivision}
-              disabled={processConfig.divisionRumas >= MAX_DIVISION}
+            <button 
+              className={styles.incrementButton} 
+              onClick={handleDivisionIncrement} 
+              disabled={divisionRumas >= MAX_DIVISION}
             >
               <Add20Regular />
             </button>
@@ -673,9 +591,9 @@ export function QualityParametersLayout() {
       </div>
 
       <div className={styles.buttonsContainer}>
-        <Button
-          onClick={handleReset}
-          disabled={!dataManagement.hasChanges}
+        <Button 
+          onClick={handleReset} 
+          disabled={!dataManagement.hasChanges} 
           className={styles.outlineButton}
         >
           Restablecer parámetros
@@ -683,7 +601,11 @@ export function QualityParametersLayout() {
 
         <div style={{ height: "8px" }} />
 
-        <Button onClick={handleStartProcess} className={styles.primaryButton}>
+        <Button 
+          onClick={handleStartProcess} 
+          className={styles.primaryButton} 
+          disabled={selectedRowIndex === null}
+        >
           Iniciar proceso
         </Button>
       </div>
@@ -692,7 +614,7 @@ export function QualityParametersLayout() {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Parámetros de Calidad</h2>
+      <h2 className={styles.title}>Producto a Medida</h2>
 
       <div className={styles.gridContainer}>
         <div className={styles.gridWrapper}>
@@ -705,29 +627,18 @@ export function QualityParametersLayout() {
           </div>
 
           <div className={styles.headerRow}>
-            <div
-              className={styles.headerLeft}
-              onMouseEnter={() => setHoveredCell({ row: -1, col: columnConfig.keyCalidad, type: "header" })}
-              onMouseLeave={() => setHoveredCell(null)}
-              title={TextUtilityService.shouldShowTooltipCalidad(columnConfig.keyCalidad) ? columnConfig.keyCalidad : undefined}
-            >
-              {TextUtilityService.truncateCalidad(columnConfig.keyCalidad)}
-              {hoveredCell?.row === -1 &&
-                hoveredCell?.col === columnConfig.keyCalidad &&
-                hoveredCell?.type === "header" &&
-                TextUtilityService.shouldShowTooltipCalidad(columnConfig.keyCalidad) && (
-                  <div className={styles.tooltip}>{columnConfig.keyCalidad}</div>
-                )}
+            <div className={styles.headerCheckbox}></div>
+            <div className={styles.headerLeft}>
+              {TextUtilities.truncateCalidad(columnConfig.keyCalidad)}
             </div>
-
             <div className={styles.headerMiddle} ref={scrollSync.scrollHeaderRef}>
               {renderParameterHeaders()}
             </div>
-
             {renderFixedHeaders()}
           </div>
 
           <div className={styles.dataRow}>
+            {renderCheckboxColumn()}
             {renderCalidadColumn()}
             {renderParameterData()}
             {renderFixedData()}
@@ -735,7 +646,7 @@ export function QualityParametersLayout() {
         </div>
       </div>
 
-      {renderProcessControls()}
+      {renderControls()}
     </div>
   )
 }
