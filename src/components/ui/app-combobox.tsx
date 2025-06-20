@@ -13,6 +13,7 @@ type Props = {
   error?: string;
   size?: sizeCombobox; // tamaño del combobox
   errorInput?: boolean;
+  grayBorder?: boolean;
 };
 
 type sizeCombobox = "small" | "medium" | "large";
@@ -28,7 +29,14 @@ export const AppCombobox: React.FC<Props> = ({
   error,
   size = "medium", // tamaño del combobox
   errorInput = false, // si el input tiene error
+  grayBorder = false,
 }) => {
+  const borderColor = errorInput
+    ? OrgColors.serotRojo
+    : grayBorder
+    ? OrgColors.serotGris 
+    : OrgColors.celeste;
+
   return (
     <div className="w-full">
       {label && <Label required={labelRequired}>{label}</Label>}
@@ -36,11 +44,7 @@ export const AppCombobox: React.FC<Props> = ({
       <Combobox
         size={size}
         className="w-full"
-        style={
-          errorInput
-            ? { border: `2px solid ${OrgColors.serotRojo}` }
-            : { border: `2px solid ${OrgColors.celeste}` }
-        }
+        style={{ border: `2px solid ${borderColor}` }}
         placeholder={placeholder}
         value={value}
         onOptionSelect={(_, data) => onChange(data.optionValue)}

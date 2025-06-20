@@ -14,8 +14,8 @@ import {
   ClipboardTextLtrRegular,
 } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
-import { QualityParametersLayout } from "./quality-parameters-layout";
-import { CustomProductLayout } from "./custom-product-layout"; // ✅ AGREGAR: Import del custom
+import { CustomProductLayout } from "../../layouts/custom-product-layout"; 
+import { QualityParametersMatrix } from "./quality-parameters-matrix";
 
 // Opciones de tarjetas con íconos
 const CARD_OPTIONS: { label: string; icon: ReactNode }[] = [
@@ -73,7 +73,7 @@ const useStyles = makeStyles({
 });
 
 // Componente principal
-export function ExecutionLayout() {
+export function TabExecution() {
   const styles = useStyles();
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
@@ -113,11 +113,10 @@ export function ExecutionLayout() {
 
       <Card className={styles.cardFiltros}>
         <CardPreview>
-          {/* ✅ CAMBIAR: Mostrar CustomProductLayout solo si se selecciona "Producto a medida" */}
           {selectedType === "Producto a medida" ? (
             <CustomProductLayout />
           ) : (
-            <QualityParametersLayout />
+            <QualityParametersMatrix />
           )}
         </CardPreview>
       </Card>

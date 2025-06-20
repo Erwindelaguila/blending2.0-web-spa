@@ -137,6 +137,7 @@ export const MODULE_BREADCRUMBS = {
   calidad: {
     "/modelos/harina": "Homogenización de Harina",
     "/consultas/historico-harina": "Histórico Homo. Harina",
+    "/consultas/historico-harina/ver-reporte" : "Ver Reporte"
   },
   administrador: {
     "/mantenimientos/plantas": "Plantas de Homogenización",

@@ -15,10 +15,10 @@ import {
 } from "@fluentui/react-components";
 import { DatePicker } from "@fluentui/react-datepicker-compat";
 import { useState } from "react";
-import { AppTagPicker } from "../ui/app-tagPicker";
+import { AppTagPicker } from "../../ui/app-tagPicker";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { IFilterHomogenizacionHarina } from "@/interface";
-import { AppCombobox } from "../ui/app-combobox";
+import { AppCombobox } from "../../ui/app-combobox";
 import { Info16Regular } from "@fluentui/react-icons";
 
 const baseButtonStyle = {
@@ -32,21 +32,15 @@ const useStyles = makeStyles({
   card: {
     margin: "auto",
     width: "100%",
-    maxWidth: "100%",
-
-    //paddingTop: "1.5rem",
-    //paddingBottom: "1.5rem",
+    maxWidth: "100%", 
   },
 
-   cardFiltros: {
+  cardFiltros: {
     margin: "auto",
     width: "100%",
     maxWidth: "100%",
     height: "33rem",
     overflowY: "auto",
-
-    //paddingTop: "1.5rem",
-    //paddingBottom: "1.5rem",
   },
 
   buttonSAP: {
@@ -74,7 +68,7 @@ const allOptions = [
   "Maria Rossi",
 ];
 
-export function DataLayout() {
+export function TabData() {
   const styles = useStyles();
   const comboOptions = ["Cat", "Dog", "Ferret", "Fish", "Hamster", "Snake"];
 
@@ -116,7 +110,6 @@ export function DataLayout() {
 
   return (
     <div className=" w-full px-2 m-auto flex flex-col gap-6">
-      {/* --- Card 1: Stock disponible --- */}
       <Card className={styles.card}>
         <CardPreview>
           <div className="px-6 pt-2">
@@ -137,9 +130,6 @@ export function DataLayout() {
           </div>
         </CardPreview>
       </Card>
-
-      {/* --- Card 2: Filtros --- */}
-
       <>
         <Card className={styles.cardFiltros}>
           <CardPreview>

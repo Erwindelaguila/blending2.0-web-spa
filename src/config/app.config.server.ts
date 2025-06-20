@@ -105,6 +105,9 @@ export const OrgColors = {
   serotAmarillo: "#ffc700", // RGB(255,199,0)
   serotAzul: "#1c73ae", // RGB(28,115,174)
   serotRojo: "#ca2d00", // RGB(200,45,0)
+
+  serotGris:"#D1D5DB",
+  serotAmber:"#ffbf00"
 };
 
 // ============================================================================
