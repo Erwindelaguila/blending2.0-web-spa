@@ -87,14 +87,15 @@ export const UI_CONFIG = {
   footer: {
     height: "48px",
   },
-  
 } as const;
 
 export const OrgColors = {
   // Colores principales
   azulOscuro: "#184a7d", // RGB(24,74,125)
   verde: "#76a140", // RGB(118,162,64)
-  celeste: "#56bdeb", // RGB(86,189,236)
+  celeste: "#008CFF", // RGB(86,189,236)
+  rojo: "#f50b0b",
+  gris : "#6c767d",
 
   // Colores secundarios
   blanco: "#ffffff",
@@ -106,8 +107,8 @@ export const OrgColors = {
   serotAzul: "#1c73ae", // RGB(28,115,174)
   serotRojo: "#ca2d00", // RGB(200,45,0)
 
-  serotGris:"#D1D5DB",
-  serotAmber:"#ffbf00"
+  serotGris: "#D1D5DB",
+  serotAmber: "#ffbf00",
 };
 
 // ============================================================================

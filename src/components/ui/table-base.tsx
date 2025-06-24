@@ -12,23 +12,7 @@ import {
 } from "@fluentui/react-components";
 import { makeStyles, shorthands } from "@fluentui/react-components";
 import { OrgColors } from "@/config/app.config.server";
-
-type Column = {
-  uid: string;
-  name: string;
-  width?: number;
-};
-
-type Data = { [key: string]: any };
-
-type TableProps = {
-  data: Data[];
-  columns: Column[];
-  renderCell?: (item: Data, columnKey: string) => React.ReactNode;
-  isLoading: boolean;
-  error: any;
-  height?: string;
-};
+import { ITableBase } from "@/interface";
 
 const useStyles = makeStyles({
   container: {
@@ -54,6 +38,8 @@ const useStyles = makeStyles({
   },
 });
 
+type Data = { [key: string]: any };
+
 export function TableBase({
   data,
   columns,
@@ -61,7 +47,7 @@ export function TableBase({
   isLoading,
   error,
   height = "38rem",
-}: TableProps) {
+}: ITableBase) {
   const styles = useStyles();
 
   const defaultRenderCell = (item: Data, columnKey: string) =>
@@ -110,7 +96,10 @@ export function TableBase({
     return data.map((item) => (
       <TableRow key={item.id}>
         {columns.map((column) => (
-          <TableCell key={`${item.id}-${column.uid}`} className={styles.bodyCell}>
+          <TableCell
+            key={`${item.id}-${column.uid}`}
+            className={styles.bodyCell}
+          >
             <TableCellLayout>
               {renderCell
                 ? renderCell(item, column.uid)

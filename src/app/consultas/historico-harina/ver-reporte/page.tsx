@@ -16,7 +16,6 @@ import {
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-
 const CALIDADES: IGroup[] = [
   {
     grupo: 1,
@@ -164,8 +163,6 @@ export default function DetallePage() {
   if (!uid) {
     return <div>UID no proporcionado</div>;
   }
-
-  console.log(selected);
 
   return (
     <div className=" p-1">

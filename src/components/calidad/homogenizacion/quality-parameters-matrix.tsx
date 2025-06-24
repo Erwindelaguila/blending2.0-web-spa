@@ -310,6 +310,7 @@ class ScrollSynchronizationService {
 }
 
 const useQualityDataManagement = (initialData: FilaDato[]) => {
+  
   const [filas, setFilas] = useState<FilaDato[]>(initialData);
   const [filasOriginales] = useState<FilaDato[]>(
     DataTransformationService.deepClone(initialData)

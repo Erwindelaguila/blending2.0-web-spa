@@ -9,19 +9,31 @@ const initialState: StepState = {
   current: 0,
 };
 
+
 const stepSlice = createSlice({
   name: "step",
+
   initialState,
+
   reducers: {
+
     setStep: (state, action: PayloadAction<number>) => {
       state.current = action.payload;
     },
+
     nextStep: (state) => {
       state.current += 1;
     },
+
     prevStep: (state) => {
       if (state.current > 0) state.current -= 1;
     },
+
+    resetStep: (state) => {
+      state.current = 0;
+    },
+
+
   },
 });
 
