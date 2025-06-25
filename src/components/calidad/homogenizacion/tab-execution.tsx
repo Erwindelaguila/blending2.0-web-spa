@@ -1,23 +1,11 @@
-import { useState } from "react";
-import {
-  Card,
-  CardPreview,
-  makeStyles,
-  Text,
-  mergeClasses,
-} from "@fluentui/react-components";
-import { OrgColors } from "@/config/app.config.server";
-import {
-  DocumentTextRegular,
-  ArrowRepeatAllRegular,
-  BoxRegular,
-  ClipboardTextLtrRegular,
-} from "@fluentui/react-icons";
-import type { ReactNode } from "react";
-import { CustomProductLayout } from "../../layouts/custom-product-layout"; 
-import { QualityParametersMatrix } from "./quality-parameters-matrix";
+"use client"
 
-// Opciones de tarjetas con íconos
+import { useState } from "react"
+import { Card, CardPreview, Text } from "@fluentui/react-components"
+import { DocumentTextRegular, ArrowRepeatAllRegular, BoxRegular, ClipboardTextLtrRegular } from "@fluentui/react-icons"
+import type { ReactNode } from "react"
+import { QualityParametersMatrix } from "./quality-parameters-matrix"
+
 const CARD_OPTIONS: { label: string; icon: ReactNode }[] = [
   { label: "Homogenizado", icon: <DocumentTextRegular fontSize={28} /> },
   { label: "Reproceso", icon: <ArrowRepeatAllRegular fontSize={28} /> },
@@ -26,64 +14,17 @@ const CARD_OPTIONS: { label: string; icon: ReactNode }[] = [
     label: "Consumir parametros",
     icon: <ClipboardTextLtrRegular fontSize={28} />,
   },
-];
-
-// Estilos
-const useStyles = makeStyles({
-  container: {
-    margin: "auto",
-    width: "100%",
-    maxWidth: "100%",
-  },
-  cardBase: {
-    width: "18rem",
-    color: "#000",
-    fontSize: "1rem",
-    backgroundColor: "#f8f9fa",
-    border: "0.1rem solid #eee",
-    borderTop: "0.7rem solid #808080",
-    cursor: "pointer",
-    textAlign: "center",
-    padding: "1rem",
-    transition: "all 0.2s ease-in-out",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "0.5rem",
-
-    ":hover": {
-      backgroundColor: "#f0f8ff",
-      borderTopColor: OrgColors.serotAzul,
-    },
-  },
-  selected: {
-    backgroundColor: "#cce5ff",
-    borderTopColor: OrgColors.serotAzul,
-  },
-
-  cardFiltros: {
-    margin: "auto",
-    width: "100%",
-    maxWidth: "100%",
-    height: "31rem",
-    overflowY: "auto",
-    //paddingTop: "1.5rem",
-    //paddingBottom: "1.5rem",
-  },
-});
-
-// Componente principal
+]
 export function TabExecution() {
-  const styles = useStyles();
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string>("Homogenizado")
 
   const handleSelect = (label: string) => {
-    setSelectedType(label);
-  };
+    setSelectedType(label)
+  }
 
   return (
     <div className="px-2 m-auto flex flex-col gap-6">
-      <Card className={styles.container}>
+      <Card className="mx-auto w-full max-w-full">
         <CardPreview>
           <div className="px-6 pt-2">
             <Text size={400} weight="medium">
@@ -94,10 +35,11 @@ export function TabExecution() {
                 <Card
                   key={label}
                   size="large"
-                  className={mergeClasses(
-                    styles.cardBase,
-                    selectedType === label && styles.selected
-                  )}
+                  className={`w-72 text-black text-base border border-gray-200 border-t-8 cursor-pointer text-center p-4 transition-all duration-200 ease-in-out flex flex-col items-center gap-2 ${
+                    selectedType === label
+                      ? "bg-blue-100 border-t-blue-600"
+                      : "bg-gray-50 border-t-gray-500 hover:bg-blue-50 hover:border-t-blue-600"
+                  }`}
                   onClick={() => handleSelect(label)}
                 >
                   <div className="flex items-center gap-2">
@@ -111,15 +53,11 @@ export function TabExecution() {
         </CardPreview>
       </Card>
 
-      <Card className={styles.cardFiltros}>
+      <Card className="mx-auto w-full max-w-full h-[31rem] overflow-y-auto">
         <CardPreview>
-          {selectedType === "Producto a medida" ? (
-            <CustomProductLayout />
-          ) : (
-            <QualityParametersMatrix />
-          )}
+          <QualityParametersMatrix showCheckboxes={selectedType === "Producto a medida"} selectedType={selectedType} />
         </CardPreview>
       </Card>
     </div>
-  );
+  )
 }
