@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import type { FilaDato } from "@/interface/quality/quality-matrix.interfaces"
 import { ValidationUtils } from "@/utils/validation-utils"
 import { DataTransformationUtils } from "@/utils/data-transformation.utils"
@@ -8,6 +8,11 @@ import { DataTransformationUtils } from "@/utils/data-transformation.utils"
 export const useAdjustmentManagement = (columnasParams: string[]) => {
   const initialAdjustments = columnasParams.map(() => "0")
   const [encabezadoSuperior, setEncabezadoSuperior] = useState<string[]>(initialAdjustments)
+
+  // Memoizar si hay ajustes para que se actualice automáticamente
+  const hasAdjustments = useMemo(() => {
+    return encabezadoSuperior.some((adj) => adj !== "0")
+  }, [encabezadoSuperior])
 
   const updateAdjustment = (index: number, value: string) => {
     if (!ValidationUtils.isValidSignedDecimal(value)) return
@@ -36,16 +41,11 @@ export const useAdjustmentManagement = (columnasParams: string[]) => {
     setEncabezadoSuperior([...initialAdjustments])
   }
 
-  //Función para verificar si hay ajustes pendientes (diferentes de "0")
-  const hasAdjustments = () => {
-    return encabezadoSuperior.some((adj) => adj !== "0")
-  }
-
   return {
     encabezadoSuperior,
+    hasAdjustments,
     updateAdjustment,
     applyAdjustment,
     resetAllAdjustments,
-    hasAdjustments,
   }
 }

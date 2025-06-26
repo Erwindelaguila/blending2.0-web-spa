@@ -8,7 +8,6 @@ import type { ProcessConfig, QualityParametersMatrixProps } from "@/interface/qu
 import { INITIAL_DATA, STYLES } from "@/lib/constants/quality-matrix.constants"
 import { TextUtils } from "@/utils/text-utils"
 import { ColumnConfigurationUtils } from "@/utils/column-configuration.utils"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { ProcessControls } from "./process-controls"
 import { useQualityDataManagement } from "@/hooks/use-quality-data-management"
 import { useAdjustmentManagement } from "@/hooks/use-adjustment-management"
@@ -62,7 +61,7 @@ export function QualityParametersMatrix({
   const handleAdjustmentApply = useCallback(
     (index: number) => {
       adjustmentManagement.applyAdjustment(index, dataManagement.filas, (newFilas) => {
-        dataManagement.setFilas([...newFilas])
+        dataManagement.updateFilas([...newFilas])
       })
     },
     [adjustmentManagement, dataManagement],
@@ -112,9 +111,9 @@ export function QualityParametersMatrix({
   const shouldEnableReset = useMemo(
     () =>
       dataManagement.hasChanges ||
-      adjustmentManagement.hasAdjustments() ||
+      adjustmentManagement.hasAdjustments ||
       (showCheckboxes && selectedRowIndex !== null),
-    [dataManagement.hasChanges, adjustmentManagement, showCheckboxes, selectedRowIndex],
+    [dataManagement.hasChanges, adjustmentManagement.hasAdjustments, showCheckboxes, selectedRowIndex],
   )
 
   const shouldDisableStartButton = useMemo(
@@ -145,7 +144,6 @@ export function QualityParametersMatrix({
   )
 
   return (
-    <TooltipProvider>
       <div className="w-full flex flex-col gap-4 pt-5 pb-5 pl-10 pr-10 max-w-full m-0">
         <h2 className="text-2xl font-semibold text-blue-600 m-0 mb-3 text-left self-start -ml-5">
           Parámetros de Calidad
@@ -340,7 +338,6 @@ export function QualityParametersMatrix({
           disabled={shouldDisableStartButton}
         />
       </div>
-    </TooltipProvider>
   )
 }
 
