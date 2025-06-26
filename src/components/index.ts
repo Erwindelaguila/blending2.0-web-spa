@@ -7,6 +7,7 @@ export * from "./ui/title";
 export * from "./ui/app-filter";
 export * from "./ui/table-base";
 export * from "./calidad/historico/table-historico";
+export * from "./logistica/historico/table-historico"; // 👈 Agrega esta línea
 export * from "./ui/table-dynamic";
 export * from "./ui/card-group";
 export * from "./ui/drawe-base";
@@ -22,3 +23,4 @@ export * from "./admin/valores-calidad/table-valores-calidad";
 export * from "./logistica/homogenizacion/parametros-logisticos";
 export * from "./logistica/homogenizacion/otros-parametros";
 
+    
