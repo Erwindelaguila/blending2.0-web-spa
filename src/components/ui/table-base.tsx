@@ -16,8 +16,7 @@ import { ITableBase } from "@/interface";
 
 const useStyles = makeStyles({
   container: {
-    ...shorthands.overflow("auto"),
-    height: "38rem",
+    overflow: "auto",
     borderRadius: "0.2rem",
   },
   noBorder: {
@@ -46,7 +45,7 @@ export function TableBase({
   renderCell,
   isLoading,
   error,
-  height = "38rem",
+  height = "auto",
 }: ITableBase) {
   const styles = useStyles();
 

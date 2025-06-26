@@ -11,10 +11,7 @@ import {
   makeStyles,
   TeachingPopover,
   TeachingPopoverBody,
-  TeachingPopoverFooter,
-  TeachingPopoverHeader,
   TeachingPopoverSurface,
-  TeachingPopoverTitle,
   TeachingPopoverTrigger,
 } from "@fluentui/react-components";
 import {
@@ -440,6 +437,7 @@ export function TableHistorico() {
                     <TableDynamic
                       calidades={item.calidades}
                       title={`Parámetros`}
+                      height="auto"
                     ></TableDynamic>
                   </div>
                 </TeachingPopoverBody>

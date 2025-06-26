@@ -80,7 +80,7 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Checkbox
               size="large"
-              checked={checked}
+              checked={checkedV1}
               onChange={(ev, data) => setCheckedV1(data.checked)}
               label={checkedV1 ? "Conforme" : "No conforme"}
             />

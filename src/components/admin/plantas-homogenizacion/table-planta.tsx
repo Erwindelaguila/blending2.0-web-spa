@@ -199,7 +199,7 @@ export function TablePlanta() {
             }}
           >
             <div className="flex justify-between items-center">
-              <Title title="Plantas de Homogenizado"></Title>
+              <Title title="Plantas de Homogenizado" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
@@ -227,7 +227,10 @@ export function TablePlanta() {
         </CardPreview>
       </Card>
 
-      <PanelCrearPlantas isOpen={openPanel} setIsOpen={setOpenPanel}></PanelCrearPlantas>
+      <PanelCrearPlantas
+        isOpen={openPanel}
+        setIsOpen={setOpenPanel}
+      ></PanelCrearPlantas>
 
       <ModalBase
         open={openModal}
