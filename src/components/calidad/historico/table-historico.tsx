@@ -18,10 +18,8 @@ import {
   DataUsage24Regular,
   Eye24Regular,
   Options24Regular,
-  Search24Regular,
 } from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 const columns = [
   { uid: "code", name: "Codigo", width: 5 },

@@ -1,6 +1,6 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
-import { OrgColors } from "@/config/app.config.server";
 import { IDrawer } from "@/interface";
+import { useInputStyles } from "@/styles/input.styles";
 import {
   Checkbox,
   CheckboxProps,
@@ -10,9 +10,27 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { useCallback, useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
 
 export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
-  const sendData = () => {};
+  const styles = useInputStyles();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<ICalidad>({
+    defaultValues: {
+      codigo: "",
+      codigo_material: "",
+      descripcion: "",
+      nombre: "",
+    },
+  });
 
   const [checked, setChecked] = useState(true);
   const onChange = useCallback(
@@ -23,6 +41,14 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
   );
 
   const [checkedV1, setCheckedV1] = useState<CheckboxProps["checked"]>(true);
+
+  const onSubmit: SubmitHandler<ICalidad> = async (data) => {
+    console.log("Form data submitted:", data);
+  };
+
+  const sendData = () => {
+    handleSubmit(onSubmit)();
+  };
 
   return (
     <>
@@ -38,43 +64,64 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Codigo</Label>
             <Input
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-              }}
+              {...register("codigo", {
+                required: {
+                  value: true,
+                  message: "El codigo es requerido",
+                },
+              })}
+              className={styles.inputGrisBase}
             />
+            {errors.codigo && (
+              <span className="text-red-500">{errors.codigo.message}</span>
+            )}
           </div>
 
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Nombre</Label>
             <Input
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-              }}
+              {...register("nombre", {
+                required: {
+                  value: true,
+                  message: "El nombre es requerido",
+                },
+              })}
+              className={styles.inputGrisBase}
             />
+            {errors.nombre && (
+              <span className="text-red-500">{errors.nombre.message}</span>
+            )}
           </div>
 
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Código de Material</Label>
             <Input
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-              }}
+              {...register("codigo_material", {
+                required: {
+                  value: true,
+                  message: "El codigo de material es requerido",
+                },
+              })}
+              className={styles.inputGrisBase}
             />
+            {errors.codigo_material && (
+              <span className="text-red-500">
+                {errors.codigo_material.message}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label>Descripción</Label>
             <Textarea
+              {...register("descripcion")}
               size="large"
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-                height: "10rem",
-              }}
+              className={styles.inputGrisBase}
+              style={{ height: "10rem" }}
             />
+            {errors.descripcion && (
+              <span className="text-red-500">{errors.descripcion.message}</span>
+            )}
           </div>
 
           <div className="flex flex-col justify-start w-full gap-0.5">
@@ -98,4 +145,11 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
       </DrawerBase>
     </>
   );
+}
+
+interface ICalidad {
+  codigo: string;
+  nombre: string;
+  codigo_material: string;
+  descripcion: string;
 }
