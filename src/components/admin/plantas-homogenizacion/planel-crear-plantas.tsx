@@ -1,12 +1,11 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
+import { AsyncActionDisplay } from "@/components/ui/async-action-display";
+import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
 import { IDrawer } from "@/interface";
 import {
-  Button,
-  Field,
   Input,
   Label,
-  ProgressBar,
   Switch,
   Textarea,
 } from "@fluentui/react-components";
@@ -14,6 +13,14 @@ import { useCallback, useState } from "react";
 
 export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
   const [checked, setChecked] = useState(true);
+  const [formData, setFormData] = useState({
+    codigo: '',
+    nombre: '',
+    descripcion: '',
+  });
+
+  const asyncAction = useAsyncAction();
+
   const onChange = useCallback(
     (ev: React.ChangeEvent<HTMLInputElement>) => {
       setChecked(ev.currentTarget.checked);
@@ -21,66 +28,36 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
     [setChecked]
   );
 
-  const [level, setLevel] = useState<number>(0);
-
-  const [isLoading, setIsLoading] = useState<boolean>(true); //redux
-
-  const sendData = () => {
-    setIsLoading(false);
-    setLevel(1);
-
-    setTimeout(() => {
-      setLevel(2);
-    }, 2000);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const renderCamp = () => {
-    return (
-      <>
-        <div className="py-2 flex flex-col gap-3">
-          <div className="flex flex-col justify-start w-full gap-0.5">
-            <Label required>Codigo</Label>
-            <Input
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-              }}
-            />
-          </div>
+  const simulateCreatePlanta = async (): Promise<void> => {
+    // Simula llamada API - solo éxito por ahora
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(void 0);
+      }, 2000);
+    });
+  };
 
-          <div className="flex flex-col justify-start w-full gap-0.5">
-            <Label required>Nombre</Label>
-            <Input
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-              }}
-            />
-          </div>
+  const handleSubmit = async () => {
+    // Ejecutar la acción
+    await asyncAction.execute(simulateCreatePlanta);
+  };
 
-          <div className="flex flex-col justify-start w-full gap-0.5">
-            <Label>Descripción</Label>
-            <Textarea
-              size="large"
-              style={{
-                width: "100%",
-                border: ` 2px solid ${OrgColors.serotGris}`,
-                height: "10rem",
-              }}
-            />
-          </div>
+  const handleClose = () => {
+    asyncAction.reset();
+    setFormData({ codigo: '', nombre: '', descripcion: '' });
+    setChecked(true);
+    setIsOpen(false);
+  };
 
-          <div className="flex flex-col justify-start w-full gap-0.5">
-            <Label>Estado</Label>
-            <Switch
-              checked={checked}
-              onChange={onChange}
-              label={checked ? "Activo" : "Inactivo"}
-            />
-          </div>
-        </div>
-      </>
-    );
+  const handleSuccess = () => {
+    handleClose();
   };
 
   return (
@@ -89,88 +66,70 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
         isOpen={isOpen}
         setIsOpen={setIsOpen}
         title="Nueva Planta de Homogenización"
-        buttonAction={sendData}
+        buttonAction={handleSubmit}
         position="end"
         zise="medium"
-        BtnAccion={isLoading}
+        BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
       >
-        <>
-          {level === 0 && (
-            <>
-              <div className="py-2 flex flex-col gap-3">
-                <div className="flex flex-col justify-start w-full gap-0.5">
-                  <Label required>Codigo</Label>
-                  <Input
-                    style={{
-                      width: "100%",
-                      border: ` 2px solid ${OrgColors.serotGris}`,
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-col justify-start w-full gap-0.5">
-                  <Label required>Nombre</Label>
-                  <Input
-                    style={{
-                      width: "100%",
-                      border: ` 2px solid ${OrgColors.serotGris}`,
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-col justify-start w-full gap-0.5">
-                  <Label>Descripción</Label>
-                  <Textarea
-                    size="large"
-                    style={{
-                      width: "100%",
-                      border: ` 2px solid ${OrgColors.serotGris}`,
-                      height: "10rem",
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-col justify-start w-full gap-0.5">
-                  <Label>Estado</Label>
-                  <Switch
-                    checked={checked}
-                    onChange={onChange}
-                    label={checked ? "Activo" : "Inactivo"}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-          {level === 1 && (
-            <>
-              <Field
-                validationMessage="Creando plantas de homogenizacion"
-                validationState="none"
-              >
-                <ProgressBar />
-              </Field>
-            </>
-          )}
-
-          {level === 2 && (
-            <>
-              <div>Se creo correctamente la planta de homogenización</div>
-
-              <Button
-                onClick={() => {
-                  setTimeout(() => {
-                    setIsOpen(false);
-                  }, 100); // Simula un pequeño delay para resetear el estado
-
-                  setLevel(0);
-                  setIsLoading(true);
+        {/* Mostrar formulario solo si no está en estado de loading, success o error */}
+        {asyncAction.state === 'idle' && (
+          <div className="py-2 flex flex-col gap-3">
+            <div className="flex flex-col justify-start w-full gap-0.5">
+              <Label required>Codigo</Label>
+              <Input
+                value={formData.codigo}
+                onChange={(_, data) => handleInputChange('codigo', data.value)}
+                style={{
+                  width: "100%",
+                  border: ` 2px solid ${OrgColors.serotGris}`,
                 }}
-              >
-                Aceptar
-              </Button>
-            </>
-          )}
-        </>
+              />
+            </div>
+
+            <div className="flex flex-col justify-start w-full gap-0.5">
+              <Label required>Nombre</Label>
+              <Input
+                value={formData.nombre}
+                onChange={(_, data) => handleInputChange('nombre', data.value)}
+                style={{
+                  width: "100%",
+                  border: ` 2px solid ${OrgColors.serotGris}`,
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col justify-start w-full gap-0.5">
+              <Label>Descripción</Label>
+              <Textarea
+                value={formData.descripcion}
+                onChange={(_, data) => handleInputChange('descripcion', data.value)}
+                size="large"
+                style={{
+                  width: "100%",
+                  border: ` 2px solid ${OrgColors.serotGris}`,
+                  height: "10rem",
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col justify-start w-full gap-0.5">
+              <Label>Estado</Label>
+              <Switch
+                checked={checked}
+                onChange={onChange}
+                label={checked ? "Activo" : "Inactivo"}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Componente reutilizable para manejar estados async */}
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage="Creando plantas de homogenizacion"
+          successMessage="Se creo correctamente la planta de homogenización"
+          onSuccess={handleSuccess}
+        />
       </DrawerBase>
     </>
   );

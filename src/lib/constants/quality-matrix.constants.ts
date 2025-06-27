@@ -34,7 +34,7 @@ export const INITIAL_DATA = [
     PARAM07: "14.8",
     PARAM08: "456",
     CADMIO: "678",
-    TOTAL: "3335",
+    PRECIO: "3335",
   },
   {
     CALIDAD: "CALIDAD-02",
@@ -47,7 +47,7 @@ export const INITIAL_DATA = [
     PARAM07: "14.8",
     PARAM08: "456",
     CADMIO: "12",
-    TOTAL: "1000",
+    PRECIO: "1000",
   },
   {
     CALIDAD: "CALIDAD-03",
@@ -60,7 +60,7 @@ export const INITIAL_DATA = [
     PARAM07: "14.8",
     PARAM08: "456",
     CADMIO: "763",
-    TOTAL: "8618",
+    PRECIO: "8618",
   },
   {
     CALIDAD: "CALIDAD-04",
@@ -73,7 +73,7 @@ export const INITIAL_DATA = [
     PARAM07: "14.8",
     PARAM08: "456",
     CADMIO: "421",
-    TOTAL: "2145",
+    PRECIO: "2145",
   },
   {
     CALIDAD: "CALIDAD-05",
@@ -86,6 +86,6 @@ export const INITIAL_DATA = [
     PARAM07: "14.8",
     PARAM08: "456",
     CADMIO: "892",
-    TOTAL: "4567",
+    PRECIO: "4567",
   },
 ]

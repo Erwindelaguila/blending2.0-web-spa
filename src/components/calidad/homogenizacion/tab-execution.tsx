@@ -55,7 +55,10 @@ export function TabExecution() {
 
       <Card className="mx-auto w-full max-w-full h-[31rem] overflow-y-auto">
         <CardPreview>
-          <QualityParametersMatrix showCheckboxes={selectedType === "Producto a medida"} selectedType={selectedType} />
+          <QualityParametersMatrix 
+            showCheckboxes={selectedType === "Producto a medida" || selectedType === "Consumir parametros"} 
+            allowMultipleSelection={selectedType === "Consumir parametros"}
+          />
         </CardPreview>
       </Card>
     </div>

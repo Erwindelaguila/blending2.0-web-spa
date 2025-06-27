@@ -83,6 +83,7 @@ export interface FixedColumnsRowProps {
 export interface QualityParametersMatrixProps {
   showCheckboxes?: boolean
   selectedType?: string
+  allowMultipleSelection?: boolean
 }
 
 export interface MouseHandlers {
