@@ -1,69 +1,75 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
-import { OrgColors } from "@/config/app.config.server";
+import { AsyncActionDisplay } from "@/components/ui/async-action-display";
+import { useAsyncAction } from "@/hooks/use-async-action";
 import { IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import { Input, Label, Switch, Textarea } from "@fluentui/react-components";
 import { useCallback, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 
-export function PanelCrearParamentros({ isOpen, setIsOpen }: IDrawer) {
+export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
   const styles = useInputStyles();
+  const [checked, setChecked] = useState(true);
 
   const {
     register,
     handleSubmit,
-    control,
-    setValue,
     reset,
-    watch,
     formState: { errors },
   } = useForm<IParametros>({
     defaultValues: {
       codigo: "",
-      descripcion: "",
       nombre: "",
+      descripcion: "",
     },
   });
 
+  const asyncAction = useAsyncAction();
+
+  const onChange = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
+    setChecked(ev.currentTarget.checked);
+  }, []);
+
   const onSubmit: SubmitHandler<IParametros> = async (data) => {
-    console.log("Form data submitted:", data);
+    await asyncAction.execute(() => simulateCreateParametro(data));
   };
 
-  const sendData = () => {
-    handleSubmit(onSubmit)();
+  const simulateCreateParametro = async (data: IParametros): Promise<void> => {
+    console.log("Formulario enviado:", data);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   };
 
-  const [checked, setChecked] = useState(true);
-  const onChange = useCallback(
-    (ev: React.ChangeEvent<HTMLInputElement>) => {
-      setChecked(ev.currentTarget.checked);
-    },
-    [setChecked]
-  );
+  const handleClose = () => {
+    asyncAction.reset();
+    reset();
+    setChecked(true);
+    setIsOpen(false);
+  };
+
+  const handleSuccess = () => {
+    handleClose();
+  };
 
   return (
-    <>
-      <DrawerBase
-        isOpen={isOpen}
-        setIsOpen={setIsOpen}
-        title="Nuevo Parámetro"
-        buttonAction={sendData}
-        position="end"
-        zise="medium"
-      >
+    <DrawerBase
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      title="Nuevo Parámetro"
+      buttonAction={handleSubmit(onSubmit)}
+      position="end"
+      zise="medium"
+      BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
+    >
+      {asyncAction.state === "idle" && (
         <div className="py-2 flex flex-col gap-3">
           <div className="flex flex-col justify-start w-full gap-0.5">
-            <Label required>Codigo</Label>
+            <Label required>Código</Label>
             <Input
               {...register("codigo", {
-                required: {
-                  value: true,
-                  message: "El codigo es requerido",
-                },
+                required: "El código es requerido",
               })}
               className={styles.inputGrisBase}
             />
-
             {errors.codigo && (
               <span className="text-red-500">{errors.codigo.message}</span>
             )}
@@ -73,10 +79,7 @@ export function PanelCrearParamentros({ isOpen, setIsOpen }: IDrawer) {
             <Label required>Nombre</Label>
             <Input
               {...register("nombre", {
-                required: {
-                  value: true,
-                  message: "El codigo es requerido",
-                },
+                required: "El nombre es requerido",
               })}
               className={styles.inputGrisBase}
             />
@@ -91,13 +94,10 @@ export function PanelCrearParamentros({ isOpen, setIsOpen }: IDrawer) {
               {...register("descripcion")}
               size="large"
               className={styles.inputGrisBase}
-              style={{
-                height: "10rem",
-              }}
+              style={{ height: "10rem" }}
             />
-
-            {errors.nombre && (
-              <span className="text-red-500">{errors.nombre.message}</span>
+            {errors.descripcion && (
+              <span className="text-red-500">{errors.descripcion.message}</span>
             )}
           </div>
 
@@ -110,14 +110,20 @@ export function PanelCrearParamentros({ isOpen, setIsOpen }: IDrawer) {
             />
           </div>
         </div>
-      </DrawerBase>
-    </>
+      )}
+
+      <AsyncActionDisplay
+        state={asyncAction.state}
+        loadingMessage="Creando nuevo parámetro..."
+        successMessage="Se creó correctamente el parámetro"
+        onSuccess={handleSuccess}
+      />
+    </DrawerBase>
   );
 }
 
 interface IParametros {
   codigo: string;
   nombre: string;
-  codigo_material: string;
   descripcion: string;
 }

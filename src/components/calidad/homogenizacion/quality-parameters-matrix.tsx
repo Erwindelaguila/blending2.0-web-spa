@@ -21,6 +21,7 @@ import { FixedColumnsRow } from "./matrix-components/fixed-columns-row"
 export function QualityParametersMatrix({
   showCheckboxes = false,
   selectedType = "Homogenizado",
+  allowMultipleSelection = false,
 }: QualityParametersMatrixProps) {
   const dispatch = useAppDispatch()
 
@@ -36,11 +37,14 @@ export function QualityParametersMatrix({
 
   const adjustmentManagement = useAdjustmentManagement(columnConfig.columnasParams)
 
+  // Estado para selección única o múltiple
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
+  const [selectedRowIndexes, setSelectedRowIndexes] = useState<number[]>([])
 
   useEffect(() => {
     if (!showCheckboxes) {
       setSelectedRowIndex(null)
+      setSelectedRowIndexes([])
     }
   }, [showCheckboxes])
 
@@ -68,13 +72,22 @@ export function QualityParametersMatrix({
   )
 
   const handleCheckboxChange = useCallback((rowIndex: number, checked: boolean) => {
-    setSelectedRowIndex(checked ? rowIndex : null)
-  }, [])
+    if (allowMultipleSelection) {
+      setSelectedRowIndexes(prev => 
+        checked 
+          ? [...prev, rowIndex]
+          : prev.filter(index => index !== rowIndex)
+      )
+    } else {
+      setSelectedRowIndex(checked ? rowIndex : null)
+    }
+  }, [allowMultipleSelection])
 
   const handleReset = useCallback(() => {
     dataManagement.resetToOriginal()
     adjustmentManagement.resetAllAdjustments()
     setSelectedRowIndex(null)
+    setSelectedRowIndexes([])
   }, [dataManagement, adjustmentManagement])
 
   const handleStartProcess = useCallback(() => {
@@ -116,13 +129,18 @@ export function QualityParametersMatrix({
     [dataManagement.hasChanges, adjustmentManagement.hasAdjustments, showCheckboxes, selectedRowIndex],
   )
 
-  const shouldDisableStartButton = useMemo(
-    () => showCheckboxes && selectedRowIndex === null,
-    [showCheckboxes, selectedRowIndex],
-  )
+  const shouldDisableStartButton = useMemo(() => {
+    if (!showCheckboxes) return false
+    
+    if (allowMultipleSelection) {
+      return selectedRowIndexes.length === 0
+    } else {
+      return selectedRowIndex === null
+    }
+  }, [showCheckboxes, allowMultipleSelection, selectedRowIndex, selectedRowIndexes])
 
   const gridTemplateColumns = useMemo(
-    () => (showCheckboxes ? "40px minmax(70px,8%) 1fr minmax(180px,180px)" : "minmax(70px,8%) 1fr minmax(180px,180px)"),
+    () => (showCheckboxes ? "40px minmax(70px,8%) 1fr" : "minmax(70px,8%) 1fr"),
     [showCheckboxes],
   )
 
@@ -163,7 +181,10 @@ export function QualityParametersMatrix({
                         className="border-b border-[#8bc34a] bg-white flex items-center justify-center h-10 min-h-10"
                       >
                         <Checkbox
-                          checked={selectedRowIndex === filaIdx}
+                          checked={allowMultipleSelection 
+                            ? selectedRowIndexes.includes(filaIdx)
+                            : selectedRowIndex === filaIdx
+                          }
                           onChange={(e, data) => handleCheckboxChange(filaIdx, data.checked === true)}
                           size="medium"
                         />
@@ -218,7 +239,7 @@ export function QualityParametersMatrix({
                     {columnConfig.columnasParams.map((col, idx) => (
                       <div
                         key={`adjustment-container-${idx}`}
-                        className={`flex justify-center items-center px-0.5 w-full min-w-[60px] border-r-2 border-[#8bc34a] h-full ${
+                        className={`flex justify-center items-center px-0.5 w-full min-w-[80px] border-r-2 border-[#8bc34a] h-full ${
                           idx === columnConfig.columnasParams.length - 1 ? "!border-r-0" : ""
                         }`}
                       >
@@ -227,7 +248,7 @@ export function QualityParametersMatrix({
                           index={idx}
                           onUpdate={handleAdjustmentUpdate}
                           onApply={handleAdjustmentApply}
-                          className="min-w-[60px] w-20 max-w-[120px] h-8 text-center text-xs !border-2 !border-[#8bc34a] bg-white rounded font-medium mx-auto block overflow-hidden text-ellipsis whitespace-nowrap px-1"
+                          className="min-w-[70px] w-20 max-w-[120px] h-8 text-center text-xs !border-2 !border-[#8bc34a] bg-white rounded font-medium mx-auto block overflow-hidden text-ellipsis whitespace-nowrap px-1"
                         />
                       </div>
                     ))}
@@ -245,7 +266,7 @@ export function QualityParametersMatrix({
                         show={tooltipUtils.shouldShowHeaderTooltip(col)}
                         onMouseEnter={() => mouseHandlers.handleMouseEnter(-1, col, "header")}
                         onMouseLeave={mouseHandlers.handleMouseLeave}
-                        className={`min-w-20 w-full border-r-2 border-[#8bc34a] bg-[#8bc34a] flex items-center justify-center text-xs font-bold text-white h-full px-1 overflow-hidden text-ellipsis whitespace-nowrap relative ${
+                        className={`min-w-[80px] w-full border-r-2 border-[#8bc34a] bg-[#8bc34a] flex items-center justify-center text-xs font-bold text-white h-full px-1 overflow-hidden text-ellipsis whitespace-nowrap relative ${
                           idx === columnConfig.columnasParams.length - 1 ? "!border-r-0" : ""
                         }`}
                       >
@@ -254,7 +275,7 @@ export function QualityParametersMatrix({
                     ))}
                   </div>
 
-                  {/*FILAS DE PARÁMETROS*/}
+                  {/*FILAS DE PARÁMETROS - Todas editables, centradas y alineadas a la derecha*/}
                   {dataManagement.filas.map((fila, filaIdx) => (
                     <ParameterRow
                       key={`fila-params-${filaIdx}`}
@@ -262,57 +283,6 @@ export function QualityParametersMatrix({
                       filaIndex={filaIdx}
                       columnasParams={columnConfig.columnasParams}
                       paramsGridColumns={columnConfig.paramsGridColumns}
-                      onCellUpdate={handleCellUpdate}
-                      isSelected={showCheckboxes && selectedRowIndex === filaIdx}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-l-[3px] border-[#8bc34a] bg-white sticky right-0 z-10">
-                <div className="flex flex-col">
-                  <div className={STYLES.ADJUSTMENT}>
-                    <div className="grid gap-0 w-full" style={{ gridTemplateColumns: "90px 90px" }}>
-                      {columnConfig.columnasFijas.map((_, idx) => (
-                        <div
-                          key={`adjustment-fixed-${idx}`}
-                          className={`border-r-2 border-[#8bc34a] flex items-center justify-center py-1.5 px-1 text-xs text-gray-600 font-semibold bg-gray-50 ${
-                            idx === columnConfig.columnasFijas.length - 1 ? "!border-r-0" : ""
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={`${STYLES.HEADER} border-l-[3px] border-[#8bc34a]`}>
-                    {columnConfig.columnasFijas.map((col, idx) => (
-                      <TooltipCell
-                        key={`header-fixed-${idx}`}
-                        content={col}
-                        show={
-                          hoveredCell?.row === -1 &&
-                          hoveredCell?.col === col &&
-                          hoveredCell?.type === "header" &&
-                          TextUtils.shouldTruncateBasedOnSpace(col, columnConfig.columnasFijas.length)
-                        }
-                        onMouseEnter={() => mouseHandlers.handleMouseEnter(-1, col, "header")}
-                        onMouseLeave={mouseHandlers.handleMouseLeave}
-                        className={`border-r-2 border-[#8bc34a] bg-[#8bc34a] flex items-center justify-center text-xs font-bold text-white h-full px-1 min-w-[90px] w-[90px] max-w-[90px] flex-[0_0_90px] overflow-hidden text-ellipsis whitespace-nowrap relative ${
-                          idx === columnConfig.columnasFijas.length - 1 ? "!border-r-0" : ""
-                        }`}
-                      >
-                        {TextUtils.getTruncatedText(col, columnConfig.columnasFijas.length)}
-                      </TooltipCell>
-                    ))}
-                  </div>
-
-                  {/* ✅ FILAS FIJAS*/}
-                  {dataManagement.filas.map((fila, filaIdx) => (
-                    <FixedColumnsRow
-                      key={`fila-fixed-${filaIdx}`}
-                      fila={fila}
-                      filaIndex={filaIdx}
-                      columnasFijas={columnConfig.columnasFijas}
                       onCellUpdate={handleCellUpdate}
                       isSelected={showCheckboxes && selectedRowIndex === filaIdx}
                     />
