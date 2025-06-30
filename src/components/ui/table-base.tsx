@@ -92,11 +92,11 @@ export function TableBase({
       );
     }
 
-    return data.map((item) => (
-      <TableRow key={item.id}>
+    return data.map((item, idx) => (
+      <TableRow key={item.id ?? idx}>
         {columns.map((column) => (
           <TableCell
-            key={`${item.id}-${column.uid}`}
+            key={`${item.id ?? idx}-${column.uid}`}
             className={styles.bodyCell}
           >
             <TableCellLayout>

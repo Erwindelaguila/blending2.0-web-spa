@@ -3,6 +3,7 @@ import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
+import { ParametrosService } from "@/services/parametros.service";
 import { Input, Label, Switch, Textarea } from "@fluentui/react-components";
 import { useCallback, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
@@ -18,7 +19,7 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
     formState: { errors },
   } = useForm<IParametros>({
     defaultValues: {
-      codigo: "",
+      codigo: "",  
       nombre: "",
       descripcion: "",
     },
@@ -31,12 +32,17 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
   }, []);
 
   const onSubmit: SubmitHandler<IParametros> = async (data) => {
-    await asyncAction.execute(() => simulateCreateParametro(data));
-  };
+    const parametroData = {
+      codigo: Number(data.codigo), 
+      nombre: data.nombre,
+      descripcion: data.descripcion,
+      activo: checked
+    };
 
-  const simulateCreateParametro = async (data: IParametros): Promise<void> => {
-    console.log("Formulario enviado:", data);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await asyncAction.execute(async () => {
+      const result = await ParametrosService.crear(parametroData);
+      console.log('Parámetro creado:', result);
+    });
   };
 
   const handleClose = () => {
@@ -50,6 +56,10 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
     handleClose();
   };
 
+  const handleErrorDismiss = () => {
+    asyncAction.reset();
+  };
+
   return (
     <DrawerBase
       isOpen={isOpen}
@@ -60,17 +70,27 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
       zise="medium"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
     >
-      {asyncAction.state === "idle" && (
+      {asyncAction.state === "error" && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage=""
+          successMessage=""
+          error={asyncAction.error}
+          onErrorDismiss={handleErrorDismiss}
+        />
+      )}
+      {(asyncAction.state === "idle" || asyncAction.state === "error") && (
         <div className="py-2 flex flex-col gap-3">
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Código</Label>
             <Input
               {...register("codigo", {
-                required: "El código es requerido",
+                required: "El código es requerido"
               })}
               className={styles.inputGrisBase}
+              placeholder="Ej: 123 o abc (para probar errores)"
             />
-            {errors.codigo && (
+            {errors.codigo && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.codigo.message}</span>
             )}
           </div>
@@ -83,7 +103,7 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
               })}
               className={styles.inputGrisBase}
             />
-            {errors.nombre && (
+            {errors.nombre && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.nombre.message}</span>
             )}
           </div>
@@ -96,7 +116,7 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
               className={styles.inputGrisBase}
               style={{ height: "10rem" }}
             />
-            {errors.descripcion && (
+            {errors.descripcion && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.descripcion.message}</span>
             )}
           </div>
@@ -111,19 +131,20 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
           </div>
         </div>
       )}
-
-      <AsyncActionDisplay
-        state={asyncAction.state}
-        loadingMessage="Creando nuevo parámetro..."
-        successMessage="Se creó correctamente el parámetro"
-        onSuccess={handleSuccess}
-      />
+      {(asyncAction.state === "loading" || asyncAction.state === "success") && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage="Creando nuevo parámetro..."
+          successMessage="Se creó correctamente el parámetro"
+          onSuccess={handleSuccess}
+        />
+      )}
     </DrawerBase>
   );
 }
 
 interface IParametros {
-  codigo: string;
+  codigo: string; 
   nombre: string;
   descripcion: string;
 }

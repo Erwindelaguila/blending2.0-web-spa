@@ -19,7 +19,7 @@ import { useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
-import { PanelCrearParamentros } from "./panel-crear-parametros";
+import { PanelCrearParametros } from "./panel-crear-parametros";
 
 const columns = [
   { uid: "code", name: "Codigo", width: 5 },
@@ -214,10 +214,10 @@ export function TableParametros() {
         </CardPreview>
       </Card>
 
-      <PanelCrearParamentros
+      <PanelCrearParametros
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
-      ></PanelCrearParamentros>
+      ></PanelCrearParametros>
 
       <ModalBase
         open={openModal}

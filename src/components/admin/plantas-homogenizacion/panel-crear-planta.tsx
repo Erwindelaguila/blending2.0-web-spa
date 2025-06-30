@@ -1,116 +1,107 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { OrgColors } from "@/config/app.config.server";
-import { IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
+import { PlantasService } from "@/services/plantas.service";
 import { Input, Label, Switch, Textarea } from "@fluentui/react-components";
 import { useCallback, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 
-export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
+interface IPlantaForm {
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+}
+
+export function PanelCrearPlanta({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
   const styles = useInputStyles();
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<IPlantas>({
-    defaultValues: {
-      codigo: "",
-      nombre: "",
-      descripcion: "",
-    },
-  });
-
   const [checked, setChecked] = useState(true);
   const asyncAction = useAsyncAction();
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<IPlantaForm>({
+    defaultValues: { codigo: "", nombre: "", descripcion: "" }
+  });
 
   const onChange = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
     setChecked(ev.currentTarget.checked);
   }, []);
 
-  const onSubmit: SubmitHandler<IPlantas> = async (data) => {
-    // Simula una llamada a una API
-    await asyncAction.execute(() => simulateCreatePlanta(data));
-  };
-
-  const simulateCreatePlanta = async (data: IPlantas): Promise<void> => {
-    console.log("Enviando planta:", {
-      ...data,
-      estado: checked ? "Activo" : "Inactivo",
+  const onSubmit: SubmitHandler<IPlantaForm> = async (data) => {
+    const plantaData = {
+      codigo: Number(data.codigo),
+      nombre: data.nombre,
+      descripcion: data.descripcion,
+      activo: checked
+    };
+    await asyncAction.execute(async () => {
+      await PlantasService.crear(plantaData);
     });
-    await new Promise((resolve) => setTimeout(resolve, 2000));
   };
 
-  const handleClose = () => {
+  const handleSuccess = () => {
     asyncAction.reset();
     reset();
     setChecked(true);
     setIsOpen(false);
   };
 
-  const handleSuccess = () => {
-    handleClose();
+  const handleErrorDismiss = () => {
+    asyncAction.reset();
   };
 
   return (
     <DrawerBase
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Nueva Planta de Homogenización"
+      title="Nueva Planta"
       buttonAction={handleSubmit(onSubmit)}
       position="end"
-      zise="medium"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
     >
-      {asyncAction.state === "idle" && (
+      {asyncAction.state === "error" && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage=""
+          successMessage=""
+          error={asyncAction.error}
+          onErrorDismiss={handleErrorDismiss}
+        />
+      )}
+      {(asyncAction.state === "idle" || asyncAction.state === "error") && (
         <div className="py-2 flex flex-col gap-3">
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Código</Label>
             <Input
-              {...register("codigo", {
-                required: "El código es requerido",
-              })}
+              {...register("codigo", { required: "El código es requerido" })}
               className={styles.inputGrisBase}
-              style={{ border: `2px solid ${OrgColors.serotGris}` }}
+              placeholder="Ej: 123 o abc (para probar errores)"
             />
-            {errors.codigo && (
+            {errors.codigo && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.codigo.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Nombre</Label>
             <Input
-              {...register("nombre", {
-                required: "El nombre es requerido",
-              })}
+              {...register("nombre", { required: "El nombre es requerido" })}
               className={styles.inputGrisBase}
-              style={{ border: `2px solid ${OrgColors.serotGris}` }}
             />
-            {errors.nombre && (
+            {errors.nombre && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.nombre.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label>Descripción</Label>
             <Textarea
               {...register("descripcion")}
               size="large"
               className={styles.inputGrisBase}
-              style={{
-                height: "10rem",
-                border: `2px solid ${OrgColors.serotGris}`,
-              }}
+              style={{ height: "10rem" }}
             />
-            {errors.descripcion && (
+            {errors.descripcion && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.descripcion.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label>Estado</Label>
             <Switch
@@ -121,19 +112,14 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
           </div>
         </div>
       )}
-
-      <AsyncActionDisplay
-        state={asyncAction.state}
-        loadingMessage="Creando planta de homogenización..."
-        successMessage="Se creó correctamente la planta de homogenización"
-        onSuccess={handleSuccess}
-      />
+      {(asyncAction.state === "loading" || asyncAction.state === "success") && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage="Creando nueva planta..."
+          successMessage="Se creó correctamente la planta"
+          onSuccess={handleSuccess}
+        />
+      )}
     </DrawerBase>
   );
-}
-
-interface IPlantas {
-  codigo: string;
-  nombre: string;
-  descripcion: string;
 }

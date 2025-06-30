@@ -1,12 +1,12 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { OrgColors } from "@/config/app.config.server";
 import { IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import { Input, Label, Switch, Textarea } from "@fluentui/react-components";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
+import { ConfiguracionAppService } from '@/services/configuracion-app.service';
 
 interface IConfiguracion {
   codigo: string;
@@ -35,12 +35,16 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
   });
 
   const onSubmit: SubmitHandler<IConfiguracion> = async (data) => {
-    console.log("Form data submitted:", { ...data, estado: checked });
-    await asyncAction.execute(simulateCreateConfiguracion);
-  };
-
-  const simulateCreateConfiguracion = async (): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const configuracionData = {
+      codigo: Number(data.codigo),
+      nombre: data.nombre,
+      descripcion: data.descripcion,
+      valores: data.valores,
+      activo: checked,
+    };
+    await asyncAction.execute(async () => {
+      await ConfiguracionAppService.crear(configuracionData);
+    });
   };
 
   const handleClose = () => {
@@ -61,14 +65,6 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
     []
   );
 
-  useEffect(() => {
-    if (!isOpen) {
-      reset();
-      setChecked(true);
-      asyncAction.reset();
-    }
-  }, [isOpen, reset, asyncAction]);
-
   return (
     <DrawerBase
       isOpen={isOpen}
@@ -79,7 +75,16 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
       zise="medium"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
     >
-      {asyncAction.state === "idle" && (
+      {asyncAction.state === "error" && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage=""
+          successMessage=""
+          error={asyncAction.error}
+          onErrorDismiss={asyncAction.reset}
+        />
+      )}
+      {(asyncAction.state === "idle" || asyncAction.state === "error") && (
         <div className="py-2 flex flex-col gap-3">
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Código</Label>
@@ -88,12 +93,12 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
                 required: "El código es requerido",
               })}
               className={styles.inputGrisBase}
+              placeholder="Ej: 123 o abc (para probar errores)"
             />
-            {errors.codigo && (
+            {errors.codigo && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.codigo.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Nombre</Label>
             <Input
@@ -102,11 +107,10 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
               })}
               className={styles.inputGrisBase}
             />
-            {errors.nombre && (
+            {errors.nombre && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.nombre.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label>Descripción</Label>
             <Textarea
@@ -115,13 +119,10 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
               className={styles.inputGrisBase}
               style={{ height: "10rem" }}
             />
-            {errors.descripcion && (
-              <span className="text-red-500">
-                {errors.descripcion.message}
-              </span>
+            {errors.descripcion && asyncAction.state !== "error" && (
+              <span className="text-red-500">{errors.descripcion.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Valores</Label>
             <Textarea
@@ -132,11 +133,10 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
               className={styles.inputGrisBase}
               style={{ height: "10rem" }}
             />
-            {errors.valores && (
+            {errors.valores && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.valores.message}</span>
             )}
           </div>
-
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label>Estado</Label>
             <Switch
@@ -147,13 +147,14 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
           </div>
         </div>
       )}
-
-      <AsyncActionDisplay
-        state={asyncAction.state}
-        loadingMessage="Creando parámetro del sistema..."
-        successMessage="Se creó correctamente el parámetro del sistema"
-        onSuccess={handleSuccess}
-      />
+      {(asyncAction.state === "loading" || asyncAction.state === "success") && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage="Creando parámetro del sistema..."
+          successMessage="Se creó correctamente el parámetro del sistema"
+          onSuccess={handleSuccess}
+        />
+      )}
     </DrawerBase>
   );
 }

@@ -17,7 +17,7 @@ import {
   Edit24Filled,
 } from "@fluentui/react-icons";
 import { useState } from "react";
-import { PanelCrearPlantas } from "./planel-crear-plantas";
+import { PanelCrearPlanta } from "./panel-crear-planta";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -227,10 +227,10 @@ export function TablePlanta() {
         </CardPreview>
       </Card>
 
-      <PanelCrearPlantas
+      <PanelCrearPlanta
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
-      ></PanelCrearPlantas>
+      />
 
       <ModalBase
         open={openModal}
