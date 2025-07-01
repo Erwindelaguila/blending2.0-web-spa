@@ -6,74 +6,144 @@ import { IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import {
   Checkbox,
-  CheckboxProps,
   Input,
   Label,
   Switch,
   Textarea,
 } from "@fluentui/react-components";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { CalidadesService } from "@/services/calidades.service";
+import type { ICalidadResponse } from "@/services/calidades.service";
 
+/**
+ * Interfaz para los datos del formulario de calidad
+ */
 interface ICalidad {
   codigo: string;
   nombre: string;
+  codigoMaterial: string;
   descripcion: string;
+  conforme: boolean;
+  activo: boolean;
 }
 
-export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
+/**
+ * Props del componente PanelCrearCalidad
+ */
+interface IPanelCrearCalidadProps extends IDrawer {
+  /** Calidad a editar (null para modo creación) */
+  calidadAEditar?: ICalidadResponse | null;
+  /** Callback ejecutado al cerrar el panel */
+  onClose?: () => void;
+}
+
+/**
+ * Valores por defecto del formulario
+ */
+const defaultFormValues: ICalidad = {
+  codigo: "",
+  nombre: "",
+  codigoMaterial: "",
+  descripcion: "",
+  conforme: true,
+  activo: true,
+};
+
+/**
+ * Componente para crear o editar una calidad
+ * 
+ * Este componente maneja tanto la creación de nuevas calidades como la edición de existentes.
+ * @param props - Props del componente
+ * @returns 
+ */
+export function PanelCrearCalidad({
+  isOpen,
+  setIsOpen,
+  calidadAEditar,
+  onClose,
+}: IPanelCrearCalidadProps) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
 
+  // Configuración del formulario con react-hook-form
   const {
     register,
     handleSubmit,
-    setValue,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ICalidad>({
-    defaultValues: {
-      codigo: "",
-      descripcion: "",
-      nombre: "",
-    },
+    defaultValues: defaultFormValues,
   });
 
-  const [checked, setChecked] = useState(true);
-  const [checkedV1, setCheckedV1] = useState<CheckboxProps["checked"]>(true);
+  // Observar valores para componentes controlados
+  const watchedConforme = watch("conforme");
+  const watchedActivo = watch("activo");
 
-  const onChange = useCallback(
+ 
+  useEffect(() => {
+    if (isOpen) {
+      if (calidadAEditar) {
+        // Modo edición: llenar formulario con datos existentes
+        const formData: ICalidad = {
+          codigo: calidadAEditar.codigo ?? "",
+          nombre: calidadAEditar.nombre ?? "",
+          codigoMaterial: calidadAEditar.codigoMaterial ?? "",
+          descripcion: calidadAEditar.descripcion ?? "",
+          conforme: !!calidadAEditar.conforme,
+          activo: !!calidadAEditar.activo,
+        };
+        reset(formData);
+      } else {
+        // Modo creación: valores por defecto
+        reset(defaultFormValues);
+      }
+    }
+  }, [isOpen, calidadAEditar, reset]);
+
+  // Manejador para el switch de estado activo
+  const handleActiveChange = useCallback(
     (ev: React.ChangeEvent<HTMLInputElement>) => {
-      setChecked(ev.currentTarget.checked);
+      setValue("activo", ev.currentTarget.checked, { shouldDirty: true });
     },
-    [setChecked]
+    [setValue]
   );
 
+  // Manejador para el checkbox de conforme
+  const handleConformeChange = useCallback(
+    (ev: any, data: any) => {
+      setValue("conforme", data.checked, { shouldDirty: true });
+    },
+    [setValue]
+  );
+
+  // Manejador de envío del formulario
   const onSubmit: SubmitHandler<ICalidad> = async (data) => {
-    const calidadData = {
-      codigo: Number(data.codigo),
-      nombre: data.nombre,
-      descripcion: data.descripcion,
-      activo: checked,
-    };
     await asyncAction.execute(async () => {
-      await CalidadesService.crear(calidadData);
+      if (calidadAEditar) {
+        await CalidadesService.editar(calidadAEditar.id, data);
+      } else {
+        await CalidadesService.crear(data);
+      }
     });
   };
 
+  // Función para cerrar el modal y resetear el formulario
   const handleClose = () => {
     asyncAction.reset();
-    reset();
-    setChecked(true);
-    setCheckedV1(true);
+    reset(defaultFormValues);
     setIsOpen(false);
+    onClose?.();
   };
 
+  // Función para manejar el éxito y cerrar el modal
   const handleSuccess = () => {
     handleClose();
   };
 
+  // Función para limpiar errores
   const handleErrorDismiss = () => {
     asyncAction.reset();
   };
@@ -82,7 +152,7 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
     <DrawerBase
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Nueva Calidad"
+      title={calidadAEditar ? "Editar Calidad" : "Nueva Calidad"}
       buttonAction={handleSubmit(onSubmit)}
       position="end"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
@@ -96,41 +166,54 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
           onErrorDismiss={handleErrorDismiss}
         />
       )}
+      
       {(asyncAction.state === "idle" || asyncAction.state === "error") && (
         <div className="py-2 flex flex-col gap-3">
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Código</Label>
             <Input
               {...register("codigo", {
-                required: {
-                  value: true,
-                  message: "El código es requerido",
-                },
+                required: "El código es requerido",
               })}
               className={styles.inputGrisBase}
               style={{ border: `2px solid ${OrgColors.serotGris}` }}
-              placeholder="Ej: 123 o abc (para probar errores)"
+              defaultValue={calidadAEditar?.codigo ?? ""}
             />
             {errors.codigo && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.codigo.message}</span>
             )}
           </div>
+
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Nombre</Label>
             <Input
               {...register("nombre", {
-                required: {
-                  value: true,
-                  message: "El nombre es requerido",
-                },
+                required: "El nombre es requerido",
               })}
               className={styles.inputGrisBase}
               style={{ border: `2px solid ${OrgColors.serotGris}` }}
+              defaultValue={calidadAEditar?.nombre ?? ""}
             />
             {errors.nombre && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.nombre.message}</span>
             )}
           </div>
+
+          <div className="flex flex-col justify-start w-full gap-0.5">
+            <Label required>Código de Material</Label>
+            <Input
+              {...register("codigoMaterial", {
+                required: "El código de material es requerido",
+              })}
+              className={styles.inputGrisBase}
+              style={{ border: `2px solid ${OrgColors.serotGris}` }}
+              defaultValue={calidadAEditar?.codigoMaterial ?? ""}
+            />
+            {errors.codigoMaterial && asyncAction.state !== "error" && (
+              <span className="text-red-500">{errors.codigoMaterial.message}</span>
+            )}
+          </div>
+
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label>Descripción</Label>
             <Textarea
@@ -141,35 +224,40 @@ export function PanelCrearCalidad({ isOpen, setIsOpen }: IDrawer) {
                 height: "10rem",
                 border: `2px solid ${OrgColors.serotGris}`,
               }}
+              defaultValue={calidadAEditar?.descripcion ?? ""}
             />
             {errors.descripcion && asyncAction.state !== "error" && (
               <span className="text-red-500">{errors.descripcion.message}</span>
             )}
           </div>
+
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Checkbox
               size="large"
-              checked={checkedV1}
-              onChange={(ev, data) => setCheckedV1(data.checked)}
-              label={checkedV1 ? "Conforme" : "No conforme"}
+              checked={watchedConforme}
+              onChange={handleConformeChange}
+              label={watchedConforme ? "Conforme" : "No conforme"}
             />
           </div>
+
           <div className="flex flex-col justify-start w-full gap-0.5">
-            <Label>Estado</Label>
+            <Label>Activo</Label>
             <Switch
-              checked={checked}
-              onChange={onChange}
-              label={checked ? "Activo" : "Inactivo"}
+              checked={watchedActivo}
+              onChange={handleActiveChange}
+              label={watchedActivo ? "Sí" : "No"}
             />
           </div>
         </div>
       )}
+
       {(asyncAction.state === "loading" || asyncAction.state === "success") && (
         <AsyncActionDisplay
           state={asyncAction.state}
-          loadingMessage="Creando nueva calidad..."
-          successMessage="Se creó correctamente la calidad"
+          loadingMessage={calidadAEditar ? "Actualizando calidad..." : "Creando nueva calidad..."}
+          successMessage={calidadAEditar ? "Se actualizó correctamente la calidad" : "Se creó correctamente la calidad"}
           onSuccess={handleSuccess}
+          loadingType="progress"
         />
       )}
     </DrawerBase>

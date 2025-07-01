@@ -3,7 +3,6 @@
 import { TableBase } from "@/components/ui/table-base";
 import { Title } from "@/components/ui/title";
 import { OrgColors } from "@/config/app.config.server";
-import { hexToRgba } from "@/utils/colors";
 import {
   Badge,
   Button,
@@ -16,99 +15,23 @@ import {
   Delete24Filled,
   Edit24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { PanelCrearCalidad } from "./panel-crear-calidad";
+import { CalidadesService } from '@/services/calidades.service';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { AsyncActionDisplay } from '@/components/ui/async-action-display';
+import type { ICalidadResponse } from '@/services/calidades.service';
 
 const columns = [
   { uid: "code", name: "Codigo", width: 5 },
   { uid: "name", name: "Nombre", width: 5 },
   { uid: "description", name: "Descripción", width: 10 },
-  { uid: "codigo_material", name: "Código de Material", width: 5 },
+  { uid: "codigoMaterial", name: "Código de Material", width: 5 },
   { uid: "status", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
-];
-
-const data = [
-  {
-    code: "CALIDAD01",
-    name: "Calidad 01",
-    description: "Descripción de la calidad 01",
-    codigo_material: "MAT001",
-    status: "Activo",
-  },
-  {
-    code: "CALIDAD02",
-    name: "Calidad 02",
-    description: "Descripción de la calidad 02",
-    codigo_material: "MAT002",
-    status: "Inactivo",
-  },
-  {
-    code: "CALIDAD03",
-    name: "Calidad 03",
-    description: "Descripción de la calidad 03",
-    codigo_material: "MAT003",
-    status: "Activo",
-  },
-  {
-    code: "CALIDAD04",
-    name: "Calidad 04",
-    description: "Descripción de la calidad 04",
-    codigo_material: "MAT004",
-    status: "Activo",
-  },
-  {
-    code: "CALIDAD05",
-    name: "Calidad 05",
-    description: "Descripción de la calidad 05",
-    codigo_material: "MAT005",
-    status: "Inactivo",
-  },
-  {
-    code: "CALIDAD06",
-    name: "Calidad 06",
-    description: "Descripción de la calidad 06",
-    codigo_material: "MAT006",
-    status: "Activo",
-  },
-  {
-    code: "CALIDAD07",
-    name: "Calidad 07",
-    description: "Descripción de la calidad 07",
-    codigo_material: "MAT007",
-    status: "Inactivo",
-  },
-  {
-    code: "CALIDAD08",
-    name: "Calidad 08",
-    description: "Descripción de la calidad 08",
-    codigo_material: "MAT008",
-    status: "Activo",
-  },
-  {
-    code: "CALIDAD09",
-    name: "Calidad 09",
-    description: "Descripción de la calidad 09",
-    codigo_material: "MAT009",
-    status: "Activo",
-  },
-  {
-    code: "CALIDAD10",
-    name: "Calidad 10",
-    description: "Descripción de la calidad 10",
-    codigo_material: "MAT010",
-    status: "Inactivo",
-  },
-  {
-    code: "CALIDAD11",
-    name: "Calidad 11",
-    description: "Descripción de la calidad 11",
-    codigo_material: "MAT011",
-    status: "Activo",
-  },
 ];
 
 export function TableCalidades() {
@@ -116,16 +39,89 @@ export function TableCalidades() {
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-
   const [page, setPage] = useState(1);
+  const [calidades, setCalidades] = useState<ICalidadResponse[]>([]); 
+  const [infoCalidad, setInfoCalidad] = useState<{ id: number; codigo: string } | null>(null);
+  const [calidadAEditar, setCalidadAEditar] = useState<ICalidadResponse | null>(null);
+  const deleteAction = useAsyncAction();
 
-  const [infoPlanta, setInfoPlanta] = useState<{
-    codigo: string;
-    nombre: string;
-  }>({
-    codigo: "",
-    nombre: "",
+  // Configuración de paginación
+  const ITEMS_PER_PAGE = 8;
+  const totalItems = calidades.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const showPagination = totalItems > 0; 
+
+  // ============================================
+  // DATOS Y ESTADOS
+  // ============================================
+
+  const [loading, setLoading] = useState(false);
+
+  // Función para cargar calidades
+  const loadCalidades = async () => {
+    setLoading(true);
+    try {
+      const data = await CalidadesService.listar();
+      setCalidades(data);
+    } catch (error) {
+      console.error('Error al cargar calidades:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCalidades();
+  }, []);
+
+  useEffect(() => {
+    if (deleteAction.state === 'success') {
+      handleDeleteSuccess();
+    }
+  }, [deleteAction.state]);
+
+  const handleDeleteSuccess = () => {
+    loadCalidades();
+    setOpenModal(false);
+    deleteAction.reset();
+  };
+
+  const handlePanelClose = () => {
+    setCalidadAEditar(null);
+    setOpenPanel(false);
+    loadCalidades(); 
+  };
+
+  // Aplicar paginación a los datos
+  const mappedCalidades = calidades.map((item) => {
+    return {
+      code: item.codigo,
+      name: item.nombre,
+      description: item.descripcion,
+      codigoMaterial: item.codigoMaterial, 
+      status: item.activo ? 'Activo' : 'Inactivo',
+      activo: item.activo,
+      id: item.id,
+      raw: item, 
+    };
   });
+
+  // Datos paginados
+  const startIndex = (page - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedData = mappedCalidades.slice(startIndex, endIndex);
+
+  // Resetear página si es necesario
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) {
+      setPage(1);
+    }
+  }, [totalPages, page]);
+
+  const handleEdit = (item: ICalidadResponse) => {
+    setCalidadAEditar(item);
+    setOpenPanel(true);
+  };
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
@@ -134,41 +130,38 @@ export function TableCalidades() {
           Activo: OrgColors.serotAzul,
           Inactivo: OrgColors.rojo,
         };
-
         return (
           <Badge
             appearance="filled"
             style={{
-              backgroundColor: statusColorMap[item.status] || "#666",
+              backgroundColor: statusColorMap[item.activo ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "10rem",
             }}
             size="large"
           >
-            {item.status.toUpperCase()}
+            {(item.activo ? "ACTIVO" : "INACTIVO")}
           </Badge>
         );
-
       case "action":
         return (
           <div className="flex gap-1 justify-between w-full py-0.5">
-            <Tooltip content="Editar Planta" relationship="label">
+            <Tooltip content="Editar Calidad" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => setOpenPanel(true)}
+                onClick={() => handleEdit(item.raw)}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
-
-            <Tooltip content="Eliminar Planta" relationship="label">
+            <Tooltip content="Eliminar Calidad" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  setInfoPlanta({
-                    codigo: item.code,
-                    nombre: item.name,
+                  setInfoCalidad({ 
+                    id: item.id, 
+                    codigo: item.code
                   });
                   setOpenModal(true);
                 }}
@@ -177,13 +170,17 @@ export function TableCalidades() {
             </Tooltip>
           </div>
         );
-
       default:
-        return item[columnKey];
+        return item[columnKey] ?? '';
     }
   };
 
-  const acctionDeleteModal = () => {};
+  const acctionDeleteModal = async () => {
+    if (!infoCalidad) return;
+    await deleteAction.execute(async () => {
+      await CalidadesService.eliminar(infoCalidad.id);
+    });
+  };
   return (
     <>
       <Card>
@@ -202,9 +199,12 @@ export function TableCalidades() {
               <Title title="Calidades"></Title>
               <Button
                 size="large"
-                icon={<Add24Regular></Add24Regular>}
+                icon={<Add24Regular />}
                 className={style.buttonVerdeBase}
-                onClick={() => setOpenPanel(true)}
+                onClick={() => {
+                  setCalidadAEditar(null); 
+                  setOpenPanel(true);
+                }}
               >
                 Nuevo
               </Button>
@@ -212,17 +212,20 @@ export function TableCalidades() {
 
             <TableBase
               columns={columns}
-              data={data}
+              data={paginatedData}
               renderCell={renderCell}
-              isLoading={false}
+              isLoading={loading}
               error={null}
               height="80%"
             />
-            <Pagination
-              currentPage={page}
-              totalPages={5}
-              onPageChange={setPage}
-            />
+            {showPagination && (
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                onPageChange={setPage}
+              />
+            )}
           </div>
         </CardPreview>
       </Card>
@@ -230,7 +233,9 @@ export function TableCalidades() {
       <PanelCrearCalidad
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
-      ></PanelCrearCalidad>
+        calidadAEditar={calidadAEditar}
+        onClose={handlePanelClose}
+      />
 
       <ModalBase
         open={openModal}
@@ -240,9 +245,35 @@ export function TableCalidades() {
         buttonAction={acctionDeleteModal}
       >
         <>
-          ¿Esta seguro de eliminar la{" "}
-          <span className="font-bold">{infoPlanta.nombre}</span> del con código{" "}
-          <span className="font-bold">{infoPlanta.codigo}</span>?
+          ¿Está seguro de eliminar la calidad con código{" "}
+          <span className="font-bold">{infoCalidad?.codigo}</span>?
+          {deleteAction.state === 'loading' && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage="Eliminando calidad..."
+              successMessage=""
+            />
+          )}
+          {deleteAction.state === 'error' && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage=""
+              successMessage=""
+              error={deleteAction.error}
+              onErrorDismiss={deleteAction.reset}
+            />
+          )}
+          {deleteAction.state === 'success' && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage=""
+              successMessage="Calidad eliminada correctamente"
+              onSuccess={() => {
+                deleteAction.reset();
+                setOpenModal(false);
+              }}
+            />
+          )}
         </>
       </ModalBase>
     </>

@@ -1,9 +1,6 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { API_URL } from "../constants/env";
 
-// Simulamos que tienes un store de auth (ajusta según tu implementación)
-// import { useAuthStore } from "../store/AuthStore";
-
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -13,7 +10,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Simular token (descomenta cuando tengas auth real)
+    // Simular token (descomentar cuando tengamos auth real)
     // const { token } = useAuthStore.getState();
     // if (token) {
     //   config.headers.Authorization = `Bearer ${token}`;
@@ -33,11 +30,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    // Manejo centralizado de errores
     if (error.response?.status === 401) {
-      // Token expirado o inválido
       console.error('Token expirado');
-      // useAuthStore.getState().logout();
     }
     return Promise.reject(error);
   }

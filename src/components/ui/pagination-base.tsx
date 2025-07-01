@@ -6,6 +6,7 @@ import React from "react";
 export const Pagination = ({
   currentPage,
   totalPages,
+  totalItems,
   onPageChange,
 }: IPaginationBase) => {
   const getPages = () => {
@@ -19,7 +20,7 @@ export const Pagination = ({
   return (
     <div className="flex justify-between items-center">
       <div>
-        <span className="font-semibold text-md">TOTAL: 180</span>
+        <span className="font-semibold text-md">TOTAL: {totalItems}</span>
       </div>
       <div className="flex items-center justify-end mt-3 gap-2 ">
         <Button

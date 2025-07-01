@@ -7,6 +7,7 @@ import {
   MessageBar,
   MessageBarTitle,
   MessageBarBody,
+  Spinner
 } from "@fluentui/react-components";
 import { 
   Checkmark24Regular,
@@ -23,6 +24,7 @@ interface AsyncActionDisplayProps {
   onSuccess?: () => void;
   onErrorBack?: () => void; 
   onErrorDismiss?: () => void; 
+  loadingType?: 'spinner' | 'progress'; 
 }
 
 export const AsyncActionDisplay = ({
@@ -32,20 +34,26 @@ export const AsyncActionDisplay = ({
   error,
   onSuccess,
   onErrorDismiss,
+  loadingType = 'spinner', 
 }: AsyncActionDisplayProps) => {
   const styles = useButtonsStyles();
 
-  // Estado de loading - 
+  // Estado de loading -
   if (state === 'loading') {
-    return (
-      <>
-        <Field
-          validationMessage={loadingMessage}
-          validationState="none"
-        >
+    if (loadingType === 'progress') {
+      return (
+        <Field validationMessage={loadingMessage} validationState="none">
           <ProgressBar />
         </Field>
-      </>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 80 }}>
+        <Spinner size="medium" />
+        {loadingMessage && (
+          <span style={{ marginTop: 12 }}>{loadingMessage}</span>
+        )}
+      </div>
     );
   }
 
