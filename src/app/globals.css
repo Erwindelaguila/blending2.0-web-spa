@@ -24,3 +24,24 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+.fui-TreeItemLayout__expandIcon {
+  color: #fff !important;
+}
+
+.fui-TreeItem .fui-TreeItemLayout{
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+  padding-right: 1rem;
+}
+.fui-TreeItemLayout:hover{
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.fui-TreeItem .fui-Tree .fui-TreeItemLayout{
+  display: flex;
+  justify-content: start;
+}
+  */

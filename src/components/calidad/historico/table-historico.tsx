@@ -1,14 +1,13 @@
+import { Pagination } from "@/components/ui/pagination-base";
 import { TableBase } from "@/components/ui/table-base";
 import { TableDynamic } from "@/components/ui/table-dynamic";
 import { Title } from "@/components/ui/title";
 import { OrgColors } from "@/config/app.config.server";
-import { hexToRgba } from "@/utils/colors";
+import { useButtonsStyles } from "@/styles/button.styles";
 import {
   Badge,
   Button,
   Card,
-  CardPreview,
-  makeStyles,
   TeachingPopover,
   TeachingPopoverBody,
   TeachingPopoverSurface,
@@ -20,6 +19,7 @@ import {
   Options24Regular,
 } from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const columns = [
   { uid: "code", name: "Codigo", width: 5 },
@@ -27,7 +27,7 @@ const columns = [
   { uid: "datoM", name: "Dato-M", width: 7 },
   { uid: "usuario", name: "Usuario", width: 7 },
   { uid: "status", name: "Estado", width: 7 },
-  { uid: "action", name: "Acciones", width: 20 },
+  { uid: "action", name: "Acciones", width: 17 },
 ];
 
 const data = [
@@ -330,59 +330,16 @@ const data = [
   },
 ];
 
-const datosEjemplo = [
-  {
-    calidad: "CALIDAD-01",
-    PARAM01: 67.9,
-    PARAM02: 480,
-    PARAM03: "APROBADO",
-  },
-  {
-    calidad: "CALIDAD-02",
-    PARAM01: 68.2,
-    PARAM02: 470,
-    PARAM04: "RECHAZADO",
-  },
-  {
-    calidad: "CALIDAD-03",
-    PARAM01: 69.5,
-    PARAM03: "OBSERVADO",
-  },
-];
-
-const baseButtonStyle = {
-  //padding: "0.4rem",
-  color: "white",
-  fontSize: "1rem",
-};
-
-const useStyles = makeStyles({
-  button: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.serotAzul,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.serotAzul, 0.8),
-      color: "#fff",
-    },
-  },
-
-  buttonR: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.serotVerde,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.serotVerde, 0.8),
-      color: "#fff",
-    },
-  },
-});
 
 export function TableHistorico() {
-  const style = useStyles();
+  const style = useButtonsStyles();
   const router = useRouter();
 
   const goSeeReport = (code: string) => {
     router.push(`/consultas/historico-harina/ver-reporte?uid=${code}`);
   };
+
+  const [page, setPage] = useState(1);
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
@@ -399,7 +356,7 @@ export function TableHistorico() {
             style={{
               backgroundColor: statusColorMap[item.status] || "#666",
               color: "#fff",
-              width: "10rem",
+              width: "100%",
             }}
             size="large"
           >
@@ -409,21 +366,11 @@ export function TableHistorico() {
 
       case "action":
         return (
-          <div className="flex gap-2 justify-between w-full ">
-            {/**
-             * <Button
-              size="large"
-              icon={<Options24Regular></Options24Regular>}
-              
-            >
-              Ver Parametros
-            </Button>
-             * 
-             */}
+          <div className="flex gap-2 justify-center w-full">
             <TeachingPopover size="large" positioning={{ position: "below" }}>
               <TeachingPopoverTrigger>
                 <Button
-                  className={style.button}
+                  className={style.buttonAzulOscuroBase}
                   icon={<Options24Regular></Options24Regular>}
                 >
                   Ver Parametros
@@ -445,7 +392,7 @@ export function TableHistorico() {
             <Button
               size="medium"
               icon={<DataUsage24Regular></DataUsage24Regular>}
-              className={style.buttonR}
+              className={style.buttonVerdeBase}
             >
               Descargar reporte
             </Button>
@@ -453,7 +400,7 @@ export function TableHistorico() {
             <Button
               size="medium"
               icon={<Eye24Regular></Eye24Regular>}
-              className={style.button}
+              className={style.buttonAzulOscuroBase}
               onClick={() => goSeeReport(item.code)}
             >
               ver reporte
@@ -468,30 +415,33 @@ export function TableHistorico() {
 
   return (
     <>
-      <Card>
-        <CardPreview>
-          <div
-            className="p-3"
-            style={{
-              width: "100%",
-              height: "44em",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
-            <Title title="Ejecuciones"></Title>
+      <Card style={{ width: "100%", height: "100%" }}>
+        <div className="w-full h-full flex flex-col  ">
+          <div className="w-full h-9/10 ">
+            <div className="w-full h-1/15">
+              <Title title="Ejecuciones"></Title>
+            </div>
 
-            <TableBase
-              columns={columns}
-              data={data}
-              renderCell={renderCell}
-              isLoading={false}
-              error={null}
-              height="80%"
+            <div className="w-full h-14/15 ">
+              <TableBase
+                columns={columns}
+                data={data}
+                renderCell={renderCell}
+                isLoading={false}
+                error={null}
+                height="100%"
+              />
+            </div>
+          </div>
+
+          <div className="w-full h-1/10">
+            <Pagination
+              currentPage={page}
+              totalPages={5}
+              onPageChange={setPage}
             />
           </div>
-        </CardPreview>
+        </div>
       </Card>
     </>
   );

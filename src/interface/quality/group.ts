@@ -9,3 +9,10 @@ export interface IGroup {
   calidadesUtil: string[];
   status?: boolean;
 }
+
+export interface ICardGroups {
+  group: IGroup;
+  selected: number[];
+  setSelect: React.Dispatch<React.SetStateAction<number[]>>;
+  readOnly?: boolean;
+}

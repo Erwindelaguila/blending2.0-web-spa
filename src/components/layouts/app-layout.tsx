@@ -39,6 +39,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <ProtectedRoute>
       {isNavigating && <PageLoader isLoading text="Cargando..." />}
+      
       {isDashboard ? (
         <DashboardLayout>{children}</DashboardLayout>
       ) : (

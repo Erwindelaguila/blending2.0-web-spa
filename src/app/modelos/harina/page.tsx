@@ -21,11 +21,14 @@ export default function HarinaPage() {
 
   return (
     <>
-      <div className="w-full">
-        <div className="w-full flex justify-center pb-3">
+      <div className="w-full h-full flex flex-col gap-2">
+        <div className="w-full flex justify-center h-2/25">
           <Stepper currentStep={step} />
         </div>
-        <div className="w-full pt-2 pb-2">{renderStepComponent()}</div>
+
+        <div className="w-full h-23/25 ">
+          {renderStepComponent()}
+        </div>
       </div>
     </>
   );

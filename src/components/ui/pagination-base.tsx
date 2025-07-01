@@ -17,7 +17,7 @@ export const Pagination = ({
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="w-full h-full flex justify-between items-center">
       <div>
         <span className="font-semibold text-md">TOTAL: 180</span>
       </div>

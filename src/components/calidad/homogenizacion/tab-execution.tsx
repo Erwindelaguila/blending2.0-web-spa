@@ -1,10 +1,16 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardPreview, Text } from "@fluentui/react-components"
-import { DocumentTextRegular, ArrowRepeatAllRegular, BoxRegular, ClipboardTextLtrRegular } from "@fluentui/react-icons"
-import type { ReactNode } from "react"
-import { QualityParametersMatrix } from "./quality-parameters-matrix"
+import { useState } from "react";
+import { Card, CardPreview, Text } from "@fluentui/react-components";
+import {
+  DocumentTextRegular,
+  ArrowRepeatAllRegular,
+  BoxRegular,
+  ClipboardTextLtrRegular,
+} from "@fluentui/react-icons";
+import type { ReactNode } from "react";
+import { QualityParametersMatrix } from "./quality-parameters-matrix";
+import { Title } from "@/components/ui/title";
 
 const CARD_OPTIONS: { label: string; icon: ReactNode }[] = [
   { label: "Homogenizado", icon: <DocumentTextRegular fontSize={28} /> },
@@ -14,22 +20,21 @@ const CARD_OPTIONS: { label: string; icon: ReactNode }[] = [
     label: "Consumir parametros",
     icon: <ClipboardTextLtrRegular fontSize={28} />,
   },
-]
+];
 export function TabExecution() {
-  const [selectedType, setSelectedType] = useState<string>("Homogenizado")
+  const [selectedType, setSelectedType] = useState<string>("Homogenizado");
 
   const handleSelect = (label: string) => {
-    setSelectedType(label)
-  }
+    setSelectedType(label);
+  };
 
   return (
-    <div className="px-2 m-auto flex flex-col gap-6">
-      <Card className="mx-auto w-full max-w-full">
-        <CardPreview>
-          <div className="px-6 pt-2">
-            <Text size={400} weight="medium">
-              Tipo de Homogenizado
-            </Text>
+    <div className="px-2 m-auto flex flex-col w-full h-full">
+      <div className="h-3/15 w-full pb-2">
+        <Card style={{ width: "100%", height: "100%" }}>
+          <div className=" w-full h-full">
+            <Title title="Tipo de Homogenizado"></Title>
+
             <div className="py-6 px-8 flex flex-wrap gap-4 justify-between">
               {CARD_OPTIONS.map(({ label, icon }) => (
                 <Card
@@ -50,17 +55,27 @@ export function TabExecution() {
               ))}
             </div>
           </div>
-        </CardPreview>
-      </Card>
+        </Card>
+      </div>
 
-      <Card className="mx-auto w-full max-w-full h-[31rem] overflow-y-auto">
-        <CardPreview>
-          <QualityParametersMatrix 
-            showCheckboxes={selectedType === "Producto a medida" || selectedType === "Consumir parametros"} 
-            allowMultipleSelection={selectedType === "Consumir parametros"}
-          />
-        </CardPreview>
-      </Card>
+      <div className="w-full h-12/15 pb-2">
+        <Card
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <div className="w-full h-full overflow-y-auto ">
+            <QualityParametersMatrix
+              showCheckboxes={
+                selectedType === "Producto a medida" ||
+                selectedType === "Consumir parametros"
+              }
+              allowMultipleSelection={selectedType === "Consumir parametros"}
+            />
+          </div>
+        </Card>
+      </div>
     </div>
-  )
+  );
 }

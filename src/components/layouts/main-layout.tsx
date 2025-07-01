@@ -1,29 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Sidebar } from "@/components/navigation/sidebar"
-import { Header } from "@/components/navigation/header"
-import { Footer } from "../navigation/footer"
+import { useState } from "react";
+import { Sidebar } from "@/components/navigation/sidebar";
+import { Header } from "@/components/navigation/header";
+import { Footer } from "../navigation/footer";
 
 interface MainLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 export function MainLayout({ children }: MainLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const toggleSidebar = () => setSidebarCollapsed(prev => !prev)
+  const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
 
   return (
     <div className="flex h-screen overflow-hidden w-full">
       <Sidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
-      
-      <div className="flex flex-col flex-1 overflow-hidden">
+
+      <div className="flex flex-col flex-1 overflow-hidden h-full">
         <Header toggleSidebar={toggleSidebar} />
-        <main className="flex-1 overflow-auto bg-slate-50 p-6">
+
+        <main className="flex-1 overflow-hidden bg-slate-100 px-4 pt-2 h-14/15">
           {children}
         </main>
+
         <Footer />
       </div>
     </div>
-  )
+  );
 }

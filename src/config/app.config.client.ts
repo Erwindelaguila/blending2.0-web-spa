@@ -5,15 +5,18 @@
  * Importa componentes de React y código del cliente
  */
 import {
-  GridRegular,
-  SearchRegular,
   SettingsRegular,
   OptionsRegular,
   BuildingRegular,
   ClipboardTaskRegular,
-  HistoryRegular,
   GaugeRegular,
   WrenchRegular,
+  ArchiveSettings24Filled,
+  DataLine24Filled,
+  DocumentTableSearch24Filled,
+  AppsList24Filled,
+  PuzzleCube24Filled,
+  ClipboardTaskListRtl24Filled,
 } from "@fluentui/react-icons"
 import type { ComponentType } from "react"
 
@@ -32,19 +35,19 @@ export const NAVIGATION_MENU: MenuItem[] = [
   {
     id: "modelos",
     label: "Modelos",
-    icon: GridRegular,
+    icon: DataLine24Filled,
     href: "#",
     items: [
       {
         id: "homo-contenedores",
         label: "Homogenización de Contenedores",
-        icon: BuildingRegular,
+        icon: PuzzleCube24Filled,
         href: "/modelos/contenedores",
       },
       {
         id: "homo-harina",
         label: "Homogenización de Harina",
-        icon: ClipboardTaskRegular,
+        icon: ArchiveSettings24Filled,
         href: "/modelos/harina",
       },
     ],
@@ -52,19 +55,19 @@ export const NAVIGATION_MENU: MenuItem[] = [
   {
     id: "consultas",
     label: "Consultas",
-    icon: SearchRegular,
+    icon: DocumentTableSearch24Filled,
     href: "#",
     items: [
       {
         id: "historico-contenedores",
         label: "Histórico Homo. Contenedores",
-        icon: HistoryRegular,
+        icon: AppsList24Filled,
         href: "/consultas/historico-contenedores",
       },
       {
         id: "historico-harina",
         label: "Histórico Homo. Harina",
-        icon: HistoryRegular,
+        icon: ClipboardTaskListRtl24Filled,
         href: "/consultas/historico-harina",
       },
     ],

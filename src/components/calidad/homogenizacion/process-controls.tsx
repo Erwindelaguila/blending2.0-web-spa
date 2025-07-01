@@ -1,20 +1,23 @@
-"use client"
-import { NumericInputControl } from "@/components/ui/numeric-input-control"
-import { LIMITS } from "@/lib/constants/quality-matrix.constants"
+"use client";
+import { NumericInputControl } from "@/components/ui/numeric-input-control";
+import { LIMITS } from "@/lib/constants/quality-matrix.constants";
+import { useButtonsStyles } from "@/styles/button.styles";
+import { Button, mergeClasses } from "@fluentui/react-components";
 
 interface ProcessControlsProps {
-  numeroRumas: number
-  divisionRumas: number
-  hasChanges: boolean
-  onRumasIncrement: () => void
-  onRumasDecrement: () => void
-  onRumasInputChange: (value: string) => void
-  onDivisionIncrement: () => void
-  onDivisionDecrement: () => void
-  onDivisionInputChange: (value: string) => void
-  onReset: () => void
-  onStartProcess: () => void
-  disabled?: boolean 
+  numeroRumas: number;
+  divisionRumas: number;
+  hasChanges: boolean;
+  onRumasIncrement: () => void;
+  onRumasDecrement: () => void;
+  onRumasInputChange: (value: string) => void;
+  onDivisionIncrement: () => void;
+  onDivisionDecrement: () => void;
+  onDivisionInputChange: (value: string) => void;
+  onReset: () => void;
+  onStartProcess: () => void;
+  disabled?: boolean;
+  backProcess: () => void;
 }
 
 export function ProcessControls({
@@ -29,10 +32,12 @@ export function ProcessControls({
   onDivisionInputChange,
   onReset,
   onStartProcess,
-  disabled = false, 
+  disabled = false,
+  backProcess,
 }: ProcessControlsProps) {
+  const style = useButtonsStyles();
   return (
-    <div className="flex items-center justify-between gap-5 pt-4 pb-0 px-0 bg-transparent rounded-none mt-4 w-full shadow-none">
+    <div className="flex items-center justify-between  bg-transparent w-full h-full">
       <div className="flex gap-6 items-center flex-1">
         <NumericInputControl
           label="Número de rumas"
@@ -54,23 +59,39 @@ export function ProcessControls({
         />
       </div>
 
-      <div className="flex flex-col gap-3 items-center flex-shrink-0 ml-auto">
-        <button
+      <div className="flex flex-col gap-3 items-end flex-shrink-0 ml-auto">
+        <Button
+          size="large"
+          className={mergeClasses(
+            `w-[13rem] ${style.buttonVerdeBase}`,
+            !hasChanges && style.buttonDisabled
+          )}
           onClick={onReset}
           disabled={!hasChanges}
-          className="h-9 text-sm font-medium py-2 px-4 bg-white border-2 border-[#d1d1d1] text-[#323130] rounded-md min-w-[180px] hover:bg-gray-50 hover:border-[#c8c6c4] disabled:bg-gray-50 disabled:border-[#edebe9] disabled:text-gray-400 cursor-pointer disabled:cursor-not-allowed transition-colors"
         >
           Restablecer parámetros
-        </button>
-
-        <button
-          onClick={onStartProcess}
-          disabled={disabled} 
-          className="h-10 text-sm font-semibold py-2 px-5 bg-[#0078d4] border-2 border-[#0078d4] text-white rounded-md min-w-[160px] hover:bg-[#106ebe] hover:border-[#106ebe] cursor-pointer transition-colors shadow-sm disabled:bg-gray-400 disabled:border-gray-400 disabled:cursor-not-allowed"
-        >
-          Iniciar proceso
-        </button>
+        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="large"
+            onClick={backProcess}
+            className={`w-[13rem] ${style.buttonGrisBase}`}
+          >
+            Atras
+          </Button>
+          <Button
+            size="large"
+            className={mergeClasses(
+              `w-[13rem] ${style.buttonCelesteBase}`,
+              disabled && style.buttonDisabled
+            )}
+            onClick={onStartProcess}
+            disabled={disabled}
+          >
+            Iniciar proceso
+          </Button>
+        </div>
       </div>
     </div>
-  )
+  );
 }

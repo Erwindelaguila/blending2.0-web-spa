@@ -4,7 +4,7 @@ import { OtrosParametros, ParametrosLogisticos, Title } from "@/components";
 import { OrgColors } from "@/config/app.config.server";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { hexToRgba } from "@/utils/colors";
-import { Button, Card, CardPreview, Divider } from "@fluentui/react-components";
+import { Button, Card, Divider } from "@fluentui/react-components";
 import { DocumentAdd24Filled } from "@fluentui/react-icons";
 
 export default function ContenedoresPage() {
@@ -12,10 +12,10 @@ export default function ContenedoresPage() {
 
   return (
     <>
-      <div className="w-full flex flex-col gap-4">
-        <Card>
-          <CardPreview>
-            <div className="p-3">
+      <div className=" flex flex-col gap-4  w-full h-full pb-2 overflow-y-auto">
+        <div>
+          <Card style={{ width: "100%" }}>
+            <div className="">
               <div className="flex flex-col gap-4">
                 <div>
                   <Title title="Asignación" />
@@ -24,16 +24,15 @@ export default function ContenedoresPage() {
                 <Button
                   size="large"
                   icon={<DocumentAdd24Filled></DocumentAdd24Filled>}
-                  style={{ width: "20rem" }}
-                  className={style.buttonCelesteBase}
+                  className={`w-[20rem] ${style.buttonCelesteBase}`}
                 >
                   Adjuntar Asignación
                 </Button>
 
                 <Divider
                   style={{
-                    height: "0.2rem", // Grosor
-                    backgroundColor: "#ccc", // Color opcional
+                    height: "0.2rem",
+                    backgroundColor: "#ccc",
                   }}
                 ></Divider>
 
@@ -45,31 +44,38 @@ export default function ContenedoresPage() {
                 </div>
               </div>
             </div>
-          </CardPreview>
-        </Card>
+          </Card>
+        </div>
 
         <ParametrosLogisticos></ParametrosLogisticos>
         <OtrosParametros></OtrosParametros>
+
         <div className="flex gap-4 w-full">
           <div
             className="w-2/3 rounded-xl p-3 text-md flex items-center "
             style={{
               backgroundColor: hexToRgba(OrgColors.celeste, 0.3),
-              color: OrgColors.azulOscuro
+              color: OrgColors.azulOscuro,
             }}
           >
             <div>
               Se está ejecutando el modelo, esto puede demorar algunos minutos.
-              Puede consultar el estado <br /> de la ejecución, con el código: {" "}
-               <span className="font-semibold">DISLOG000123</span>
+              Puede consultar el estado <br /> de la ejecución, con el código:{" "}
+              <span className="font-semibold">DISLOG000123</span>
             </div>
           </div>
 
           <div className="w-1/3 flex flex-col gap-2 items-end justify-end">
-            <Button size="large" className={style.buttonAzulOscuroBase}>
+            <Button
+              size="large"
+              className={`w-[13rem] ${style.buttonAzulOscuroBase}`}
+            >
               Correr modelo
             </Button>
-            <Button size="large" className={style.buttonVerdeBase}>
+            <Button
+              size="large"
+              className={`w-[13rem] ${style.buttonVerdeBase}`}
+            >
               Descargar reporte
             </Button>
           </div>

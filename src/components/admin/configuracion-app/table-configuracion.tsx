@@ -218,6 +218,7 @@ export function TableConfiguracionApp() {
       <PanelCrearConfiguracionApp
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
+        drawerType="alert"
       ></PanelCrearConfiguracionApp>
 
       <ModalBase

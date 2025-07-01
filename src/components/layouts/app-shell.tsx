@@ -10,7 +10,6 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <AppProviders>
-      
       <AppLayout>{children}</AppLayout>
     </AppProviders>
   )

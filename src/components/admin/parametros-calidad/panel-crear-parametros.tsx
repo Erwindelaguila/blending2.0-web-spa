@@ -59,6 +59,7 @@ export function PanelCrearParametros({ isOpen, setIsOpen }: IDrawer) {
       position="end"
       zise="medium"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
+      drawerType="alert"
     >
       {asyncAction.state === "idle" && (
         <div className="py-2 flex flex-col gap-3">

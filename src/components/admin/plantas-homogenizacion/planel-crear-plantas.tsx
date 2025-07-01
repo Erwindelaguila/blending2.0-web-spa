@@ -32,7 +32,8 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
   }, []);
 
   const onSubmit: SubmitHandler<IPlantas> = async (data) => {
-    // Simula una llamada a una API
+    console.log("Datos enviados:", data);
+
     await asyncAction.execute(() => simulateCreatePlanta(data));
   };
 
@@ -52,7 +53,7 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
   };
 
   const handleSuccess = () => {
-    handleClose();
+    handleSubmit(onSubmit)();
   };
 
   return (
@@ -60,10 +61,11 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Nueva Planta de Homogenización"
-      buttonAction={handleSubmit(onSubmit)}
+      buttonAction={handleSuccess}
       position="end"
       zise="medium"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
+      drawerType="alert"
     >
       {asyncAction.state === "idle" && (
         <div className="py-2 flex flex-col gap-3">
@@ -72,6 +74,10 @@ export function PanelCrearPlantas({ isOpen, setIsOpen }: IDrawer) {
             <Input
               {...register("codigo", {
                 required: "El código es requerido",
+                pattern: {
+                  value: /^\d+$/,
+                  message: "El código debe contener solo números",
+                },
               })}
               className={styles.inputGrisBase}
               style={{ border: `2px solid ${OrgColors.serotGris}` }}

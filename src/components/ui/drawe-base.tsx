@@ -43,7 +43,14 @@ export const DrawerBase = ({
         position={position}
         {...restoreFocusSourceAttributes}
         open={isOpen}
-        onOpenChange={(_, { open }) => setIsOpen(open)}
+        modalType="non-modal"
+        
+        onOpenChange={(_, data) => {
+          if (data.type === "escapeKeyDown") {
+            return;
+          }
+          setIsOpen(data.open);
+        }}
       >
         <DrawerHeader>
           <DrawerHeaderTitle

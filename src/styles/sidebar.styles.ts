@@ -1,54 +1,8 @@
-"use client"
+"use client";
 
-import { makeStyles } from "@fluentui/react-components"
-import { COLORS, UI_CONFIG } from "@/config/app.config.server"
+import { makeStyles } from "@fluentui/react-components";
 
 export const useSidebarStyles = makeStyles({
-  sidebar: {
-    display: "flex",
-    flexDirection: "column",
-    width: UI_CONFIG.sidebar.width,
-    backgroundColor: COLORS.primary,
-    color: "white",
-    height: "100vh",
-    transition: `width ${UI_CONFIG.sidebar.transitionDuration}`, 
-    overflow: "hidden",
-  },
-  sidebarCollapsed: {
-    width: UI_CONFIG.sidebar.collapsedWidth,
-  },
-  logo: {
-    display: "flex",
-    alignItems: "center",
-    padding: "1rem",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-    marginBottom: "1rem",
-  },
-  logoIcon: {
-    backgroundColor: "white",
-    color: COLORS.primary,
-    width: "32px",
-    height: "32px",
-    borderRadius: "4px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold",
-    fontSize: "18px",
-    marginRight: "12px",
-  },
-  logoText: {
-    fontSize: "20px",
-    fontWeight: "bold",
-    color: "white",
-  },
-  nav: {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    overflowY: "auto",
-    padding: "0 1rem",
-  },
   menuItem: {
     display: "flex",
     alignItems: "center",
@@ -57,7 +11,6 @@ export const useSidebarStyles = makeStyles({
     color: "rgba(255, 255, 255, 0.85)",
     cursor: "pointer",
     textDecoration: "none",
-    borderRadius: "6px",
     marginBottom: "4px",
     transition: "all 0.2s ease",
     "&:hover": {
@@ -83,19 +36,15 @@ export const useSidebarStyles = makeStyles({
     fontSize: "14px",
     fontWeight: "500",
   },
-  submenu: {
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: "rgba(0, 0, 0, 0.15)",
-    borderRadius: "6px",
-    overflow: "hidden",
-    maxHeight: "0",
-    transition: "max-height 0.3s ease",
-    marginBottom: "8px",
-  },
+
   submenuOpen: {
     maxHeight: "500px",
   },
+
+  submenuClose: {
+    display: "none",
+  },
+
   submenuItem: {
     display: "flex",
     alignItems: "center",
@@ -103,7 +52,7 @@ export const useSidebarStyles = makeStyles({
     color: "rgba(255, 255, 255, 0.75)",
     textDecoration: "none",
     gap: "12px",
-    fontSize: "14px",
+    fontSize: "0.9rem",
     transition: "all 0.2s ease",
     cursor: "pointer",
     "&:hover": {
@@ -116,38 +65,30 @@ export const useSidebarStyles = makeStyles({
     color: "white",
     fontWeight: "600",
     position: "relative",
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      left: "0",
-      top: "0",
-      bottom: "0",
-      width: "3px",
-      backgroundColor: "#60a5fa",
-    },
+    borderLeft: "0.35rem solid #60a5fa",
   },
+
+  submenuItemActiveCollapsed: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    color: "white",
+    fontWeight: "600",
+    position: "relative",
+    borderBottom: "0.35rem solid #60a5fa",
+  },
+
   submenuIcon: {
-    fontSize: "16px",
     opacity: 0.8,
-  },
-  footer: {
-    borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-    padding: "1rem",
-    marginTop: "auto",
   },
   signOutButton: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
     color: "rgba(255, 255, 255, 0.85)",
     width: "100%",
     justifyContent: "flex-start",
-    padding: "0.75rem",
-    borderRadius: "6px",
     transition: "all 0.2s ease",
     "&:hover": {
       backgroundColor: "rgba(255, 255, 255, 0.1)",
       color: "white",
     },
   },
-})
+});

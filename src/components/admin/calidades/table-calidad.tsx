@@ -141,7 +141,7 @@ export function TableCalidades() {
             style={{
               backgroundColor: statusColorMap[item.status] || "#666",
               color: "#fff",
-              width: "10rem",
+              width: "100%",
             }}
             size="large"
           >
@@ -228,6 +228,7 @@ export function TableCalidades() {
       </Card>
 
       <PanelCrearCalidad
+        drawerType="alert"
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
       ></PanelCrearCalidad>

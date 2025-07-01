@@ -1,7 +1,7 @@
 "use client"
 
 import { makeStyles } from "@fluentui/react-components"
-import { COLORS, UI_CONFIG } from "@/config/app.config.server"
+import { COLORS } from "@/config/app.config.server"
 
 export const useHeaderStyles = makeStyles({
   header: {
@@ -11,7 +11,6 @@ export const useHeaderStyles = makeStyles({
     padding: "0.75rem 1.5rem",
     backgroundColor: COLORS.surface,
     borderBottom: "1px solid #e2e8f0",
-    height: UI_CONFIG.header.height,
   },
   headerLeft: {
     display: "flex",

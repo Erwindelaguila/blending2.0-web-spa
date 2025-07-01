@@ -3,9 +3,9 @@ import { hexToRgba } from "@/utils/colors";
 import { makeStyles } from "@fluentui/react-components";
 
 const baseButtonStyle = {
-  width: "13rem",
   color: "white",
   fontSize: "1rem",
+  border: "none",
 };
 
 const baseShortButtonStyle = {
@@ -41,6 +41,15 @@ export const useButtonsStyles = makeStyles({
     },
   },
 
+  buttonBase: {
+    ...baseButtonStyle,
+    backgroundColor: OrgColors.gris,
+    ":hover": {
+      backgroundColor: hexToRgba(OrgColors.gris, 0.8),
+      color: "#fff",
+    },
+  },
+
   buttonCelesteBase: {
     ...baseButtonStyle,
     backgroundColor: OrgColors.celeste,
@@ -57,5 +66,13 @@ export const useButtonsStyles = makeStyles({
       backgroundColor: hexToRgba(OrgColors.rojo, 0.8),
       color: "#fff",
     },
+  },
+
+  buttonDisabled: {
+    backgroundColor: "#f0f0f0",
+    color: "#666",
+    cursor: "not-allowed",
+    opacity: 0.6,
+    pointerEvents: "none",
   },
 });

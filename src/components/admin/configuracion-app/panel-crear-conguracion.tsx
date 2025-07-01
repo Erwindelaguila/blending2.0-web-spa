@@ -15,7 +15,11 @@ interface IConfiguracion {
   descripcion: string;
 }
 
-export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
+export function PanelCrearConfiguracionApp({
+  isOpen,
+  setIsOpen,
+  drawerType,
+}: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
   const [checked, setChecked] = useState(true);
@@ -67,7 +71,7 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
       setChecked(true);
       asyncAction.reset();
     }
-  }, [isOpen, reset, asyncAction]);
+  }, [isOpen, reset]);
 
   return (
     <DrawerBase
@@ -78,6 +82,7 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
       position="end"
       zise="medium"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
+      drawerType={drawerType}
     >
       {asyncAction.state === "idle" && (
         <div className="py-2 flex flex-col gap-3">
@@ -116,9 +121,7 @@ export function PanelCrearConfiguracionApp({ isOpen, setIsOpen }: IDrawer) {
               style={{ height: "10rem" }}
             />
             {errors.descripcion && (
-              <span className="text-red-500">
-                {errors.descripcion.message}
-              </span>
+              <span className="text-red-500">{errors.descripcion.message}</span>
             )}
           </div>
 

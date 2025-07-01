@@ -6,36 +6,12 @@ import {
   TableHeader,
   TableHeaderCell,
   TableRow,
-  TableCellLayout,
   Spinner,
   Text,
 } from "@fluentui/react-components";
-import { makeStyles, shorthands } from "@fluentui/react-components";
-import { OrgColors } from "@/config/app.config.server";
 import { ITableBase } from "@/interface";
+import { useTableBaseStyles } from "@/styles/table.styles";
 
-const useStyles = makeStyles({
-  container: {
-    overflow: "auto",
-    borderRadius: "0.2rem",
-  },
-  noBorder: {
-    border: "none",
-    padding: "0",
-  },
-  headerCell: {
-    backgroundColor: OrgColors.verde,
-    color: "white",
-    fontWeight: 600,
-    border: "1px solid #1E7D22",
-  },
-  bodyCell: {
-    border: "1px solid #1E7D22",
-  },
-  cellCentered: {
-    textAlign: "center",
-  },
-});
 
 type Data = { [key: string]: any };
 
@@ -47,7 +23,7 @@ export function TableBase({
   error,
   height = "auto",
 }: ITableBase) {
-  const styles = useStyles();
+  const styles = useTableBaseStyles();
 
   const defaultRenderCell = (item: Data, columnKey: string) =>
     item[columnKey as keyof Data];
@@ -98,12 +74,13 @@ export function TableBase({
           <TableCell
             key={`${item.id}-${column.uid}`}
             className={styles.bodyCell}
+            style={{ width: column.width ? `${column.width}%` : "auto" }}
           >
-            <TableCellLayout>
+            <div className="w-full h-full flex items-center">
               {renderCell
                 ? renderCell(item, column.uid)
                 : defaultRenderCell(item, column.uid)}
-            </TableCellLayout>
+            </div>
           </TableCell>
         ))}
       </TableRow>

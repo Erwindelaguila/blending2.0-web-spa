@@ -3,13 +3,7 @@
 import {
   Button,
   Card,
-  CardPreview,
-  Divider,
-  makeStyles,
   mergeClasses,
-  MessageBar,
-  Tag,
-  Text,
 } from "@fluentui/react-components";
 import { Title } from "../../ui/title";
 import { useState } from "react";
@@ -17,6 +11,7 @@ import { OrgColors } from "@/config/app.config.server";
 import { hexToRgba } from "@/utils/colors";
 import { CardGroup } from "@/components/ui/card-group";
 import { IGroup } from "@/interface";
+import { useButtonsStyles } from "@/styles/button.styles";
 
 const CALIDADES: IGroup[] = [
   {
@@ -77,78 +72,10 @@ const CALIDADES: IGroup[] = [
   },
 ];
 
-const baseButtonStyle = {
-  //padding: "0.4rem",
-  width: "13rem",
-  color: "white",
-  fontSize: "1rem",
-};
-
-const useStyles = makeStyles({
-  cardBase: {
-    padding: "1rem",
-    width: "100%",
-    height: "8rem",
-    borderRadius: "0rem",
-    border: "0.1rem solid #eee",
-    borderLeft: "0.7rem solid #808080",
-    boxShadow: "none",
-    ":hover": {
-      backgroundColor: "#fff",
-    },
-  },
-  selectCardGrupo: {
-    backgroundColor: "#fdfff8",
-    borderLeftColor: OrgColors.verde,
-    boxShadow: "0 3.2px 7.2px rgba(0,0,0,0.16), 0 0.7px 2.1px rgba(0,0,0,0.14)",
-  },
-
-  divider: {
-    width: "0.2rem",
-    backgroundColor: "#ccc",
-  },
-
-  dividerHorizontal: {
-    height: "0.1rem",
-    backgroundColor: "#ccc",
-  },
-  buttonP: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.celeste,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.celeste, 0.8),
-      color: "#fff",
-    },
-  },
-  buttonR: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.verde,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.verde, 0.8),
-      color: "#fff",
-    },
-  },
-  buttonA: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.serotAzul,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.serotAzul, 0.8),
-      color: "#fff",
-    },
-  },
-  buttonDisabled: {
-    backgroundColor: "#f0f0f0",
-    color: "#666",
-    cursor: "not-allowed",
-    opacity: 0.6,
-    pointerEvents: "none",
-  },
-});
-
 export function TabResult() {
-  const style = useStyles();
+  const style = useButtonsStyles();
 
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const renderQualities = CALIDADES.map((group: IGroup) => (
     <CardGroup
@@ -161,58 +88,54 @@ export function TabResult() {
 
   return (
     <>
-      <div className="w-full h-5 px-2">
-        <Card className="m-auto w-full max-w-full ">
-          <CardPreview>
-            <div className="p-3 " style={{ height: "43rem" }}>
-              <div className="w-full h-2/20">
-                <Title
-                  title="Grupos"
-                  subtitulo="Seleccion un grupo para procesar en planta"
-                ></Title>
-              </div>
+      <div className="w-full h-full px-2 m-auto pb-2">
+        <Card style={{ width: "100%", height: "100%" }}>
+          <div className="w-full h-full ">
+            <div className="w-full h-2/20">
+              <Title
+                title="Grupos"
+                subtitulo="Seleccion un grupo para procesar en planta"
+              ></Title>
+            </div>
 
-              <div className="w-full h-16/20 overflow-y-auto pb-3">
-                <div className="flex flex-col  gap-4 mt-2">
-                  {renderQualities}
+            <div className="w-full h-16/20 overflow-y-auto pb-3">
+              <div className="flex flex-col  gap-4 mt-2">{renderQualities}</div>
+            </div>
+
+            <div className="w-full h-2/20 flex  items-end">
+              <div className="w-1/2  ">
+                <div
+                  className="p-2 rounded-md"
+                  style={{
+                    backgroundColor: hexToRgba(OrgColors.celeste, 0.3),
+                  }}
+                >
+                  Se está ejecutando el modelo, esto puede demorar algunos
+                  minutos. Puede consultar el estado de la ejecución, con el
+                  código: <span className="font-semibold">HOMCAL000123</span>
                 </div>
               </div>
-
-              <div className="w-full h-2/20 flex  items-end">
-                <div className="w-1/2  ">
-                  <div
-                    className="p-2 rounded-md"
-                    style={{
-                      backgroundColor: hexToRgba(OrgColors.celeste, 0.3),
-                    }}
-                  >
-                    Se está ejecutando el modelo, esto puede demorar algunos
-                    minutos. Puede consultar el estado de la ejecución, con el
-                    código: <span className="font-semibold">HOMCAL000123</span>
-                  </div>
-                </div>
-                <div className="w-1/2 flex justify-end gap-3 pr-3">
-                  <Button size="large" className={style.buttonP}>
-                    Ver Parametros
-                  </Button>
-                  <Button size="large" className={style.buttonR}>
-                    Descargar reporte
-                  </Button>
-                  <Button
-                    size="large"
-                    appearance="outline"
-                    className={mergeClasses(
-                      style.buttonA,
-                      selected == null && style.buttonDisabled
-                    )}
-                    disabled={selected == null}
-                  >
-                    Aceptar Grupos
-                  </Button>
-                </div>
+              <div className="w-1/2 flex justify-end gap-3 pr-3">
+                <Button size="large" className={`${style.buttonCelesteBase}`}>
+                  Ver Parametros
+                </Button>
+                <Button size="large" className={`${style.buttonVerdeBase}`}>
+                  Descargar reporte
+                </Button>
+                <Button
+                  size="large"
+                  appearance="outline"
+                  className={mergeClasses(
+                    style.buttonAzulOscuroBase,
+                    selected.length == 0 && style.buttonDisabled
+                  )}
+                  disabled={selected == null}
+                >
+                  Aceptar Grupos
+                </Button>
               </div>
             </div>
-          </CardPreview>
+          </div>
         </Card>
       </div>
     </>

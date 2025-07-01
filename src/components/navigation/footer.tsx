@@ -8,7 +8,7 @@ export function Footer() {
   return (
     <>
       <footer
-        className={styles.footer}
+        className={`${styles.footer}`}
       >
         © Blending 2.0 - TASA {obtenerAnioActual()}
       </footer>

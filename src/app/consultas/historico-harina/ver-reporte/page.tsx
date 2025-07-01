@@ -3,18 +3,16 @@
 import { CardGroup, Title } from "@/components";
 import { OrgColors } from "@/config/app.config.server";
 import { IGroup } from "@/interface";
-import { hexToRgba } from "@/utils/colors";
 import {
   Badge,
   Button,
   Card,
-  CardPreview,
-  makeStyles,
   mergeClasses,
   Text,
 } from "@fluentui/react-components";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useButtonsStyles } from "@/styles/button.styles";
 
 const CALIDADES: IGroup[] = [
   {
@@ -26,7 +24,7 @@ const CALIDADES: IGroup[] = [
     valorAgregado: 86000,
     costoTotal: 200,
     calidadesUtil: ["Calidad 1", "Calidad 2", "Calidad 3", "Calidad 5"],
-    status: false,
+    status: true,
   },
   {
     grupo: 2,
@@ -59,7 +57,7 @@ const CALIDADES: IGroup[] = [
     valorAgregado: 75000,
     costoTotal: 200,
     calidadesUtil: ["Calidad 1", "Calidad 2", "Calidad 5"],
-    status: true,
+    status: false,
   },
   {
     grupo: 5,
@@ -80,94 +78,27 @@ const CALIDADES: IGroup[] = [
   },
 ];
 
-const baseButtonStyle = {
-  //padding: "0.4rem",
-  width: "13rem",
-  color: "white",
-  fontSize: "1rem",
-};
-
-const useStyles = makeStyles({
-  cardBase: {
-    padding: "1rem",
-    width: "100%",
-    height: "8rem",
-    borderRadius: "0rem",
-    border: "0.1rem solid #eee",
-    borderLeft: "0.7rem solid #808080",
-    boxShadow: "none",
-    ":hover": {
-      backgroundColor: "#fff",
-    },
-  },
-  selectCardGrupo: {
-    backgroundColor: "#fdfff8",
-    borderLeftColor: OrgColors.verde,
-    boxShadow: "0 3.2px 7.2px rgba(0,0,0,0.16), 0 0.7px 2.1px rgba(0,0,0,0.14)",
-  },
-
-  divider: {
-    width: "0.2rem",
-    backgroundColor: "#ccc",
-  },
-
-  dividerHorizontal: {
-    height: "0.1rem",
-    backgroundColor: "#ccc",
-  },
-  buttonP: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.celeste,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.celeste, 0.8),
-      color: "#fff",
-    },
-  },
-  buttonR: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.verde,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.verde, 0.8),
-      color: "#fff",
-    },
-  },
-  buttonA: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.serotAzul,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.serotAzul, 0.8),
-      color: "#fff",
-    },
-  },
-  buttonDisabled: {
-    backgroundColor: "#f0f0f0",
-    color: "#666",
-    cursor: "not-allowed",
-    opacity: 0.6,
-    pointerEvents: "none",
-  },
-});
-
 export default function DetallePage() {
+  const style = useButtonsStyles();
   const searchParams = useSearchParams();
   const uid = searchParams.get("uid");
-
-  const style = useStyles();
 
   const aceptados = CALIDADES.filter((c) => c.status);
   const noAceptados = CALIDADES.filter((c) => !c.status);
 
-  const defaultSelected = aceptados.length > 0 ? aceptados[0].grupo : null;
-  const [selected, setSelected] = useState<number | null>(defaultSelected);
+  const defaultSelected =
+    aceptados.length > 0 ? aceptados.map((g) => g.grupo) : null;
+
+  const [selected, setSelected] = useState<number[]>(defaultSelected ?? []);
 
   if (!uid) {
     return <div>UID no proporcionado</div>;
   }
 
   return (
-    <div className=" p-1">
-      <div className="flex justify-between items-center pb-2">
-        <Title title={`Ejecución: ${uid}`} color={OrgColors.azulOscuro}></Title>
+    <div className="py-2 w-full h-full overflow-y-auto">
+      <div className="flex justify-between items-center pb-2 w-full h-1/15">
+        <Title title={`Ejecución: ${uid}`}></Title>
         <div className="flex items-center gap-4">
           <Text>Estado</Text>
           <Badge
@@ -180,17 +111,14 @@ export default function DetallePage() {
         </div>
       </div>
 
-      <div style={{ height: "44.5rem" }} className=" overflow-hidden p-1">
-        <div className="w-full h-[28%]">
-          <Card>
-            <CardPreview>
-              <div className="p-2">
+      <div className="h-13/15 overflow-y-auto space-y-4 ">
+        {aceptados.length > 0 && (
+          <div className="w-full h-auto max-h-[80rem] overflow-y-auto p-1">
+            <Card>
+              <div className="p-2 flex flex-col gap-2">
+                <Title title="Grupos Aceptados" color={OrgColors.verde}></Title>
                 {aceptados.length > 0 && (
-                  <div className="space-y-4">
-                    <Title
-                      title="Grupos Aceptados"
-                      color={OrgColors.verde}
-                    ></Title>
+                  <>
                     <div className="grid grid-cols-1 gap-4">
                       {aceptados.map((group) => (
                         <CardGroup
@@ -202,16 +130,20 @@ export default function DetallePage() {
                         />
                       ))}
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
-            </CardPreview>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        )}
 
-        <div className="w-full h-[65%] overflow-hidden">
-          <Card className="h-full">
-            <CardPreview className="h-full">
+        {noAceptados.length > 0 && (
+          <div
+            className={`w-full ${
+              aceptados.length > 0 ? "h-auto" : "h-full"
+            } h-full max-h-[80rem] overflow-y-auto p-1`}
+          >
+            <Card style={{ width: "100%", height: "100%" }}>
               <div className="p-2 space-y-4 h-full ">
                 <Title
                   title="Grupos No Aceptados"
@@ -229,25 +161,32 @@ export default function DetallePage() {
                   ))}
                 </div>
               </div>
-            </CardPreview>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        )}
+      </div>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button size="large" className={style.buttonP}>
+      <div className="flex justify-end items-center gap-3 w-full h-1/15 bg-gray-50">
+        <div>
+          <Button size="large" className={style.buttonCelesteBase}>
             Ver Parametros
           </Button>
-          <Button size="large" className={style.buttonR}>
+        </div>
+        <div>
+          <Button size="large" className={style.buttonVerdeBase}>
             Descargar reporte
           </Button>
+        </div>
+
+        <div>
           <Button
             size="large"
             appearance="outline"
             className={mergeClasses(
-              style.buttonA,
-              selected == null && style.buttonDisabled
+              style.buttonAzulOscuroBase,
+              aceptados.length > 0 && style.buttonDisabled
             )}
-            disabled={selected == null}
+            disabled={aceptados.length > 0}
           >
             Aceptar Grupos
           </Button>
