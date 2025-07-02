@@ -217,7 +217,6 @@ export function TableParametros() {
       <PanelCrearParametros
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
-        drawerType="alert"
       ></PanelCrearParametros>
 
       <ModalBase

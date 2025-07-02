@@ -3,48 +3,73 @@
 import { 
   Button, 
   Field, 
-  ProgressBar, 
+  ProgressBar,
+  MessageBar,
+  MessageBarTitle,
+  MessageBarBody,
+  Spinner
 } from "@fluentui/react-components";
 import { 
   Checkmark24Regular,
+  Dismiss24Regular,
 } from "@fluentui/react-icons";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { AsyncActionState } from "@/hooks/use-async-action";
 
 interface AsyncActionDisplayProps {
   state: AsyncActionState;
-  loadingMessage: string;  // Obligatorio, sin "?"
-  successMessage: string;  // Obligatorio, sin "?"
+  loadingMessage: string;  
+  successMessage: string;  
+  error?: string | null;   
   onSuccess?: () => void;
+  onErrorBack?: () => void; 
+  onErrorDismiss?: () => void; 
+  loadingType?: 'spinner' | 'progress'; 
 }
 
 export const AsyncActionDisplay = ({
   state,
-  loadingMessage,  // Sin valor por defecto
-  successMessage,  // Sin valor por defecto
+  loadingMessage,  
+  successMessage, 
+  error,
   onSuccess,
+  onErrorDismiss,
+  loadingType = 'spinner', 
 }: AsyncActionDisplayProps) => {
   const styles = useButtonsStyles();
 
-  // Estado de loading - Progress bar arriba como antes
+  // Estado de loading -
   if (state === 'loading') {
-    return (
-      <>
-        <Field
-          validationMessage={loadingMessage}
-          validationState="none"
-        >
+    if (loadingType === 'progress') {
+      return (
+        <Field validationMessage={loadingMessage} validationState="none">
           <ProgressBar />
         </Field>
-      </>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 80 }}>
+        <Spinner size="medium" />
+        {loadingMessage && (
+          <span style={{ marginTop: 12 }}>{loadingMessage}</span>
+        )}
+      </div>
     );
   }
 
-  // Estado de éxito - Check bonito y botón como antes
+  // Estado de éxito 
   if (state === 'success') {
     return (
       <>
-        <div>{successMessage}</div>
+        <MessageBar 
+          intent="success"
+          style={{ marginBottom: '16px' }}
+        >
+          <MessageBarBody>
+            <MessageBarTitle>Éxito</MessageBarTitle>
+            {successMessage}
+          </MessageBarBody>
+        </MessageBar>
 
         <Button
           size="large"
@@ -61,6 +86,30 @@ export const AsyncActionDisplay = ({
           Aceptar
         </Button>
       </>
+    );
+  }
+
+  // Estado de error 
+  if (state === 'error') {
+    return (
+      <MessageBar 
+        intent="error"
+        style={{ marginBottom: '16px' }}
+      >
+        <MessageBarBody>
+          <MessageBarTitle>Error</MessageBarTitle>
+          {error || 'Ha ocurrido un error inesperado'}
+        </MessageBarBody>
+        {onErrorDismiss && (
+          <Button
+            appearance="transparent"
+            icon={<Dismiss24Regular />}
+            size="small"
+            onClick={onErrorDismiss}
+            style={{ marginLeft: 'auto' }}
+          />
+        )}
+      </MessageBar>
     );
   }
 
