@@ -5,9 +5,16 @@ import { Filter, TablePlanta } from "@/components";
 export default function PlantasHomogenizacionPage() {
   return (
     <>
-      <div className="w-full flex flex-col gap-4">
-        <Filter></Filter>
-        <TablePlanta></TablePlanta>
+      <div className="w-full flex flex-col h-full ">
+        <div className="w-full h-3/20 pb-2">
+          <Filter
+            title_filter="Buscar Planta"
+            title_input="Codigo de planta"
+          ></Filter>
+        </div>
+        <div className="w-full h-17/20 pb-2">
+          <TablePlanta></TablePlanta>
+        </div>
       </div>
     </>
   );

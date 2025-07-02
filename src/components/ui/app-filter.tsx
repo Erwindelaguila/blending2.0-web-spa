@@ -40,9 +40,11 @@ const useStyles = makeStyles({
 export function Filter({
   title_filter = "Filtro",
   title_input = "Codigo",
+  moreCamps = true,
 }: {
   title_filter?: string;
   title_input?: string;
+  moreCamps?: boolean;
 }) {
   const style = useStyles();
   const stylebtn = useButtonsStyles();
@@ -56,7 +58,7 @@ export function Filter({
               <Title title={title_filter}></Title>
             </div>
 
-            <div className="w-full flex h-4/5">
+            <div className="w-full flex h-4/5 justify-between">
               <div className="w-1/4 h-full pr-4 flex items-center ">
                 <div className="flex flex-col justify-start w-full">
                   <Label>{title_input}</Label>
@@ -68,31 +70,47 @@ export function Filter({
                   />
                 </div>
               </div>
-              <Divider vertical className={style.divider} />
-              <div className="w-3/4 h-full flex items-center pl-4">
-                <div className="w-1/2 flex gap-3 h-full items-center">
-                  <AppCombobox
-                    label="Estado"
-                    labelRequired={false}
-                    size="medium"
-                    options={comboOptions}
-                    value={""}
-                    onChange={() => {}}
-                    grayBorder={true}
-                  />
 
-                  <div className="flex flex-col">
-                    <Label size="medium" htmlFor="Centro de Ubicación">
-                      Fecha
-                    </Label>
-                    <DatePicker
-                      size="medium"
-                      style={{ border: ` 2px solid ${OrgColors.serotGris}` }}
-                      placeholder="Elija una fecha"
-                    />
+              {moreCamps == true ? (
+                <>
+                  <div className="w-3/4 h-full flex items-center pl-4">
+                    <div className="w-1/2 flex gap-3 h-full items-center">
+                      <AppCombobox
+                        label="Estado"
+                        labelRequired={false}
+                        size="medium"
+                        options={comboOptions}
+                        value={""}
+                        onChange={() => {}}
+                        grayBorder={true}
+                      />
+
+                      <div className="flex flex-col">
+                        <Label size="medium" htmlFor="Centro de Ubicación">
+                          Fecha
+                        </Label>
+                        <DatePicker
+                          size="medium"
+                          style={{
+                            border: ` 2px solid ${OrgColors.serotGris}`,
+                          }}
+                          placeholder="Elija una fecha"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="w-1/2 flex justify-end items-center pt-3 h-full">
+                      <Button
+                        size="large"
+                        icon={<Search24Regular></Search24Regular>}
+                        className={`w-[13rem] ${stylebtn.buttonAzulOscuroBase} `}
+                      >
+                        Filtrar
+                      </Button>
+                    </div>
                   </div>
-                </div>
-
+                </>
+              ) : (
                 <div className="w-1/2 flex justify-end items-center pt-3 h-full">
                   <Button
                     size="large"
@@ -102,7 +120,7 @@ export function Filter({
                     Filtrar
                   </Button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

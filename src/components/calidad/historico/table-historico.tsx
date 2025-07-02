@@ -330,7 +330,6 @@ const data = [
   },
 ];
 
-
 export function TableHistorico() {
   const style = useButtonsStyles();
   const router = useRouter();
@@ -436,6 +435,7 @@ export function TableHistorico() {
 
           <div className="w-full h-1/10">
             <Pagination
+              totalItems={180}
               currentPage={page}
               totalPages={5}
               onPageChange={setPage}

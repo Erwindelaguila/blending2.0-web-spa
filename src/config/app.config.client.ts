@@ -6,17 +6,21 @@
  */
 import {
   SettingsRegular,
-  OptionsRegular,
   BuildingRegular,
   ClipboardTaskRegular,
-  GaugeRegular,
-  WrenchRegular,
   ArchiveSettings24Filled,
   DataLine24Filled,
   DocumentTableSearch24Filled,
   AppsList24Filled,
   PuzzleCube24Filled,
   ClipboardTaskListRtl24Filled,
+  WrenchSettings24Filled,
+  Options24Color,
+  BuildingFactory24Filled,
+  Beaker24Filled,
+  ClipboardDataBar24Filled,
+  TableSettings24Filled,
+  Settings24Filled,
 } from "@fluentui/react-icons"
 import type { ComponentType } from "react"
 
@@ -75,25 +79,25 @@ export const NAVIGATION_MENU: MenuItem[] = [
   {
     id: "mantenimientos",
     label: "Mantenimientos",
-    icon: WrenchRegular,
+    icon: WrenchSettings24Filled,
     href: "#",
     items: [
       {
         id: "plantas-homogenizacion",
         label: "Plantas de Homogenización",
-        icon: BuildingRegular,
+        icon: BuildingFactory24Filled,
         href: "/mantenimientos/plantas",
       },
       {
         id: "calidades",
         label: "Calidades",
-        icon: GaugeRegular,
+        icon: Beaker24Filled,
         href: "/mantenimientos/calidades",
       },
       {
         id: "parametros-calidad",
         label: "Parámetros de Calidad",
-        icon: ClipboardTaskRegular,
+        icon: ClipboardDataBar24Filled,
         href: "/mantenimientos/parametros",
       },
     ],
@@ -101,19 +105,19 @@ export const NAVIGATION_MENU: MenuItem[] = [
   {
     id: "configuraciones",
     label: "Configuraciones",
-    icon: OptionsRegular,
+    icon: Options24Color,
     href: "#",
     items: [
       {
         id: "valores-calidad",
         label: "Valores de Calidad - Parámetros",
-        icon: GaugeRegular,
+        icon: TableSettings24Filled,
         href: "/configuraciones/valores-calidad",
       },
       {
         id: "config-aplicacion",
         label: "Configuración de la Aplicación",
-        icon: SettingsRegular,
+        icon: Settings24Filled,
         href: "/configuraciones/aplicacion",
       },
     ],

@@ -3,7 +3,6 @@
 import { TableBase } from "@/components/ui/table-base";
 import { Title } from "@/components/ui/title";
 import { OrgColors } from "@/config/app.config.server";
-import { hexToRgba } from "@/utils/colors";
 import {
   Badge,
   Button,
@@ -23,11 +22,11 @@ import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 
 const columns = [
-  { uid: "code", name: "Codigo", width: 5 },
-  { uid: "name", name: "Nombre", width: 5 },
+  { uid: "code", name: "Codigo", width: 10 },
+  { uid: "name", name: "Nombre", width: 10 },
   { uid: "numero_rumas", name: "Nro. de Rumas", width: 5 },
-  { uid: "description", name: "Usuario", width: 15 },
-  { uid: "status", name: "Estado", width: 7 },
+  { uid: "description", name: "Usuario", width: 20 },
+  { uid: "status", name: "Estado", width: 6 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
@@ -141,7 +140,7 @@ export function TablePlanta() {
             style={{
               backgroundColor: statusColorMap[item.status] || "#666",
               color: "#fff",
-              width: "10rem",
+              width: "100%",
             }}
             size="large"
           >
@@ -151,7 +150,7 @@ export function TablePlanta() {
 
       case "action":
         return (
-          <div className="flex gap-1 justify-between w-full py-0.5">
+          <div className="flex gap-1 justify-center w-full py-0.5">
             <Tooltip content="Editar Planta" relationship="label">
               <Button
                 size="large"
@@ -186,51 +185,45 @@ export function TablePlanta() {
   const acctionDeleteModal = () => {};
   return (
     <>
-      <Card>
-        <CardPreview>
-          <div
-            className="p-3"
-            style={{
-              width: "100%",
-              height: "45em",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
-            <div className="flex justify-between items-center">
+      <Card style={{ width: "100%", height: "100%" }}>
+        <div className="w-full h-full flex flex-col  ">
+          <div className="w-full h-9/10 ">
+            <div className="w-full h-2/25 flex justify-between items-start ">
               <Title title="Plantas de Homogenizado" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
-                className={style.buttonVerdeBase}
+                className={`w-[13rem] ${style.buttonVerdeBase}`}
                 onClick={() => setOpenPanel(true)}
               >
                 Nuevo
               </Button>
             </div>
 
-            <TableBase
-              columns={columns}
-              data={data}
-              renderCell={renderCell}
-              isLoading={false}
-              error={null}
-              height="80%"
-            />
+            <div className="w-full h-23/25">
+              <TableBase
+                columns={columns}
+                data={data}
+                renderCell={renderCell}
+                isLoading={false}
+                error={null}
+                height="100%"
+              />
+            </div>
+          </div>
+
+          <div className="w-full h-1/10">
             <Pagination
+              totalItems={180}
               currentPage={page}
               totalPages={5}
               onPageChange={setPage}
             />
           </div>
-        </CardPreview>
+        </div>
       </Card>
 
-      <PanelCrearPlanta
-        isOpen={openPanel}
-        setIsOpen={setOpenPanel}
-      />
+      <PanelCrearPlanta isOpen={openPanel} setIsOpen={setOpenPanel} />
 
       <ModalBase
         open={openModal}

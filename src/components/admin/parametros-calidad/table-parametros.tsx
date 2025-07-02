@@ -173,48 +173,46 @@ export function TableParametros() {
   const acctionDeleteModal = () => {};
   return (
     <>
-      <Card>
-        <CardPreview>
-          <div
-            className="p-3"
-            style={{
-              width: "100%",
-              height: "45em",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
-            <div className="flex justify-between items-center">
-              <Title title="Parámetros de Calidad"></Title>
+      <Card style={{ width: "100%", height: "100%" }}>
+        <div className="w-full h-full flex flex-col  ">
+          <div className="w-full h-9/10 ">
+            <div className="w-full h-2/25 flex justify-between items-start ">
+              <Title title="Plantas de Homogenizado" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
-                className={style.buttonVerdeBase}
+                className={`w-[13rem] ${style.buttonVerdeBase}`}
                 onClick={() => setOpenPanel(true)}
               >
                 Nuevo
               </Button>
             </div>
 
-            <TableBase
-              columns={columns}
-              data={data}
-              renderCell={renderCell}
-              isLoading={false}
-              error={null}
-              height="80%"
-            />
+            <div className="w-full h-23/25">
+              <TableBase
+                columns={columns}
+                data={data}
+                renderCell={renderCell}
+                isLoading={false}
+                error={null}
+                height="100%"
+              />
+            </div>
+          </div>
+
+          <div className="w-full h-1/10">
             <Pagination
+              totalItems={180}
               currentPage={page}
               totalPages={5}
               onPageChange={setPage}
             />
           </div>
-        </CardPreview>
+        </div>
       </Card>
 
       <PanelCrearParametros
+        drawerType="alert"
         isOpen={openPanel}
         setIsOpen={setOpenPanel}
       ></PanelCrearParametros>

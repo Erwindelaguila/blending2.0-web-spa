@@ -290,42 +290,33 @@ export function TableValoresCalidad() {
 
   return (
     <>
-      <Card>
-        <CardPreview>
-          <div
-            className="p-3"
-            style={{
-              width: "100%",
-              height: "45em",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
+      <Card style={{ width: "100%", height: "100%" }}>
+        <div className="w-full h-full flex flex-col ">
+          <div className="w-full h-23/25">
             <TableDynamic
               calidades={calidades}
               title="Paramtroes"
               editable
               onDataChange={setDatos}
               widthFull={true}
-              height="33rem"
+              height="100%"
               isStickyFirstCol={true}
               paintRowCol={true}
               titleFirstCol="Calidades"
             ></TableDynamic>
-
-            <div className="flex justify-end">
-              <Button
-                size="large"
-                style={{ width: "20rem" }}
-                className={style.buttonAzulOscuroBase}
-                icon={<Checkmark24Regular></Checkmark24Regular>}
-              >
-                Guardar configuración
-              </Button>
-            </div>
           </div>
-        </CardPreview>
+
+          <div className="flex justify-end items-center w-full h-2/25">
+            <Button
+              size="large"
+              style={{ width: "20rem" }}
+              className={style.buttonAzulOscuroBase}
+              icon={<Checkmark24Regular></Checkmark24Regular>}
+            >
+              Guardar configuración
+            </Button>
+          </div>
+        </div>
       </Card>
     </>
   );
