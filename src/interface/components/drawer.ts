@@ -5,11 +5,9 @@ import { ReactNode } from "react";
 type ziseDrawer = "small" | "medium" | "large" | "full";
 type positionDrawer = "start" | "end" | "bottom";
 
-type draweType = "alert" | "modal" | "non-modal";
-
 export interface IDrawerBase {
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  open: boolean;
+  close: () => void;
   title: string;
   children: ReactNode;
   buttonAction?: () => void;
@@ -17,13 +15,15 @@ export interface IDrawerBase {
   zise?: ziseDrawer;
   position?: positionDrawer;
   BtnAccion?: boolean;
-  drawerType: draweType;
-  isButtonScape?: boolean;
+  drawerTypeModal: boolean;
+  btnDetails?: boolean;
 }
+
+type mode = "crear" | "editar" | "detalle";
 
 export interface IDrawer {
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  drawerType: draweType;
+  open: boolean;
+  close: () => void;
+  mode: mode;
+  id?: string;
 }
-

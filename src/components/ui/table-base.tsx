@@ -46,10 +46,7 @@ export function TableBase({
         <TableRow>
           <TableCell colSpan={columns.length} className={styles.bodyCell}>
             <div style={{ textAlign: "center" }}>
-              <Spinner size="tiny" />
-              <Text size={200} block>
-                Cargando datos...
-              </Text>
+              <Spinner size="medium" labelPosition="after" label="Cargando datos ..." />
             </div>
           </TableCell>
         </TableRow>

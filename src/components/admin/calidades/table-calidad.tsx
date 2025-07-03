@@ -3,133 +3,93 @@
 import { TableBase } from "@/components/ui/table-base";
 import { Title } from "@/components/ui/title";
 import { OrgColors } from "@/config/app.config.server";
-import {
-  Badge,
-  Button,
-  Card,
-  Tooltip,
-} from "@fluentui/react-components";
+import { Badge, Button, Card, Tooltip } from "@fluentui/react-components";
 import {
   Add24Regular,
   Delete24Filled,
   Edit24Filled,
+  Info24Filled,
 } from "@fluentui/react-icons";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
-import { PanelCrearCalidad } from "./panel-crear-calidad";
-import { CalidadesService } from "@/services/calidades.service";
-import { useAsyncAction } from "@/hooks/use-async-action";
+import { PanelCalidad } from "./panel-calidad";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import type { ICalidadResponse } from "@/services/calidades.service";
+import useSWR from "swr";
+import { CalidadFechApi } from "@/services/calidad-service-api";
+import { useAsyncAction } from "@/hooks/use-async-action";
+import { ICalidad } from "@/interface";
+import { fetchGetCalidades } from "@/lib/constants/key-fetch";
 
 const columns = [
-  { uid: "code", name: "Codigo", width: 5 },
-  { uid: "name", name: "Nombre", width: 5 },
-  { uid: "description", name: "Descripción", width: 10 },
+  { uid: "codigo", name: "Codigo", width: 5 },
+  { uid: "nombre", name: "Nombre", width: 5 },
+  { uid: "descripcion", name: "Descripción", width: 10 },
   { uid: "codigoMaterial", name: "Código de Material", width: 5 },
-  { uid: "status", name: "Estado", width: 7 },
+  { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
 export function TableCalidades() {
   const style = useButtonsStyles();
+  const deleteAction = useAsyncAction();
+
+  const {
+    data: dataCalidades,
+    isLoading: loadingCalidades,
+    error: errorCalidades,
+  } = useSWR<ICalidad[]>(fetchGetCalidades, CalidadFechApi, {
+    revalidateOnFocus: false,
+    revalidateIfStale: true,
+  });
+
+
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [idCalidad, setIdCalidad] = useState<string | undefined>(undefined);
+
+  const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
   const [page, setPage] = useState(1);
-  const [calidades, setCalidades] = useState<ICalidadResponse[]>([]);
+
+  const handleOpenCrear = () => {
+    setMode("crear");
+    setIdCalidad(undefined);
+    setOpenPanel(true);
+  };
+
+  const handleOpenEditar = (registroId: string) => {
+    setMode("editar");
+    setIdCalidad(registroId);
+    setOpenPanel(true);
+  };
+
+  const handleOpenDetalle = (registroId: string) => {
+    setMode("detalle");
+    setIdCalidad(registroId);
+    setOpenPanel(true);
+  };
+
+  const handleClosePanel = () => {
+    setOpenPanel(false);
+
+    setTimeout(() => {
+      setIdCalidad(undefined); // importante limpiar el ID
+      setMode("crear"); // o el modo por defecto
+    }, 30);
+  };
+
   const [infoCalidad, setInfoCalidad] = useState<{
     id: number;
     codigo: string;
   } | null>(null);
-  const [calidadAEditar, setCalidadAEditar] = useState<ICalidadResponse | null>(
-    null
-  );
-  const deleteAction = useAsyncAction();
 
-  // Configuración de paginación
-  const ITEMS_PER_PAGE = 8;
-  const totalItems = calidades.length;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-  const showPagination = totalItems > 0;
-
-  // ============================================
-  // DATOS Y ESTADOS
-  // ============================================
-
-  const [loading, setLoading] = useState(false);
-
-  // Función para cargar calidades
-  const loadCalidades = async () => {
-    setLoading(true);
-    try {
-      const data = await CalidadesService.listar();
-      setCalidades(data);
-    } catch (error) {
-      console.error("Error al cargar calidades:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCalidades();
-  }, []);
-
-  useEffect(() => {
-    if (deleteAction.state === "success") {
-      handleDeleteSuccess();
-    }
-  }, [deleteAction.state]);
-
-  const handleDeleteSuccess = () => {
-    loadCalidades();
-    setOpenModal(false);
-    deleteAction.reset();
-  };
-
-  const handlePanelClose = () => {
-    setCalidadAEditar(null);
-    setOpenPanel(false);
-    loadCalidades();
-  };
-
-  // Aplicar paginación a los datos
-  const mappedCalidades = calidades.map((item) => {
-    return {
-      code: item.codigo,
-      name: item.nombre,
-      description: item.descripcion,
-      codigoMaterial: item.codigoMaterial,
-      status: item.activo ? "Activo" : "Inactivo",
-      activo: item.activo,
-      id: item.id,
-      raw: item,
-    };
-  });
-
-  // Datos paginados
-  const startIndex = (page - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedData = mappedCalidades.slice(startIndex, endIndex);
-
-  // Resetear página si es necesario
-  useEffect(() => {
-    if (page > totalPages && totalPages > 0) {
-      setPage(1);
-    }
-  }, [totalPages, page]);
-
-  const handleEdit = (item: ICalidadResponse) => {
-    setCalidadAEditar(item);
-    setOpenPanel(true);
-  };
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
-      case "status":
+      case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
           Inactivo: OrgColors.rojo,
@@ -150,15 +110,24 @@ export function TableCalidades() {
         );
       case "action":
         return (
-          <div className="flex gap-1 justify-between w-full py-0.5">
+          <div className="flex gap-1 justify-center w-full py-0.5">
+            <Tooltip content="Info Calidad" relationship="label">
+              <Button
+                size="large"
+                appearance="subtle"
+                onClick={() => handleOpenDetalle(item.id)}
+                icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
+              />
+            </Tooltip>
             <Tooltip content="Editar Calidad" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleEdit(item.raw)}
+                onClick={() => handleOpenEditar(item.id)}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
+
             <Tooltip content="Eliminar Calidad" relationship="label">
               <Button
                 size="large"
@@ -182,9 +151,6 @@ export function TableCalidades() {
 
   const acctionDeleteModal = async () => {
     if (!infoCalidad) return;
-    await deleteAction.execute(async () => {
-      await CalidadesService.eliminar(infoCalidad.id);
-    });
   };
   return (
     <>
@@ -197,7 +163,7 @@ export function TableCalidades() {
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
                 className={`w-[13rem] ${style.buttonVerdeBase}`}
-                onClick={() => setOpenPanel(true)}
+                onClick={() => handleOpenCrear()}
               >
                 Nuevo
               </Button>
@@ -206,21 +172,21 @@ export function TableCalidades() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={paginatedData}
+                data={dataCalidades ?? []}
                 renderCell={renderCell}
-                isLoading={loading}
-                error={null}
+                isLoading={loadingCalidades}
+                error={errorCalidades}
                 height="100%"
               />
             </div>
           </div>
 
           <div className="w-full h-1/10">
-            {showPagination && (
+            {dataCalidades && (
               <Pagination
                 currentPage={page}
-                totalPages={totalPages}
-                totalItems={totalItems}
+                totalPages={10}
+                totalItems={12}
                 onPageChange={setPage}
               />
             )}
@@ -228,12 +194,11 @@ export function TableCalidades() {
         </div>
       </Card>
 
-      <PanelCrearCalidad
-        drawerType="alert"
-        isOpen={openPanel}
-        setIsOpen={setOpenPanel}
-        calidadAEditar={calidadAEditar}
-        onClose={handlePanelClose}
+      <PanelCalidad
+        mode={mode}
+        open={openPanel}
+        close={handleClosePanel}
+        id={idCalidad}
       />
 
       <ModalBase
@@ -246,14 +211,14 @@ export function TableCalidades() {
         <>
           ¿Está seguro de eliminar la calidad con código{" "}
           <span className="font-bold">{infoCalidad?.codigo}</span>?
-          {deleteAction.state === "loading" && (
+          {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage="Eliminando calidad..."
               successMessage=""
             />
           )}
-          {deleteAction.state === "error" && (
+          {deleteAction.error && (
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage=""
@@ -262,7 +227,7 @@ export function TableCalidades() {
               onErrorDismiss={deleteAction.reset}
             />
           )}
-          {deleteAction.state === "success" && (
+          {deleteAction.isSuccess && (
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage=""

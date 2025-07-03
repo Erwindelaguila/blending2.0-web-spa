@@ -13,13 +13,24 @@ interface IPlantaForm {
   descripcion: string;
 }
 
-export function PanelCrearPlanta({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
+export function PanelCrearPlanta({
+  isOpen,
+  setIsOpen,
+}: {
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const styles = useInputStyles();
   const [checked, setChecked] = useState(true);
   const asyncAction = useAsyncAction();
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<IPlantaForm>({
-    defaultValues: { codigo: "", nombre: "", descripcion: "" }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<IPlantaForm>({
+    defaultValues: { codigo: "", nombre: "", descripcion: "" },
   });
 
   const onChange = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,11 +42,14 @@ export function PanelCrearPlanta({ isOpen, setIsOpen }: { isOpen: boolean; setIs
       codigo: Number(data.codigo),
       nombre: data.nombre,
       descripcion: data.descripcion,
-      activo: checked
+      activo: checked,
     };
+
+    /*
     await asyncAction.execute(async () => {
       await PlantasService.crear(plantaData);
     });
+    */
   };
 
   const handleSuccess = () => {
@@ -57,7 +71,7 @@ export function PanelCrearPlanta({ isOpen, setIsOpen }: { isOpen: boolean; setIs
       buttonAction={handleSubmit(onSubmit)}
       position="end"
       BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
-      drawerType="alert"
+      drawerTypeModal
     >
       {asyncAction.state === "error" && (
         <AsyncActionDisplay
@@ -68,7 +82,7 @@ export function PanelCrearPlanta({ isOpen, setIsOpen }: { isOpen: boolean; setIs
           onErrorDismiss={handleErrorDismiss}
         />
       )}
-      {(asyncAction.state === "idle" || asyncAction.state === "error") && (
+      {(asyncAction.isFromInit || asyncAction.error) && (
         <div className="py-2 flex flex-col gap-3">
           <div className="flex flex-col justify-start w-full gap-0.5">
             <Label required>Código</Label>

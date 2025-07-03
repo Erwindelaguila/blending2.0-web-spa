@@ -21,8 +21,8 @@ import {
 } from "@fluentui/react-icons";
 
 export const DrawerBase = ({
-  isOpen,
-  setIsOpen,
+  open,
+  close,
   title,
   children,
   buttonAction,
@@ -30,6 +30,8 @@ export const DrawerBase = ({
   zise = "medium",
   position = "start",
   BtnAccion = true,
+  drawerTypeModal,
+  btnDetails = false,
 }: IDrawerBase) => {
   const style = useButtonsStyles();
   const restoreFocusTargetAttributes = useRestoreFocusTarget();
@@ -41,15 +43,17 @@ export const DrawerBase = ({
         as="aside"
         size={zise}
         position={position}
+        open={open}
+        modalType="modal"
         {...restoreFocusSourceAttributes}
-        open={isOpen}
-        modalType="non-modal"
-        
         onOpenChange={(_, data) => {
-          if (data.type === "escapeKeyDown") {
+          if (
+            drawerTypeModal &&
+            (data.type === "escapeKeyDown" || data.type === "backdropClick")
+          ) {
             return;
           }
-          setIsOpen(data.open);
+          close();
         }}
       >
         <DrawerHeader>
@@ -59,7 +63,9 @@ export const DrawerBase = ({
                 appearance="subtle"
                 aria-label="Close"
                 icon={<Dismiss24Regular />}
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  close();
+                }}
               />
             }
           >
@@ -71,11 +77,9 @@ export const DrawerBase = ({
             </span>
           </DrawerHeaderTitle>
         </DrawerHeader>
-
         <DrawerBody>
           <>{children}</>
         </DrawerBody>
-
         {BtnAccion && (
           <>
             <DrawerFooter className=" flex flex-col">
@@ -91,7 +95,7 @@ export const DrawerBase = ({
                   {...restoreFocusTargetAttributes}
                   size="large"
                   icon={<Checkmark24Regular></Checkmark24Regular>}
-                  className={style.buttonCelesteBase}
+                  className={`w-[13rem] ${style.buttonCelesteBase}`}
                   onClick={buttonAction}
                 >
                   {buttonText}
@@ -99,9 +103,37 @@ export const DrawerBase = ({
                 <Button
                   {...restoreFocusTargetAttributes}
                   size="large"
-                  className={style.buttonGrisBase}
+                  className={`w-[13rem] ${style.buttonGrisBase}`}
                   icon={<PresenceBlocked20Regular></PresenceBlocked20Regular>}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    close();
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </DrawerFooter>
+          </>
+        )}
+
+        {btnDetails && (
+          <>
+            <DrawerFooter className=" flex flex-col">
+              <Divider
+                style={{
+                  height: "0.2rem", // Grosor
+                  backgroundColor: "#ccc", // Color opcional
+                }}
+              ></Divider>
+              <div className="flex  gap-3 w-full pt-3">
+                <Button
+                  {...restoreFocusTargetAttributes}
+                  size="large"
+                  className={`w-[13rem] ${style.buttonGrisBase}`}
+                  icon={<PresenceBlocked20Regular></PresenceBlocked20Regular>}
+                  onClick={() => {
+                    close();
+                  }}
                 >
                   Close
                 </Button>
