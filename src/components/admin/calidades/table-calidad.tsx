@@ -16,12 +16,11 @@ import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { PanelCalidad } from "./panel-calidad";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
-import type { ICalidadResponse } from "@/services/calidades.service";
 import useSWR from "swr";
-import { CalidadFechApi } from "@/services/calidad-service-api";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { ICalidad } from "@/interface";
-import { fetchGetCalidades } from "@/lib/constants/key-fetch";
+import { getAllCalidadKey } from "@/lib/constants/key-fetch";
+import { CalidadesService } from "@/services";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -40,12 +39,10 @@ export function TableCalidades() {
     data: dataCalidades,
     isLoading: loadingCalidades,
     error: errorCalidades,
-  } = useSWR<ICalidad[]>(fetchGetCalidades, CalidadFechApi, {
+  } = useSWR<ICalidad[]>(getAllCalidadKey, CalidadesService.get, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
   });
-
-
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -85,6 +82,7 @@ export function TableCalidades() {
     id: number;
     codigo: string;
   } | null>(null);
+  
 
 
   const renderCell = (item: any, columnKey: string) => {

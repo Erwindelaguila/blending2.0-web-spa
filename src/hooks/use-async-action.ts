@@ -17,6 +17,7 @@ type ApiResponseState<T> = {
     key?: string
   ) => Promise<void>;
   reset: () => void;
+  resetError:()=>void;
 };
 
 export function useAsyncAction<T>(): ApiResponseState<T> {
@@ -53,6 +54,11 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
     setResponse(null);
   }, []);
 
+  const resetError = useCallback(() => {
+    setState("init");
+  }, []);
+
+
   return {
     response,
     error,
@@ -63,5 +69,6 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
     isError: state === "error",
     execute,
     reset,
+    resetError
   };
 }

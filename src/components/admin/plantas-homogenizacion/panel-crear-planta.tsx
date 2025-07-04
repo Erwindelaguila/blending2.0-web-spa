@@ -6,20 +6,25 @@ import { PlantasService } from "@/services/plantas.service";
 import { Input, Label, Switch, Textarea } from "@fluentui/react-components";
 import { useCallback, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
+import { IDrawer } from "@/interface";
 
 interface IPlantaForm {
   codigo: string;
   nombre: string;
+  numero_rumas: string;
   descripcion: string;
+  estado: boolean;
 }
 
-export function PanelCrearPlanta({
-  isOpen,
-  setIsOpen,
-}: {
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+const defaultFormValues: IPlantaForm = {
+  codigo: "",
+  nombre: "",
+  descripcion: "",
+  estado: false,
+  numero_rumas: "",
+};
+
+export function PanelCrearPlanta({ open, mode, id, close }: IDrawer) {
   const styles = useInputStyles();
   const [checked, setChecked] = useState(true);
   const asyncAction = useAsyncAction();
@@ -63,15 +68,31 @@ export function PanelCrearPlanta({
     asyncAction.reset();
   };
 
+  const TITULOS_PANEL: Record<typeof mode, string> = {
+    crear: "Nueva Calidad",
+    editar: "Editar Calidad",
+    detalle: "Detalle de Calidad",
+  };
+
+  const closeAcction = () => {
+    reset(defaultFormValues);
+    close();
+    asyncAction.reset();
+  };
+
   return (
     <DrawerBase
-      isOpen={isOpen}
-      setIsOpen={setIsOpen}
-      title="Nueva Planta"
-      buttonAction={handleSubmit(onSubmit)}
+      open={open}
+      close={closeAcction}
+      title={TITULOS_PANEL[mode]}
+      buttonAction={mode !== "detalle" ? handleSubmit(onSubmit) : undefined}
+      BtnAccion={
+        mode !== "detalle" && !asyncAction.isLoading && !asyncAction.isSuccess
+      }
+      btnDetails={mode === "detalle"}
+      drawerTypeModal={mode !== "detalle"}
       position="end"
-      BtnAccion={!asyncAction.isLoading && !asyncAction.isSuccess}
-      drawerTypeModal
+      zise="medium"
     >
       {asyncAction.state === "error" && (
         <AsyncActionDisplay

@@ -24,18 +24,31 @@ import { BaseResponse } from "@/interface";
 // ============================================
 
 import api from "@/lib/api/client";
-import { fetchGetCalidades, fetchGetCalidadesId } from "@/lib/constants/key-fetch";
+import {
+  fetchGetCalidadesId,
+  getAllCalidadKey,
+} from "@/lib/constants/key-fetch";
 
 // ============================================
 // SERVICIO DE CALIDADES
 // ============================================
 
 export class CalidadesService {
+  static async get(url: string) {
+    try {
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error("Error al realizar la solicitud:", error);
+      throw error;
+    }
+  }
+
   static async crear(
     data: ICalidadRequest
   ): Promise<BaseResponse<ICalidadResponse>> {
     const response = await api.post<BaseResponse<ICalidadResponse>>(
-      fetchGetCalidades(),
+      getAllCalidadKey(),
       data
     );
     return response.data;

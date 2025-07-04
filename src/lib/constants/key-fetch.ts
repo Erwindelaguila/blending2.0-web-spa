@@ -1,4 +1,4 @@
-export const fetchGetCalidades = () => {
+export const getAllCalidadKey = () => {
   return "/api/calidades";
 };
 

@@ -18,8 +18,8 @@ import useSWR from "swr";
 import { CalidadFechApi } from "@/services/calidad-service-api";
 import { useEffect } from "react";
 import {
-  fetchGetCalidades,
   fetchGetCalidadesId,
+  getAllCalidadKey,
 } from "@/lib/constants/key-fetch";
 
 const defaultFormValues: ICalidad = {
@@ -64,20 +64,20 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
     await asyncAction.execute(
       async () =>
         id ? CalidadesService.editar(id, data) : CalidadesService.crear(data),
-      fetchGetCalidades()
+      getAllCalidadKey()
     );
   };
 
   const closeAcction = () => {
     reset(defaultFormValues);
     close();
+    asyncAction.reset();
   };
 
   useEffect(() => {
     if (mode !== "crear" && dataCalidad) {
       reset(dataCalidad);
-    }
-    if (mode == "crear") {
+    } else if (mode === "crear" && open) {
       reset(defaultFormValues);
     }
   }, [dataCalidad, reset, mode, open]);
@@ -143,41 +143,58 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
       <div className="py-2 flex flex-col gap-3">
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label required>Código</Label>
-          <Input
-            {...register("codigo", { required: "El código es requerido" })}
-            defaultValue={dataCalidad?.codigo ?? ""}
-            className={styles.inputGrisBase}
-            style={{ border: `2px solid ${OrgColors.serotGris}` }}
+          <Controller
+            name="codigo"
+            control={control}
+            rules={{ required: "El código es requerido" }}
+            render={({ field }) => (
+              <Input
+                {...field}
+                className={styles.inputGrisBase}
+                style={{ border: `2px solid ${OrgColors.serotGris}` }}
+              />
+            )}
           />
-          {errors.codigo && asyncAction.error && (
+          {errors.codigo && (
             <span className="text-red-500">{errors.codigo.message}</span>
           )}
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label required>Nombre</Label>
-          <Input
-            {...register("nombre", { required: "El nombre es requerido" })}
-            defaultValue={dataCalidad?.nombre ?? ""}
-            className={styles.inputGrisBase}
-            style={{ border: `2px solid ${OrgColors.serotGris}` }}
+          <Controller
+            name="nombre"
+            control={control}
+            rules={{ required: "El nombre es requerido" }}
+            render={({ field }) => (
+              <Input
+                {...field}
+                className={styles.inputGrisBase}
+                style={{ border: `2px solid ${OrgColors.serotGris}` }}
+              />
+            )}
           />
-          {errors.nombre && asyncAction.error && (
+
+          {errors.nombre && (
             <span className="text-red-500">{errors.nombre.message}</span>
           )}
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label required>Código de Material</Label>
-          <Input
-            {...register("codigoMaterial", {
-              required: "El código de material es requerido",
-            })}
-            defaultValue={dataCalidad?.codigoMaterial ?? ""}
-            className={styles.inputGrisBase}
-            style={{ border: `2px solid ${OrgColors.serotGris}` }}
+          <Controller
+            name="codigoMaterial"
+            control={control}
+            rules={{ required: "El código de material es requerido" }}
+            render={({ field }) => (
+              <Input
+                {...field}
+                className={styles.inputGrisBase}
+                style={{ border: `2px solid ${OrgColors.serotGris}` }}
+              />
+            )}
           />
-          {errors.codigoMaterial && asyncAction.error && (
+          {errors.codigoMaterial && (
             <span className="text-red-500">
               {errors.codigoMaterial.message}
             </span>
@@ -195,7 +212,7 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
               border: `2px solid ${OrgColors.serotGris}`,
             }}
           />
-          {errors.descripcion && asyncAction.error && (
+          {errors.descripcion  && (
             <span className="text-red-500">{errors.descripcion.message}</span>
           )}
         </div>
@@ -253,7 +270,7 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
           loadingMessage=""
           successMessage=""
           error={asyncAction.error}
-          onErrorDismiss={() => {}}
+          onErrorDismiss={() => asyncAction.resetError()}
         />
       )}
 
@@ -275,7 +292,6 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
                   "Se creó correctamente la calidad"
             }
             onSuccess={() => {
-              asyncAction.reset();
               closeAcction();
             }}
             loadingType="progress"

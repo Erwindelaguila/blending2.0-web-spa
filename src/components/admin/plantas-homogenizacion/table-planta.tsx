@@ -14,12 +14,20 @@ import {
   Add24Regular,
   Delete24Filled,
   Edit24Filled,
+  Info24Filled,
 } from "@fluentui/react-icons";
 import { useState } from "react";
 import { PanelCrearPlanta } from "./panel-crear-planta";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
+import useSWR from "swr";
+import { ICalidad } from "@/interface";
+import { getAllCalidadKey } from "@/lib/constants/key-fetch";
+import { CalidadFechApi } from "@/services/calidad-service-api";
+import { CalidadesService } from "@/services";
+import { useAsyncAction } from "@/hooks/use-async-action";
+import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 
 const columns = [
   { uid: "code", name: "Codigo", width: 10 },
@@ -111,20 +119,65 @@ const data = [
 ];
 
 export function TablePlanta() {
+  const deleteAction = useAsyncAction();
   const style = useButtonsStyles();
+
+  /**Cambiar clave, servicio y interface  Por  para Planta Homogenizado*/
+  /**------------------------------------------------------ */
+  const {
+    data: dataPlantas,
+    isLoading: loadingPlantas,
+    error: errorPlantas,
+  } = useSWR<ICalidad[]>(getAllCalidadKey, CalidadesService.get, {
+    revalidateOnFocus: false,
+    revalidateIfStale: true,
+  });
+
+  /**------------------------------------------------------ */
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
 
+  /**------------------------------------------------------ */
+  const [idPlanta, setIdPlanta] = useState<string | undefined>(undefined);
+  const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
+  /**------------------------------------------------------ */
+
   const [page, setPage] = useState(1);
 
+  const handleOpenCrear = () => {
+    setMode("crear");
+    setIdPlanta(undefined);
+    setOpenPanel(true);
+  };
+
+  const handleOpenEditar = (registroId: string) => {
+    setMode("editar");
+    setIdPlanta(registroId);
+    setOpenPanel(true);
+  };
+
+  const handleOpenDetalle = (registroId: string) => {
+    setMode("detalle");
+    setIdPlanta(registroId);
+    setOpenPanel(true);
+  };
+
+  const handleClosePanel = () => {
+    setOpenPanel(false);
+
+    setTimeout(() => {
+      setIdPlanta(undefined); // importante limpiar el ID
+      setMode("crear"); // o el modo por defecto
+    }, 30);
+  };
+
+  /**------------------------------------------------------ */
   const [infoPlanta, setInfoPlanta] = useState<{
     codigo: string;
     nombre: string;
-  }>({
-    codigo: "",
-    nombre: "",
-  });
+  } | null>(null);
+  /**------------------------------------------------------ */
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
@@ -144,18 +197,28 @@ export function TablePlanta() {
             }}
             size="large"
           >
-            {item.status.toUpperCase()}
+            {/*item.status.toUpperCase()*/}
+            {item.status}
           </Badge>
         );
 
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
+            <Tooltip content="Info Planta" relationship="label">
+              <Button
+                size="large"
+                appearance="subtle"
+                onClick={() => handleOpenDetalle(item.id)}
+                icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
+              />
+            </Tooltip>
+
             <Tooltip content="Editar Planta" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => setOpenPanel(true)}
+                onClick={() => handleOpenEditar(item.id)}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
@@ -182,7 +245,10 @@ export function TablePlanta() {
     }
   };
 
-  const acctionDeleteModal = () => {};
+  const acctionDeleteModal = async () => {
+    if (!infoPlanta) return;
+  };
+
   return (
     <>
       <Card style={{ width: "100%", height: "100%" }}>
@@ -194,7 +260,7 @@ export function TablePlanta() {
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
                 className={`w-[13rem] ${style.buttonVerdeBase}`}
-                onClick={() => setOpenPanel(true)}
+                onClick={() => handleOpenCrear()}
               >
                 Nuevo
               </Button>
@@ -203,10 +269,10 @@ export function TablePlanta() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={data}
+                data={dataPlantas ?? []}
                 renderCell={renderCell}
-                isLoading={false}
-                error={null}
+                isLoading={loadingPlantas}
+                error={errorPlantas}
                 height="100%"
               />
             </div>
@@ -223,7 +289,12 @@ export function TablePlanta() {
         </div>
       </Card>
 
-      <PanelCrearPlanta isOpen={openPanel} setIsOpen={setOpenPanel} />
+      <PanelCrearPlanta
+        mode={mode}
+        open={openPanel}
+        close={handleClosePanel}
+        id={idPlanta}
+      />
 
       <ModalBase
         open={openModal}
@@ -233,10 +304,35 @@ export function TablePlanta() {
         buttonAction={acctionDeleteModal}
       >
         <>
-          ¿Esta seguro de eliminar la{" "}
-          <span className="font-bold">Planta de Homogenización</span> del{" "}
-          <span className="font-bold">{infoPlanta.nombre}</span> con código{" "}
-          <span className="font-bold">{infoPlanta.codigo}</span>?
+          ¿Está seguro de eliminar la calidad con código{" "}
+          <span className="font-bold">{infoPlanta?.codigo}</span>?
+          {deleteAction.isLoading && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage="Eliminando calidad..."
+              successMessage=""
+            />
+          )}
+          {deleteAction.error && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage=""
+              successMessage=""
+              error={deleteAction.error}
+              onErrorDismiss={deleteAction.reset}
+            />
+          )}
+          {deleteAction.isSuccess && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage=""
+              successMessage="Calidad eliminada correctamente"
+              onSuccess={() => {
+                deleteAction.reset();
+                setOpenModal(false);
+              }}
+            />
+          )}
         </>
       </ModalBase>
     </>
