@@ -2,6 +2,7 @@ export interface IPlanta {
   codigo: string;
   nombre: string;
   descripcion: string;
+  numeroRuma: number;
   activo: boolean;
 }
 

@@ -16,6 +16,7 @@ const defaultFormValues: IPlanta = {
   codigo: "",
   nombre: "",
   descripcion: "",
+  numeroRuma: 1,
   activo: false,
 };
 
@@ -109,6 +110,10 @@ export function PanelCrearPlanta({ open, mode, id, close }: IDrawer) {
             <p>{values.descripcion || "-"}</p>
           </div>
           <div>
+            <Label>Número de Ruma</Label>
+            <p>{values.numeroRuma || "-"}</p>
+          </div>
+          <div>
             <Label>Activo</Label>
             <p>{values.activo ? "Sí" : "No"}</p>
           </div>
@@ -170,6 +175,37 @@ export function PanelCrearPlanta({ open, mode, id, close }: IDrawer) {
           />
           {errors.descripcion && (
             <span className="text-red-500">{errors.descripcion.message}</span>
+          )}
+        </div>
+
+        <div className="flex flex-col justify-start w-full gap-0.5">
+          <Label required>Número de Ruma</Label>
+          <Controller
+            name="numeroRuma"
+            control={control}
+            rules={{ 
+              required: "El número de ruma es requerido",
+              min: { value: 1, message: "El número de ruma debe ser mayor a 0" },
+              validate: (value) => value >= 1 || "El número de ruma no puede ser negativo o cero"
+            }}
+            render={({ field }) => (
+              <Input
+                value={field.value?.toString() || ""}
+                type="number"
+                min="1"
+                className={styles.inputGrisBase}
+                style={{ border: `2px solid ${OrgColors.serotGris}` }}
+                onChange={(_, data) => {
+                  const value = Number(data.value);
+                  if (value >= 0) {
+                    field.onChange(value || 1);
+                  }
+                }}
+              />
+            )}
+          />
+          {errors.numeroRuma && (
+            <span className="text-red-500">{errors.numeroRuma.message}</span>
           )}
         </div>
 
