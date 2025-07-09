@@ -3,120 +3,88 @@
 import { TableBase } from "@/components/ui/table-base";
 import { Title } from "@/components/ui/title";
 import { OrgColors } from "@/config/app.config.server";
-import {
-  Badge,
-  Button,
-  Card,
-  CardPreview,
-  Tooltip,
-} from "@fluentui/react-components";
+import { Badge, Button, Card, Tooltip } from "@fluentui/react-components";
 import {
   Add24Regular,
   Delete24Filled,
   Edit24Filled,
+  Info24Filled,
 } from "@fluentui/react-icons";
 import { useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { PanelCrearParametros } from "./panel-crear-parametros";
+import { AsyncActionDisplay } from "@/components/ui/async-action-display";
+import useSWR from "swr";
+import { useAsyncAction } from "@/hooks/use-async-action";
+import { IParametroGet } from "@/interface";
+import { ParametrosService } from "@/services";
+import { getAllParametroKey } from "@/lib/constants/key-fetch";
 
 const columns = [
-  { uid: "code", name: "Codigo", width: 5 },
-  { uid: "name", name: "Nombre", width: 5 },
-  { uid: "description", name: "Descripción", width: 15 },
-  { uid: "status", name: "Estado", width: 7 },
+  { uid: "codigo", name: "Codigo", width: 5 },
+  { uid: "nombre", name: "Nombre", width: 5 },
+  { uid: "descripcion", name: "Descripción", width: 15 },
+  { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
-];
-
-const data = [
-  {
-    code: "PARAMETRO01",
-    name: "Parámetro 01",
-    description: "Descripción del parámetro 01",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO02",
-    name: "Parámetro 02",
-    description: "Descripción del parámetro 02",
-    status: "Inactivo",
-  },
-  {
-    code: "PARAMETRO03",
-    name: "Parámetro 03",
-    description: "Descripción del parámetro 03",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO04",
-    name: "Parámetro 04",
-    description: "Descripción del parámetro 04",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO05",
-    name: "Parámetro 05",
-    description: "Descripción del parámetro 05",
-    status: "Inactivo",
-  },
-  {
-    code: "PARAMETRO06",
-    name: "Parámetro 06",
-    description: "Descripción del parámetro 06",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO07",
-    name: "Parámetro 07",
-    description: "Descripción del parámetro 07",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO08",
-    name: "Parámetro 08",
-    description: "Descripción del parámetro 08",
-    status: "Inactivo",
-  },
-  {
-    code: "PARAMETRO09",
-    name: "Parámetro 09",
-    description: "Descripción del parámetro 09",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO10",
-    name: "Parámetro 10",
-    description: "Descripción del parámetro 10",
-    status: "Activo",
-  },
-  {
-    code: "PARAMETRO11",
-    name: "Parámetro 11",
-    description: "Descripción del parámetro 11",
-    status: "Inactivo",
-  },
 ];
 
 export function TableParametros() {
   const style = useButtonsStyles();
+  const deleteAction = useAsyncAction();
+
+  const {
+    data: dataParametros,
+    isLoading: loadingParametros,
+    error: errorParametros,
+  } = useSWR<IParametroGet[]>(getAllParametroKey, ParametrosService.get, {
+    revalidateOnFocus: false,
+    revalidateIfStale: true,
+  });
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-
+  const [idParametro, setIdParametro] = useState<string | undefined>(undefined);
+  const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
   const [page, setPage] = useState(1);
 
-  const [infoPlanta, setInfoPlanta] = useState<{
+  const handleOpenCrear = () => {
+    setMode("crear");
+    setIdParametro(undefined);
+    setOpenPanel(true);
+  };
+
+  const handleOpenEditar = (registroId: string) => {
+    setMode("editar");
+    setIdParametro(registroId);
+    setOpenPanel(true);
+  };
+
+  const handleOpenDetalle = (registroId: string) => {
+    setMode("detalle");
+    setIdParametro(registroId);
+    setOpenPanel(true);
+  };
+
+  const handleClosePanel = () => {
+    setOpenPanel(false);
+
+    setTimeout(() => {
+      setIdParametro(undefined);
+      setMode("crear");
+    }, 30);
+  };
+
+  const [infoParametro, setInfoParametro] = useState<{
+    id: number;
     codigo: string;
-    nombre: string;
-  }>({
-    codigo: "",
-    nombre: "",
-  });
+  } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
+    const parametro = item as IParametroGet;
     switch (columnKey) {
-      case "status":
+      case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
           Inactivo: OrgColors.rojo,
@@ -126,36 +94,44 @@ export function TableParametros() {
           <Badge
             appearance="filled"
             style={{
-              backgroundColor: statusColorMap[item.status] || "#666",
+              backgroundColor: statusColorMap[parametro.activo ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
-              width: "10rem",
+              width: "100%",
             }}
             size="large"
           >
-            {item.status.toUpperCase()}
+            {parametro.activo ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
 
       case "action":
         return (
-          <div className="flex gap-1 justify-between w-full py-0.5">
-            <Tooltip content="Editar Planta" relationship="label">
+          <div className="flex gap-1 justify-center w-full py-0.5">
+            <Tooltip content="Info Parámetro" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => setOpenPanel(true)}
+                onClick={() => handleOpenDetalle(parametro.id.toString())}
+                icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
+              />
+            </Tooltip>
+            <Tooltip content="Editar Parámetro" relationship="label">
+              <Button
+                size="large"
+                appearance="subtle"
+                onClick={() => handleOpenEditar(parametro.id.toString())}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
 
-            <Tooltip content="Eliminar Planta" relationship="label">
+            <Tooltip content="Eliminar Parámetro" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  setInfoPlanta({
-                    codigo: item.code,
-                    nombre: item.name,
+                  setInfoParametro({
+                    id: parametro.id,
+                    codigo: parametro.codigo,
                   });
                   setOpenModal(true);
                 }}
@@ -166,23 +142,25 @@ export function TableParametros() {
         );
 
       default:
-        return item[columnKey];
+        return parametro[columnKey as keyof IParametroGet];
     }
   };
 
-  const acctionDeleteModal = () => {};
+  const acctionDeleteModal = async () => {
+    if (!infoParametro) return;
+  };
   return (
     <>
       <Card style={{ width: "100%", height: "100%" }}>
         <div className="w-full h-full flex flex-col  ">
           <div className="w-full h-9/10 ">
             <div className="w-full h-2/25 flex justify-between items-start ">
-              <Title title="Plantas de Homogenizado" />
+              <Title title="Parámetros de Calidad" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
                 className={`w-[13rem] ${style.buttonVerdeBase}`}
-                onClick={() => setOpenPanel(true)}
+                onClick={handleOpenCrear}
               >
                 Nuevo
               </Button>
@@ -191,31 +169,34 @@ export function TableParametros() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={data}
+                data={dataParametros ?? []}
                 renderCell={renderCell}
-                isLoading={false}
-                error={null}
+                isLoading={loadingParametros}
+                error={errorParametros}
                 height="100%"
               />
             </div>
           </div>
 
           <div className="w-full h-1/10">
-            <Pagination
-              totalItems={180}
-              currentPage={page}
-              totalPages={5}
-              onPageChange={setPage}
-            />
+            {dataParametros && (
+              <Pagination
+                currentPage={page}
+                totalPages={10}
+                totalItems={12}
+                onPageChange={setPage}
+              />
+            )}
           </div>
         </div>
       </Card>
 
       <PanelCrearParametros
-        drawerType="alert"
-        isOpen={openPanel}
-        setIsOpen={setOpenPanel}
-      ></PanelCrearParametros>
+        open={openPanel}
+        mode={mode}
+        id={idParametro}
+        close={handleClosePanel}
+      />
 
       <ModalBase
         open={openModal}
@@ -225,9 +206,35 @@ export function TableParametros() {
         buttonAction={acctionDeleteModal}
       >
         <>
-          ¿Esta seguro de eliminar el{" "}
-          <span className="font-bold">{infoPlanta.nombre}</span> del con código{" "}
-          <span className="font-bold">{infoPlanta.codigo}</span>?
+          ¿Está seguro de eliminar el parámetro con código{" "}
+          <span className="font-bold">{infoParametro?.codigo}</span>?
+          {deleteAction.isLoading && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage="Eliminando parámetro..."
+              successMessage=""
+            />
+          )}
+          {deleteAction.error && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage=""
+              successMessage=""
+              error={deleteAction.error}
+              onErrorDismiss={deleteAction.reset}
+            />
+          )}
+          {deleteAction.isSuccess && (
+            <AsyncActionDisplay
+              state={deleteAction.state}
+              loadingMessage=""
+              successMessage="Parámetro eliminado correctamente"
+              onSuccess={() => {
+                deleteAction.reset();
+                setOpenModal(false);
+              }}
+            />
+          )}
         </>
       </ModalBase>
     </>

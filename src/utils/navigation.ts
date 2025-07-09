@@ -25,7 +25,7 @@ export function getBreadcrumbFromPath(pathname: string): string {
   return "Dashboard"
 }
 export function filterNavigationByModule(navigation: MenuItem[], moduleId: ModuleId): MenuItem[] {
-  console.log(`🔍 Filtrando navegación para módulo: ${moduleId}`)
+  console.log(`Filtrando navegación para módulo: ${moduleId}`)
 
   switch (moduleId) {
     case "logistica":

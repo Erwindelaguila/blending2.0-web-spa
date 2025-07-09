@@ -7,5 +7,5 @@ export interface ICalidad extends IBaseProduccion {
 
 export interface ICalidadGet extends ICalidad {
   id: number;
-  fechaCreacion: string; // también puede ser Date si haces parsing
+  fechaCreacion: string; 
 }
