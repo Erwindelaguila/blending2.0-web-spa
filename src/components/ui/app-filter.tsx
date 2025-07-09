@@ -1,52 +1,33 @@
 import {
   Button,
   Card,
-  CardPreview,
   Divider,
   Input,
   Label,
-  makeStyles,
 } from "@fluentui/react-components";
 import { Title } from "./title";
 import { AppCombobox } from "./app-combobox";
 import { DatePicker } from "@fluentui/react-datepicker-compat";
 import { OrgColors } from "@/config/app.config.server";
-import { hexToRgba } from "@/utils/colors";
 import { Search24Regular } from "@fluentui/react-icons";
 import { useButtonsStyles } from "@/styles/button.styles";
-
-const baseButtonStyle = {
-  //padding: "0.4rem",
-  width: "13rem",
-  color: "white",
-  fontSize: "1rem",
-};
-
-const useStyles = makeStyles({
-  divider: {
-    width: "0.2rem",
-    backgroundColor: "#ccc",
-  },
-  button: {
-    ...baseButtonStyle,
-    backgroundColor: OrgColors.serotAzul,
-    ":hover": {
-      backgroundColor: hexToRgba(OrgColors.serotAzul, 0.8),
-      color: "#fff",
-    },
-  },
-});
 
 export function Filter({
   title_filter = "Filtro",
   title_input = "Codigo",
   moreCamps = true,
+  text_input = true,
+  select=true,
+  date_picker=true
 }: {
   title_filter?: string;
   title_input?: string;
   moreCamps?: boolean;
+  text_input?: boolean
+  select?: boolean
+  date_picker?:boolean
+
 }) {
-  const style = useStyles();
   const stylebtn = useButtonsStyles();
   const comboOptions = ["Cat", "Dog", "Ferret", "Fish", "Hamster", "Snake"];
   return (
@@ -59,6 +40,7 @@ export function Filter({
             </div>
 
             <div className="w-full flex h-4/5 justify-between">
+            
               <div className="w-1/4 h-full pr-4 flex items-center ">
                 <div className="flex flex-col justify-start w-full">
                   <Label>{title_input}</Label>
@@ -70,6 +52,8 @@ export function Filter({
                   />
                 </div>
               </div>
+
+              <Divider vertical appearance="default"></Divider>
 
               {moreCamps == true ? (
                 <>

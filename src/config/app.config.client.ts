@@ -1,5 +1,6 @@
-"use client"
+"use client";
 
+import { ITabConfigProduccion } from "@/interface";
 /**
  * Configuración central de la aplicación - PARTE CLIENTE
  * Importa componentes de React y código del cliente
@@ -21,18 +22,19 @@ import {
   ClipboardDataBar24Filled,
   TableSettings24Filled,
   Settings24Filled,
-} from "@fluentui/react-icons"
-import type { ComponentType } from "react"
+  LayerDiagonal24Filled,
+} from "@fluentui/react-icons";
+import type { ComponentType } from "react";
 
 // ============================================================================
 // CONFIGURACIÓN DE NAVEGACIÓN CON ICONOS (SOLO CLIENTE)
 // ============================================================================
 export interface MenuItem {
-  id: string
-  label: string
-  icon?: ComponentType<{ className?: string; fontSize?: number }>
-  href: string
-  items?: MenuItem[]
+  id: string;
+  label: string;
+  icon?: ComponentType<{ className?: string; fontSize?: number }>;
+  href: string;
+  items?: MenuItem[];
 }
 
 export const NAVIGATION_MENU: MenuItem[] = [
@@ -89,10 +91,10 @@ export const NAVIGATION_MENU: MenuItem[] = [
         href: "/mantenimientos/plantas",
       },
       {
-        id: "calidades",
-        label: "Calidades",
-        icon: Beaker24Filled,
-        href: "/mantenimientos/calidades",
+        id: "produccion",
+        label: "Producción",
+        icon: LayerDiagonal24Filled,
+        href: "/mantenimientos/produccion",
       },
       {
         id: "parametros-calidad",
@@ -122,7 +124,8 @@ export const NAVIGATION_MENU: MenuItem[] = [
       },
     ],
   },
-] as const
+] as const;
+
 
 // ============================================================================
 // MAPEO DE MÓDULOS A ICONOS (SOLO CLIENTE)
@@ -131,7 +134,7 @@ export const MODULE_ICONS = {
   logistica: BuildingRegular,
   calidad: ClipboardTaskRegular,
   administrador: SettingsRegular,
-} as const
+} as const;
 
 // ============================================================================
 // BREADCRUMBS POR MÓDULO (SOLO CLIENTE)
@@ -144,16 +147,16 @@ export const MODULE_BREADCRUMBS = {
   calidad: {
     "/modelos/harina": "Homogenización de Harina",
     "/consultas/historico-harina": "Histórico Homo. Harina",
-    "/consultas/historico-harina/ver-reporte" : "Ver Reporte"
+    "/consultas/historico-harina/ver-reporte": "Ver Reporte",
   },
   administrador: {
     "/mantenimientos/plantas": "Plantas de Homogenización",
-    "/mantenimientos/calidades": "Calidades",
+    "/mantenimientos/produccion": "Producción",
     "/mantenimientos/parametros": "Parámetros de Calidad",
     "/configuraciones/valores-calidad": "Valores de Calidad - Parámetros",
     "/configuraciones/aplicacion": "Configuración de la Aplicación",
   },
-} as const
+} as const;
 
 // ============================================================================
 // NOMBRES DE MÓDULOS PARA DISPLAY (SOLO CLIENTE)
@@ -162,6 +165,6 @@ export const MODULE_NAMES = {
   logistica: "Logística",
   calidad: "Calidad",
   administrador: "Administrador",
-} as const
+} as const;
 
-export * from "./app.config.server"
+export * from "./app.config.server";

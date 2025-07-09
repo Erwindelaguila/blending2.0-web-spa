@@ -2,10 +2,9 @@ import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
-import { ICalidad, ICalidadGet, IDrawer } from "@/interface";
+import { IBaseProduccion, ICalidad, ICalidadGet, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import {
-  Checkbox,
   Input,
   Label,
   Spinner,
@@ -19,7 +18,6 @@ import { CalidadFechApi } from "@/services/calidad-service-api";
 import { useEffect } from "react";
 import {
   fetchGetCalidadesId,
-  getAllCalidadKey,
 } from "@/lib/constants/key-fetch";
 
 const defaultFormValues: ICalidad = {
@@ -28,10 +26,10 @@ const defaultFormValues: ICalidad = {
   codigoMaterial: "",
   descripcion: "",
   conforme: false,
-  activo: false,
+  activo: true,
 };
 
-export function PanelCalidad({ open, mode, id, close }: IDrawer) {
+export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
 
@@ -43,7 +41,7 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
     watch,
     control,
     formState: { errors },
-  } = useForm<ICalidad>({
+  } = useForm<IBaseProduccion>({
     defaultValues: defaultFormValues,
   });
 
@@ -60,12 +58,14 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
     }
   );
 
-  const onSubmit: SubmitHandler<ICalidad> = async (data) => {
+  const onSubmit: SubmitHandler<IBaseProduccion> = async (data) => {
+    /*
     await asyncAction.execute(
       async () =>
         id ? CalidadesService.editar(id, data) : CalidadesService.crear(data),
       getAllCalidadKey()
     );
+    */
   };
 
   const closeAcction = () => {
@@ -83,10 +83,11 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
   }, [dataCalidad, reset, mode, open]);
 
   const TITULOS_PANEL: Record<typeof mode, string> = {
-    crear: "Nueva Calidad",
-    editar: "Editar Calidad",
-    detalle: "Detalle de Calidad",
+    crear: "Nueva Linea de Producción",
+    editar: "Editar Linea de Producción",
+    detalle: "Detalle de Linea de Producción",
   };
+
 
   const renderContenidoSegunModo = () => {
     const values = watch();
@@ -117,22 +118,6 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
           <div>
             <Label>Nombre</Label>
             <p>{values.nombre}</p>
-          </div>
-          <div>
-            <Label>Código de Material</Label>
-            <p>{values.codigoMaterial}</p>
-          </div>
-          <div>
-            <Label>Descripción</Label>
-            <p>{values.descripcion || "-"}</p>
-          </div>
-          <div>
-            <Label>Conforme</Label>
-            <p>{values.conforme ? "Sí" : "No"}</p>
-          </div>
-          <div>
-            <Label>Activo</Label>
-            <p>{values.activo ? "Sí" : "No"}</p>
           </div>
         </div>
       );
@@ -180,26 +165,7 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
           )}
         </div>
 
-        <div className="flex flex-col justify-start w-full gap-0.5">
-          <Label required>Código de Material</Label>
-          <Controller
-            name="codigoMaterial"
-            control={control}
-            rules={{ required: "El código de material es requerido" }}
-            render={({ field }) => (
-              <Input
-                {...field}
-                className={styles.inputGrisBase}
-                style={{ border: `2px solid ${OrgColors.serotGris}` }}
-              />
-            )}
-          />
-          {errors.codigoMaterial && (
-            <span className="text-red-500">
-              {errors.codigoMaterial.message}
-            </span>
-          )}
-        </div>
+
 
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label>Descripción</Label>
@@ -212,28 +178,13 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
               border: `2px solid ${OrgColors.serotGris}`,
             }}
           />
-          {errors.descripcion  && (
+          {errors.descripcion && (
             <span className="text-red-500">{errors.descripcion.message}</span>
           )}
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">
-          <Controller
-            name="conforme"
-            control={control}
-            render={({ field }) => (
-              <Checkbox
-                size="large"
-                checked={field.value}
-                onChange={(e, data) => field.onChange(data.checked)}
-                label={field.value ? "Conforme" : "No conforme"}
-              />
-            )}
-          />
-        </div>
-
-        <div className="flex flex-col justify-start w-full gap-0.5">
-          <Label>Activo</Label>
+          <Label>Estado</Label>
           <Controller
             name="activo"
             control={control}
@@ -241,7 +192,7 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
               <Switch
                 checked={field.value}
                 onChange={(e) => field.onChange(e.currentTarget.checked)}
-                label={field.value ? "Sí" : "No"}
+                label={field.value ? "Activo" : "Inactivo"}
               />
             )}
           />
@@ -282,14 +233,14 @@ export function PanelCalidad({ open, mode, id, close }: IDrawer) {
           <AsyncActionDisplay
             state={asyncAction.state}
             loadingMessage={
-              id ? "Actualizando calidad..." : "Creando nueva calidad..."
+              id ? "Actualizando producto..." : "Creando nueva producto..."
             }
             successMessage={
               id
                 ? asyncAction.response?.message ??
-                  "Se actualizó correctamente la calidad"
+                  "Se actualizó correctamente el producto"
                 : asyncAction.response?.message ??
-                  "Se creó correctamente la calidad"
+                  "Se creó correctamente la producto"
             }
             onSuccess={() => {
               closeAcction();

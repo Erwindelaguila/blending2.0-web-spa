@@ -13,8 +13,6 @@ export * from "./ui/card-group";
 export * from "./ui/drawe-base";
 export * from "./admin/plantas-homogenizacion/table-planta";
 export * from "./ui/modal-base";
-export * from "./admin/calidades/panel-calidad";
-export * from "./admin/calidades/table-calidad";
 export * from "./admin/parametros-calidad/table-parametros";
 export * from "./admin/configuracion-app/panel-crear-conguracion";
 export * from "./admin/configuracion-app/table-configuracion";
@@ -22,6 +20,8 @@ export * from "./admin/valores-calidad/table-valores-calidad";
 export * from "./logistica/homogenizacion/parametros-logisticos";
 export * from "./logistica/homogenizacion/otros-parametros";
 export * from "./admin/parametros-calidad/panel-crear-parametros"
+export * from "./admin/produccion/calidades/calidad-view"
+export * from "./admin/produccion/producto/producto-view"
 
 
 

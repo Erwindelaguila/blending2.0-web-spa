@@ -6,3 +6,5 @@ export * from "./components/table";
 export * from "./quality/quality-matrix.interfaces"
 export * from "./admin/calidad"
 export * from "./api/base-response" 
+export * from "./admin/produccion"
+export * from "./admin/producto"

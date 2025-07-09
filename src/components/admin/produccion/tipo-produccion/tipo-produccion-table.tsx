@@ -14,13 +14,13 @@ import { useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
-import { PanelCalidad } from "./panel-calidad";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { ICalidad } from "@/interface";
 import { getAllCalidadKey } from "@/lib/constants/key-fetch";
 import { CalidadesService } from "@/services";
+import { TipoProduccionPanel } from "./tipo-produccion-panel";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -31,7 +31,7 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-export function TableCalidades() {
+export function TipoProduccionTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
 
@@ -82,8 +82,6 @@ export function TableCalidades() {
     id: number;
     codigo: string;
   } | null>(null);
-  
-
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
@@ -156,7 +154,7 @@ export function TableCalidades() {
         <div className="w-full h-full flex flex-col  ">
           <div className="w-full h-9/10 ">
             <div className="w-full h-2/25 flex justify-between items-start ">
-              <Title title="Plantas de Homogenizado" />
+              <Title title="Tipos de producción" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
@@ -192,7 +190,7 @@ export function TableCalidades() {
         </div>
       </Card>
 
-      <PanelCalidad
+      <TipoProduccionPanel
         mode={mode}
         open={openPanel}
         close={handleClosePanel}

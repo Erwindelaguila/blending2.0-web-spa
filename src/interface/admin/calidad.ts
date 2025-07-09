@@ -1,10 +1,8 @@
-export interface ICalidad {
-  codigo: string;
-  nombre: string;
+import { IBaseProduccion } from "./produccion";
+
+export interface ICalidad extends IBaseProduccion {
   codigoMaterial: string;
-  descripcion: string;
   conforme: boolean;
-  activo: boolean;
 }
 
 export interface ICalidadGet extends ICalidad {

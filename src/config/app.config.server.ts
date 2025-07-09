@@ -162,7 +162,7 @@ export const MODULES: Record<ModuleId, ModuleConfig> = {
     color: COLORS.modules.administrador,
     routes: [
       "/mantenimientos/plantas",
-      "/mantenimientos/calidades",
+      "/mantenimientos/produccion",
       "/mantenimientos/parametros",
       "/configuraciones/valores-calidad",
       "/configuraciones/aplicacion",
