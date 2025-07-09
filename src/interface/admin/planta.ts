@@ -8,6 +8,6 @@ export interface IPlanta {
 
 export interface IPlantaGet extends IPlanta {
   id: number;
-  fechaCreacion: string; // también puede ser Date si haces parsing
+  fechaCreacion: string; 
 }
  
