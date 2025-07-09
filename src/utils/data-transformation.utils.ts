@@ -23,7 +23,6 @@ export class DataTransformationUtils {
     return filas.map((fila) => {
       const nuevaFila = { ...fila }
       const key = columnasParams[adjustmentIndex]
-      // ✅ Solucionamos el error usando ?? para manejar undefined
       const currentValue = ValidationUtils.parseNumberSafely(nuevaFila[key] ?? "0")
       const result = currentValue + adjustmentValue
 

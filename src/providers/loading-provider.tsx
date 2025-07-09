@@ -13,7 +13,6 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
       if (loader) {
         loader.style.display = "none"
       }
-
       document.body.style.visibility = "visible"
       document.body.classList.add("app-loaded")
     }
