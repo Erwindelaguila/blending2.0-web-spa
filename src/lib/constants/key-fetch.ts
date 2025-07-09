@@ -11,3 +11,9 @@ export const getAllParametroKey = "/api/parametros";
 export const fetchGetParametrosId = (id: string) => {
   return `/api/parametros/${id}`;
 };
+
+export const getAllPlantaKey = "/api/plantas";
+
+export const fetchGetPlantasId = (id: string) => {
+  return `/api/plantas/${id}`;
+};

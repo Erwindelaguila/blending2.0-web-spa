@@ -1,5 +1,8 @@
+import api from "@/lib/api/client";
+import { BaseResponse } from "@/interface";
+
 export interface IPlantaRequest {
-  codigo: number;
+  codigo: string;
   nombre: string;
   descripcion: string;
   activo: boolean;
@@ -7,41 +10,51 @@ export interface IPlantaRequest {
 
 export interface IPlantaResponse {
   id: number;
-  codigo: number;
+  codigo: string;
   nombre: string;
   descripcion: string;
   activo: boolean;
   fechaCreacion: string;
 }
 
-const mockPlantas: IPlantaResponse[] = [];
-
 export class PlantasService {
-  static async crear(data: IPlantaRequest): Promise<IPlantaResponse> {
-    await new Promise(resolve => setTimeout(resolve, 1200));
+  static async get(url: string) {
+    try {
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error("Error al realizar la solicitud:", error);
+      throw error;
+    }
+  }
 
-    if (isNaN(data.codigo) || !Number.isInteger(data.codigo)) {
-      throw new Error('El código debe ser un número entero válido');
-    }
-    if (data.codigo < 0) {
-      throw new Error('El código debe ser un número positivo');
-    }
-    if (!data.nombre || data.nombre.trim().length < 3) {
-      throw new Error('El nombre debe tener al menos 3 caracteres');
-    }
-    if (mockPlantas.some(p => p.codigo === data.codigo)) {
-      throw new Error(`Ya existe una planta con el código ${data.codigo}`);
-    }
+  static async crear(data: IPlantaRequest): Promise<BaseResponse<IPlantaResponse>> {
+    const response = await api.post<BaseResponse<IPlantaResponse>>(
+      "/api/plantas", 
+      data
+    );
+    return response.data;
+  }
 
-    const nuevaPlanta: IPlantaResponse = {
-      id: Math.floor(Math.random() * 10000) + 1,
-      codigo: data.codigo,
-      nombre: data.nombre.trim(),
-      descripcion: data.descripcion?.trim() || '',
-      activo: data.activo,
-      fechaCreacion: new Date().toISOString()
-    };
-    mockPlantas.push(nuevaPlanta);
-    return nuevaPlanta;
+  static async editar(id: string, data: IPlantaRequest): Promise<BaseResponse<IPlantaResponse>> {
+    const response = await api.put<BaseResponse<IPlantaResponse>>(
+      `/api/plantas/${id}`,
+      data
+    );
+    return response.data;
+  }
+
+  static async eliminar(id: number): Promise<void> {
+    await api.delete(`/api/plantas/${id}`);
+  }
+
+  static async listar(): Promise<IPlantaResponse[]> {
+    const response = await api.get<IPlantaResponse[]>("/api/plantas");
+    return response.data;
+  }
+
+  static async obtenerPorId(id: number): Promise<IPlantaResponse> {
+    const response = await api.get<IPlantaResponse>(`/api/plantas/${id}`);
+    return response.data;
   }
 }
