@@ -1,32 +1,46 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
-import { getSelectedModule, hasAccessToRoute, getDefaultRouteForModule } from "@/utils/module-manager"
+import React, { ReactNode, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthContext } from '@/providers/auth-provider';
+import { AppSkeleton } from '@/components/ui/app-skeleton';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: ReactNode;
 }
+
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const pathname = usePathname()
-  const router = useRouter()
+  const { user, isLoading, login } = useAuthContext();
+
 
   useEffect(() => {
-    if (pathname === "/") return
+    if (isLoading) return;
 
-    const selectedModule = getSelectedModule()
-    if (!selectedModule) {
-      router.replace("/")
-      return
+    if (!user?.isAuthenticated) {
+      console.log('Usuario no autenticado, iniciando login...');
+      login();
+      return;
     }
-    const hasAccess = hasAccessToRoute(pathname, selectedModule)
     
-    if (!hasAccess) {
-      const defaultRoute = getDefaultRouteForModule(selectedModule)
-      router.replace(defaultRoute)
-    }
-  }, [pathname, router])
+    console.log('Usuario autenticado:', user.profile?.displayName);
+  }, [user, isLoading, login]);
 
-  return <>{children}</>
+
+  if (isLoading) {
+    return <AppSkeleton />;
+  }
+
+
+  if (!user?.isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AppSkeleton />
+          <p className="mt-4 text-gray-600">Iniciando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }

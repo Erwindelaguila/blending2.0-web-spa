@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { PageLoader } from "@/components/ui/page-loader"
 import { AppSkeleton } from "@/components/ui/app-skeleton"
+import { useAuthContext } from "@/providers/auth-provider"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -14,6 +15,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const isDashboard = pathname === "/"
+  const { user, isLoading } = useAuthContext()
   
   const [isAppReady, setIsAppReady] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
@@ -36,15 +38,21 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <AppSkeleton />
   }
 
+  // Para el dashboard, usar ProtectedRoute para login automático
+  if (isDashboard) {
+    return (
+      <ProtectedRoute>
+        {isNavigating && <PageLoader isLoading text="Cargando..." />}
+        <DashboardLayout>{children}</DashboardLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  // Para otras páginas, mantener la protección
   return (
     <ProtectedRoute>
       {isNavigating && <PageLoader isLoading text="Cargando..." />}
-      
-      {isDashboard ? (
-        <DashboardLayout>{children}</DashboardLayout>
-      ) : (
-        <MainLayout>{children}</MainLayout>
-      )}
+      <MainLayout>{children}</MainLayout>
     </ProtectedRoute>
   )
 }

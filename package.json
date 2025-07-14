@@ -11,12 +11,15 @@
     "export": "next build && next export"
   },
   "dependencies": {
+    "@azure/msal-browser": "^4.15.0",
+    "@azure/msal-react": "^3.0.15",
     "@fluentui/react-components": "^9.64.0",
     "@fluentui/react-datepicker-compat": "^0.5.8",
     "@fluentui/react-icons": "^2.0.301",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.10.0",
     "clsx": "^2.1.1",
+    "jwt-decode": "^4.0.0",
     "next": "^15.3.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
