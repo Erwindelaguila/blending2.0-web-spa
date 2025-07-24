@@ -38,7 +38,7 @@ export function TableParametros() {
     data: dataParametros,
     isLoading: loadingParametros,
     error: errorParametros,
-  } = useSWR<IParametroGet[]>(getAllParametroKey, ParametrosService.get, {
+  } = useSWR<IParametroGet[]>(getAllParametroKey, ParametrosService.listar, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
   });
@@ -48,6 +48,15 @@ export function TableParametros() {
   const [idParametro, setIdParametro] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
   const [page, setPage] = useState(1);
+  const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
+  const itemsPerPage = 10; // O el valor que uses para paginación
+  
+  // Calcular paginación dinámica
+  const totalItems = dataParametros?.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageData = dataParametros?.slice(startIndex, endIndex) || [];
 
   const handleOpenCrear = () => {
     setMode("crear");
@@ -76,8 +85,15 @@ export function TableParametros() {
     }, 30);
   };
 
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setInfoParametro(null);
+    setIsClosingAfterSuccess(false);
+    deleteAction.reset();
+  };
+
   const [infoParametro, setInfoParametro] = useState<{
-    id: number;
+    id: string;
     codigo: string;
   } | null>(null);
 
@@ -129,6 +145,9 @@ export function TableParametros() {
                 size="large"
                 appearance="subtle"
                 onClick={() => {
+                  // Limpiar el estado anterior antes de abrir el modal
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
                   setInfoParametro({
                     id: parametro.id,
                     codigo: parametro.codigo,
@@ -148,6 +167,15 @@ export function TableParametros() {
 
   const acctionDeleteModal = async () => {
     if (!infoParametro) return;
+    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
+    await deleteAction.execute(
+      async () => {
+        await ParametrosService.eliminar(infoParametro.id, userId);
+        return { success: true, message: "Parámetro eliminado correctamente" };
+      },
+      getAllParametroKey
+    );
+    // NO cerrar el modal aquí, dejar que el usuario haga clic en "Aceptar"
   };
   return (
     <>
@@ -169,7 +197,7 @@ export function TableParametros() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataParametros ?? []}
+                data={currentPageData}
                 renderCell={renderCell}
                 isLoading={loadingParametros}
                 error={errorParametros}
@@ -179,11 +207,11 @@ export function TableParametros() {
           </div>
 
           <div className="w-full h-1/10">
-            {dataParametros && (
+            {dataParametros && totalItems > 0 && (
               <Pagination
                 currentPage={page}
-                totalPages={10}
-                totalItems={12}
+                totalPages={totalPages}
+                totalItems={totalItems}
                 onPageChange={setPage}
               />
             )}
@@ -200,14 +228,26 @@ export function TableParametros() {
 
       <ModalBase
         open={openModal}
-        setOpen={setOpenModal}
+        setOpen={(isOpen) => {
+          if (!isOpen) {
+            handleCloseModal();
+          } else {
+            setOpenModal(isOpen);
+          }
+        }}
         type="alert"
         buttonText="Eliminar"
         buttonAction={acctionDeleteModal}
+        closeOnOutsideClick={false} // No permitir cerrar haciendo clic fuera
+        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess} // Ocultar botones cuando hay éxito O cuando está cerrando
       >
         <>
-          ¿Está seguro de eliminar el parámetro con código{" "}
-          <span className="font-bold">{infoParametro?.codigo}</span>?
+          {!deleteAction.isSuccess && (
+            <>
+              ¿Está seguro de eliminar el parámetro con código{" "}
+              <span className="font-bold">{infoParametro?.codigo}</span>?
+            </>
+          )}
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
@@ -230,8 +270,16 @@ export function TableParametros() {
               loadingMessage=""
               successMessage="Parámetro eliminado correctamente"
               onSuccess={() => {
-                deleteAction.reset();
+                // Marcar que está cerrando después del éxito
+                setIsClosingAfterSuccess(true);
+                // Cerrar el modal inmediatamente
                 setOpenModal(false);
+                setInfoParametro(null);
+                // Resetear después de que el modal se haya cerrado
+                setTimeout(() => {
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
+                }, 300);
               }}
             />
           )}

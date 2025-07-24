@@ -2,14 +2,13 @@ import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
-import { IPlanta, IPlantaGet, IDrawer } from "@/interface";
+import { IPlanta, IPlantaResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import { PlantasService } from "@/services/plantas.service";
 import { Input, Label, Switch, Textarea, Spinner } from "@fluentui/react-components";
 import { useEffect } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import useSWR from "swr";
-import { PlantaFechApi } from "@/services/planta-service-api";
 import { fetchGetPlantasId, getAllPlantaKey } from "@/lib/constants/key-fetch";
 
 const defaultFormValues: IPlanta = {
@@ -39,9 +38,9 @@ export function PanelCrearPlanta({ open, mode, id, close }: IDrawer) {
     data: dataPlanta,
     isLoading: loadingPlanta,
     error: errorPlanta,
-  } = useSWR<IPlantaGet>(
+  } = useSWR<IPlantaResponse>(
     id != undefined ? fetchGetPlantasId(id) : null,
-    PlantaFechApi,
+    () => PlantasService.obtenerPorId(id!),
     {
       revalidateOnFocus: false,
       revalidateIfStale: true,
@@ -49,13 +48,17 @@ export function PanelCrearPlanta({ open, mode, id, close }: IDrawer) {
   );
 
   const onSubmit: SubmitHandler<IPlanta> = async (data) => {
+    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
+    
     await asyncAction.execute(
       async () =>
-        id ? PlantasService.editar(id, data) : PlantasService.crear(data),
-      getAllPlantaKey
+        id 
+          ? PlantasService.editar(id, data, userId)
+          : PlantasService.crear(data, userId),
+      getAllPlantaKey()
     );
   };
-    const closeAction = () => {
+  const closeAction = () => {
     reset(defaultFormValues);
     close();
     asyncAction.reset();

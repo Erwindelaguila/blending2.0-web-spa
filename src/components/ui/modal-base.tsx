@@ -20,7 +20,7 @@ export const ModalBase = ({
   buttonText = "Accion",
   children,
   type = "info",
-
+  closeOnOutsideClick = true, // Por defecto permite cerrar haciendo clic fuera
   buttonAction,
 }: IModalBase) => {
   const style = useButtonsStyles();
@@ -35,7 +35,10 @@ export const ModalBase = ({
     }
   };
   return (
-    <Dialog open={open} onOpenChange={(event, data) => setOpen(data.open)} >
+    <Dialog 
+      open={open} 
+      onOpenChange={closeOnOutsideClick ? (event, data) => setOpen(data.open) : undefined}
+    >
       <DialogSurface >
         <DialogBody>
           <DialogTitle>{renderTitle()}</DialogTitle>
@@ -44,9 +47,12 @@ export const ModalBase = ({
             {requiereAction && (
               <>
                 <Button size="medium" onClick={buttonAction} className={style.buttonShortRojoBase}>{buttonText}</Button>
-                <DialogTrigger disableButtonEnhancement>
-                  <Button appearance="secondary">Cancelar</Button>
-                </DialogTrigger>
+                <Button 
+                  appearance="secondary" 
+                  onClick={() => setOpen(false)}
+                >
+                  Cancelar
+                </Button>
               </>
             )}
           </DialogActions>

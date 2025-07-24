@@ -2,14 +2,13 @@ import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
-import { IParametro, IParametroGet, IDrawer } from "@/interface";
+import { IParametro, IParametroResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import { ParametrosService } from "@/services/parametros.service";
 import { Input, Label, Switch, Textarea, Spinner } from "@fluentui/react-components";
 import { useEffect } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import useSWR from "swr";
-import { ParametroFechApi } from "@/services/parametro-service-api";
 import { fetchGetParametrosId, getAllParametroKey } from "@/lib/constants/key-fetch";
 
 const defaultFormValues: IParametro = {
@@ -38,9 +37,9 @@ export function PanelCrearParametros({ open, mode, id, close }: IDrawer) {
     data: dataParametro,
     isLoading: loadingParametro,
     error: errorParametro,
-  } = useSWR<IParametroGet>(
+  } = useSWR<IParametroResponse>(
     id != undefined ? fetchGetParametrosId(id) : null,
-    ParametroFechApi,
+    () => ParametrosService.obtenerPorId(id!),
     {
       revalidateOnFocus: false,
       revalidateIfStale: true,
@@ -48,9 +47,13 @@ export function PanelCrearParametros({ open, mode, id, close }: IDrawer) {
   );
 
   const onSubmit: SubmitHandler<IParametro> = async (data) => {
+    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
+    
     await asyncAction.execute(
       async () =>
-        id ? ParametrosService.editar(id, data) : ParametrosService.crear(data),
+        id 
+          ? ParametrosService.editar(id, data, userId)
+          : ParametrosService.crear(data, userId),
       getAllParametroKey
     );
   };

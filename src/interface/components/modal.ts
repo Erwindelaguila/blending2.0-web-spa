@@ -8,4 +8,5 @@ export interface IModalBase {
   buttonText?: string;
   children?: React.ReactNode;
   type: typeDialog;
+  closeOnOutsideClick?: boolean; // Nueva propiedad para controlar el cierre
 }

@@ -35,7 +35,7 @@ export function getAccessibleModules(roles: UserRole[]): string[] {
   const modules: string[] = [];
   
   if (roles.includes('admin')) {
-    modules.push('administrador');
+    modules.push('administrador', "logistica", "calidad");
   } 
   if (roles.includes('logistics')) {
     modules.push('logistica');

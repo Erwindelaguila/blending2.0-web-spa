@@ -1,60 +1,38 @@
 import api from "@/lib/api/client";
 import { BaseResponse } from "@/interface";
-
-export interface IParametroRequest {
-  codigo: string; 
-  nombre: string;
-  descripcion: string;
-  activo: boolean;
-}
-
-export interface IParametroResponse {
-  id: number;
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  activo: boolean;
-  fechaCreacion: string;
-}
+import { IParametroRequest, IParametroResponse, IParametroGet } from "@/interface/admin/parametro";
 
 export class ParametrosService {
-  static async get(url: string) {
-    try {
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error("Error al realizar la solicitud:", error);
-      throw error;
-    }
-  }
-
-  static async crear(data: IParametroRequest): Promise<BaseResponse<IParametroResponse>> {
+  static async crear(data: IParametroRequest, creadoPorId: string): Promise<BaseResponse<IParametroResponse>> {
     const response = await api.post<BaseResponse<IParametroResponse>>(
-      "/api/parametros", 
-      data
+      "/api/core/parametro", 
+      { ...data, creadoPorId }
     );
     return response.data;
   }
 
-  static async editar(id: string, data: IParametroRequest): Promise<BaseResponse<IParametroResponse>> {
+  static async editar(id: string, data: IParametroRequest, modificadoPorId: string): Promise<BaseResponse<IParametroResponse>> {
     const response = await api.put<BaseResponse<IParametroResponse>>(
-      `/api/parametros/${id}`,
-      data
+      "/api/core/parametro",
+      { id, ...data, modificadoPorId }
     );
     return response.data;
   }
 
-  static async eliminar(id: number): Promise<void> {
-    await api.delete(`/api/parametros/${id}`);
+  static async eliminar(id: string, modificadoPorId: string): Promise<void> {
+    await api.delete(`/api/core/parametro?id=${id}&modificadoPorId=${modificadoPorId}`);
   }
 
-  static async listar(): Promise<IParametroResponse[]> {
-    const response = await api.get<IParametroResponse[]>("/api/parametros");
-    return response.data;
+  static async listar(): Promise<IParametroGet[]> {
+    const response = await api.get<BaseResponse<IParametroGet[]>>("/api/core/parametro");
+    return response.data.data || [];
   }
 
-  static async obtenerPorId(id: number): Promise<IParametroResponse> {
-    const response = await api.get<IParametroResponse>(`/api/parametros/${id}`);
-    return response.data;
+  static async obtenerPorId(id: string): Promise<IParametroGet> {
+    const response = await api.get<BaseResponse<IParametroGet>>(`/api/core/parametro/detail?id=${id}`);
+    if (!response.data.data) {
+      throw new Error("No se encontraron datos del parámetro");
+    }
+    return response.data.data;
   }
 }

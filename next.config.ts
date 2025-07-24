@@ -1,15 +1,32 @@
 import type { NextConfig } from 'next'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 const nextConfig: NextConfig = {
   // ============================================================================
-  // CONFIGURACIÓN CSR PURO
+  // CONFIGURACIÓN CSR PURO (Solo en producción)
   // ============================================================================
   
-  output: 'export',
+  ...(isDev ? {} : { output: 'export' }),
 
   images: {
     unoptimized: true,
   },
+
+  // ============================================================================
+  // PROXY PARA DESARROLLO (Solo en dev mode)
+  // ============================================================================
+  
+  ...(isDev ? {
+    async rewrites() {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:7071/api/:path*',
+        },
+      ]
+    }
+  } : {}),
 
   // ============================================================================
   // REACT STRICT MODE (Deshabilitar para FluentUI TagPicker)

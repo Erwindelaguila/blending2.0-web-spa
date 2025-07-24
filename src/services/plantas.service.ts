@@ -1,60 +1,38 @@
 import api from "@/lib/api/client";
 import { BaseResponse } from "@/interface";
-
-export interface IPlantaRequest {
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  activo: boolean;
-}
-
-export interface IPlantaResponse {
-  id: number;
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  activo: boolean;
-  fechaCreacion: string;
-}
+import { IPlantaRequest, IPlantaResponse, IPlantaGet } from "@/interface/admin/planta";
 
 export class PlantasService {
-  static async get(url: string) {
-    try {
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error("Error al realizar la solicitud:", error);
-      throw error;
-    }
-  }
-
-  static async crear(data: IPlantaRequest): Promise<BaseResponse<IPlantaResponse>> {
+  static async crear(data: IPlantaRequest, creadoPorId: string): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.post<BaseResponse<IPlantaResponse>>(
-      "/api/plantas", 
-      data
+      "/api/core/planta", 
+      { ...data, creadoPorId }
     );
     return response.data;
   }
 
-  static async editar(id: string, data: IPlantaRequest): Promise<BaseResponse<IPlantaResponse>> {
+  static async editar(id: string, data: IPlantaRequest, modificadoPorId: string): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.put<BaseResponse<IPlantaResponse>>(
-      `/api/plantas/${id}`,
-      data
+      "/api/core/planta",
+      { id, ...data, modificadoPorId }
     );
     return response.data;
   }
 
-  static async eliminar(id: number): Promise<void> {
-    await api.delete(`/api/plantas/${id}`);
+  static async eliminar(id: string, modificadoPorId: string): Promise<void> {
+    await api.delete(`/api/core/planta?id=${id}&modificadoPorId=${modificadoPorId}`);
   }
 
-  static async listar(): Promise<IPlantaResponse[]> {
-    const response = await api.get<IPlantaResponse[]>("/api/plantas");
-    return response.data;
+  static async listar(): Promise<IPlantaGet[]> {
+    const response = await api.get<BaseResponse<IPlantaGet[]>>("/api/core/planta");
+    return response.data.data || [];
   }
 
-  static async obtenerPorId(id: number): Promise<IPlantaResponse> {
-    const response = await api.get<IPlantaResponse>(`/api/plantas/${id}`);
-    return response.data;
+  static async obtenerPorId(id: string): Promise<IPlantaGet> {
+    const response = await api.get<BaseResponse<IPlantaGet>>(`/api/core/planta/detail?id=${id}`);
+    if (!response.data.data) {
+      throw new Error("No se encontraron datos de la planta");
+    }
+    return response.data.data;
   }
 }

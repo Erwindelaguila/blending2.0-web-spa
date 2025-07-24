@@ -10,7 +10,7 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState} from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -18,7 +18,8 @@ import { PanelCrearPlanta } from "./panel-crear-planta";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { IPlantaGet } from "@/interface";
+import { IPlantaResponse } from "@/interface";
+import { IPlantaGet } from "@/interface/admin/planta";
 import { PlantasService } from "@/services";
 import { getAllPlantaKey } from "@/lib/constants/key-fetch";
 
@@ -38,7 +39,7 @@ export function TablePlanta() {
     data: dataPlantas,
     isLoading: loadingPlantas,
     error: errorPlantas,
-  } = useSWR<IPlantaGet[]>(getAllPlantaKey, PlantasService.get, {
+  } = useSWR<IPlantaResponse[]>(getAllPlantaKey(), PlantasService.listar, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
   });
@@ -48,6 +49,15 @@ export function TablePlanta() {
   const [idPlanta, setIdPlanta] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
   const [page, setPage] = useState(1);
+  const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
+  const itemsPerPage = 10; // O el valor que uses para paginación
+  
+  // Calcular paginación dinámica
+  const totalItems = dataPlantas?.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageData = dataPlantas?.slice(startIndex, endIndex) || [];
 
   const handleOpenCrear = () => {
     setMode("crear");
@@ -76,8 +86,15 @@ export function TablePlanta() {
     }, 30);
   };
 
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setInfoPlanta(null);
+    setIsClosingAfterSuccess(false);
+    deleteAction.reset();
+  };
+
   const [infoPlanta, setInfoPlanta] = useState<{
-    id: number;
+    id: string;
     codigo: string;
   } | null>(null);
 
@@ -129,6 +146,9 @@ export function TablePlanta() {
                 size="large"
                 appearance="subtle"
                 onClick={() => {
+                  // Limpiar el estado anterior antes de abrir el modal
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
                   setInfoPlanta({
                     id: planta.id,
                     codigo: planta.codigo,
@@ -148,6 +168,15 @@ export function TablePlanta() {
 
   const acctionDeleteModal = async () => {
     if (!infoPlanta) return;
+    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
+    await deleteAction.execute(
+      async () => {
+        await PlantasService.eliminar(infoPlanta.id, userId);
+        return { success: true, message: "Planta eliminada correctamente" };
+      },
+      getAllPlantaKey()
+    );
+    // NO cerrar el modal aquí, dejar que el usuario haga clic en "Aceptar"
   };
   
   return (
@@ -170,7 +199,7 @@ export function TablePlanta() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataPlantas ?? []}
+                data={currentPageData}
                 renderCell={renderCell}
                 isLoading={loadingPlantas}
                 error={errorPlantas}
@@ -180,11 +209,11 @@ export function TablePlanta() {
           </div>
 
           <div className="w-full h-1/10">
-            {dataPlantas && (
+            {dataPlantas && totalItems > 0 && (
               <Pagination
                 currentPage={page}
-                totalPages={10}
-                totalItems={12}
+                totalPages={totalPages}
+                totalItems={totalItems}
                 onPageChange={setPage}
               />
             )}
@@ -201,14 +230,26 @@ export function TablePlanta() {
 
       <ModalBase
         open={openModal}
-        setOpen={setOpenModal}
+        setOpen={(isOpen) => {
+          if (!isOpen) {
+            handleCloseModal();
+          } else {
+            setOpenModal(isOpen);
+          }
+        }}
         type="alert"
         buttonText="Eliminar"
         buttonAction={acctionDeleteModal}
+        closeOnOutsideClick={false} // No permitir cerrar haciendo clic fuera
+        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess} // Ocultar botones cuando hay éxito O cuando está cerrando
       >
         <>
-          ¿Está seguro de eliminar la planta con código{" "}
-          <span className="font-bold">{infoPlanta?.codigo}</span>?
+          {!deleteAction.isSuccess && (
+            <>
+              ¿Está seguro de eliminar la planta con código{" "}
+              <span className="font-bold">{infoPlanta?.codigo}</span>?
+            </>
+          )}
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
@@ -231,8 +272,16 @@ export function TablePlanta() {
               loadingMessage=""
               successMessage="Planta eliminada correctamente"
               onSuccess={() => {
-                deleteAction.reset();
+                // Marcar que está cerrando después del éxito
+                setIsClosingAfterSuccess(true);
+                // Cerrar el modal inmediatamente
                 setOpenModal(false);
+                setInfoPlanta(null);
+                // Resetear después de que el modal se haya cerrado
+                setTimeout(() => {
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
+                }, 300);
               }}
             />
           )}
