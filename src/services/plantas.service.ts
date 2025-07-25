@@ -23,8 +23,8 @@ export class PlantasService {
     await api.delete(`/api/core/planta?id=${id}&modificadoPorId=${modificadoPorId}`);
   }
 
-  static async listar(): Promise<IPlantaGet[]> {
-    const response = await api.get<BaseResponse<IPlantaGet[]>>("/api/core/planta");
+  static async listar(url:any): Promise<IPlantaGet[]> {
+    const response = await api.get<BaseResponse<IPlantaGet[]>>(url);
     return response.data.data || [];
   }
 
