@@ -7,3 +7,5 @@ export interface BaseResponse<T> {
   errors?: any;
   timestamp?: string;
 }
+
+

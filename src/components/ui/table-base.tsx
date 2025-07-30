@@ -65,7 +65,7 @@ export function TableBase({
       );
     }
 
-    return data.map((item, idx) => (
+    return data?.map((item, idx) => (
       <TableRow key={item.id ?? idx}>
         {columns.map((column) => (
           <TableCell

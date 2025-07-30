@@ -18,7 +18,7 @@ import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { ICalidad } from "@/interface";
-import { getAllCalidadKey } from "@/lib/constants/key-fetch";
+import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 import { CalidadesService } from "@/services";
 import { ProductoPanel } from "./producto-panel";
 
@@ -39,7 +39,7 @@ export function ProductoTable() {
     data: dataCalidades,
     isLoading: loadingCalidades,
     error: errorCalidades,
-  } = useSWR<ICalidad[]>(getAllCalidadKey, CalidadesService.get, {
+  } = useSWR<ICalidad[]>(getAllAgregadoKey, CalidadesService.get, {
     revalidateOnFocus: false,
     revalidateIfStale: true,
   });
@@ -168,7 +168,7 @@ export function ProductoTable() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataCalidades ?? []}
+                data={[]}
                 renderCell={renderCell}
                 isLoading={loadingCalidades}
                 error={errorCalidades}

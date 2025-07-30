@@ -1,28 +1,4 @@
-export interface ICalidadRequest {
-  codigo: string;
-  nombre: string;
-  codigoMaterial: string;
-  descripcion: string;
-  activo: boolean;
-  conforme: boolean;
-}
-
-export interface ICalidadResponse {
-  id: number;
-  codigo: string;
-  nombre: string;
-  codigoMaterial: string;
-  descripcion: string;
-  activo: boolean;
-  conforme: boolean;
-  fechaCreacion: string;
-}
-
-import { BaseResponse } from "@/interface";
-// ============================================
-// IMPORTS
-// ============================================
-
+import { BaseResponse, ICalidadRequest, ICalidadResponse } from "@/interface";
 import api from "@/lib/api/client";
 import {
   fetchGetCalidadesId,

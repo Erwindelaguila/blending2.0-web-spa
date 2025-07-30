@@ -17,16 +17,16 @@ import { Pagination } from "@/components/ui/pagination-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { ICalidad } from "@/interface";
-import { getAllCalidadKey } from "@/lib/constants/key-fetch";
-import { CalidadesService } from "@/services";
+import { BaseResponse } from "@/interface";
+import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 import { AgregadoPanel } from "./agregado-panel";
+import { AgregadoService } from "@/services/agregado.service";
+import { IAgregado } from "@/interface/admin/agregado";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
   { uid: "nombre", name: "Nombre", width: 5 },
   { uid: "descripcion", name: "Descripción", width: 10 },
-  { uid: "codigoMaterial", name: "Código de Material", width: 5 },
   { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
@@ -36,17 +36,22 @@ export function AgregadoTable() {
   const deleteAction = useAsyncAction();
 
   const {
-    data: dataCalidades,
-    isLoading: loadingCalidades,
-    error: errorCalidades,
-  } = useSWR<ICalidad[]>(getAllCalidadKey, CalidadesService.get, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-  });
+    data: dataAgregados,
+    isLoading: loadingAgregados,
+    error: errorAregados,
+  } = useSWR<BaseResponse<IAgregado[]>>(
+    getAllAgregadoKey,
+    AgregadoService.listar,
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+    }
+  );
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [idCalidad, setIdCalidad] = useState<string | undefined>(undefined);
+  const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
 
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
   const [page, setPage] = useState(1);
@@ -78,11 +83,18 @@ export function AgregadoTable() {
     }, 30);
   };
 
-  const [infoCalidad, setInfoCalidad] = useState<{
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setInfoAgregado(null);
+    setIsClosingAfterSuccess(false);
+    deleteAction.reset();
+  };
+
+  const [infoAgregado, setInfoAgregado] = useState<{
     id: number;
     codigo: string;
   } | null>(null);
-  
+
 
 
   const renderCell = (item: any, columnKey: string) => {
@@ -131,9 +143,9 @@ export function AgregadoTable() {
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  setInfoCalidad({
+                  setInfoAgregado({
                     id: item.id,
-                    codigo: item.code,
+                    codigo: item.codigo,
                   });
                   setOpenModal(true);
                 }}
@@ -148,7 +160,7 @@ export function AgregadoTable() {
   };
 
   const acctionDeleteModal = async () => {
-    if (!infoCalidad) return;
+    if (!infoAgregado) return;
   };
   return (
     <>
@@ -170,17 +182,17 @@ export function AgregadoTable() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataCalidades ?? []}
+                data={dataAgregados?.data ?? []}
                 renderCell={renderCell}
-                isLoading={loadingCalidades}
-                error={errorCalidades}
+                isLoading={loadingAgregados}
+                error={errorAregados}
                 height="100%"
               />
             </div>
           </div>
 
           <div className="w-full h-1/10">
-            {dataCalidades && (
+            {dataAgregados && (
               <Pagination
                 currentPage={page}
                 totalPages={10}
@@ -201,14 +213,27 @@ export function AgregadoTable() {
 
       <ModalBase
         open={openModal}
-        setOpen={setOpenModal}
+        setOpen={(isOpen) => {
+          if (!isOpen) {
+            handleCloseModal();
+          } else {
+            setOpenModal(isOpen);
+          }
+        }}
         type="alert"
         buttonText="Eliminar"
+        closeOnOutsideClick={false}
         buttonAction={acctionDeleteModal}
+        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess}
       >
         <>
-          ¿Está seguro de eliminar la calidad con código{" "}
-          <span className="font-bold">{infoCalidad?.codigo}</span>?
+          {!deleteAction.isSuccess && (
+            <>
+              ¿Está seguro de eliminar el agregado con código{" "}
+              <span className="font-bold">{infoAgregado?.codigo}</span>?
+            </>
+          )}
+
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
@@ -231,8 +256,16 @@ export function AgregadoTable() {
               loadingMessage=""
               successMessage="Calidad eliminada correctamente"
               onSuccess={() => {
-                deleteAction.reset();
+                // Marcar que está cerrando después del éxito
+                setIsClosingAfterSuccess(true);
+                // Cerrar el modal inmediatamente
                 setOpenModal(false);
+                setInfoAgregado(null);
+
+                setTimeout(() => {
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
+                }, 300);
               }}
             />
           )}

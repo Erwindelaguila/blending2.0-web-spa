@@ -168,7 +168,7 @@ export function LineaProduccionTable() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataCalidades ?? []}
+                data={[]}
                 renderCell={renderCell}
                 isLoading={loadingCalidades}
                 error={errorCalidades}

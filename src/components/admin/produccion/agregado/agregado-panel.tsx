@@ -2,10 +2,9 @@ import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
-import { ICalidad, ICalidadGet, IDrawer } from "@/interface";
+import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import {
-  Checkbox,
   Input,
   Label,
   Spinner,
@@ -13,22 +12,22 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { CalidadesService } from "@/services/calidades.service";
 import useSWR from "swr";
-import { CalidadFechApi } from "@/services/calidad-service-api";
 import { useEffect } from "react";
 import {
-  fetchGetCalidadesId,
-  getAllCalidadKey,
+  getAllAgregadoKey,
+  getByIdAgregadoKey,
 } from "@/lib/constants/key-fetch";
+import { IAgregado, IAgregadoSend, IAgregadoUpdate } from "@/interface/admin/agregado";
+import { AgregadoService } from "@/services/agregado.service";
 
-const defaultFormValues: ICalidad = {
+
+const defaultFormValues: IAgregadoSend = {
   codigo: "",
   nombre: "",
-  codigoMaterial: "",
   descripcion: "",
-  conforme: false,
   activo: true,
+  creadoPorId: "",
 };
 
 export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
@@ -43,7 +42,7 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
     watch,
     control,
     formState: { errors },
-  } = useForm<ICalidad>({
+  } = useForm<IAgregadoSend>({
     defaultValues: defaultFormValues,
   });
 
@@ -51,21 +50,34 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
     data: dataCalidad,
     isLoading: loadingCalidad,
     error: errorCalidad,
-  } = useSWR<ICalidadGet>(
-    id != undefined ? fetchGetCalidadesId(id) : null,
-    CalidadFechApi,
+  } = useSWR<BaseResponse<IAgregado>>(
+    id != undefined ? getByIdAgregadoKey(id) : null,
+    AgregadoService.obtenerPorId,
     {
       revalidateOnFocus: false,
       revalidateIfStale: true,
     }
   );
 
-  const onSubmit: SubmitHandler<ICalidad> = async (data) => {
+  const onSubmit: SubmitHandler<IAgregadoSend> = async (data) => {
+
+    const sendAgregado: IAgregadoSend = {
+      ...data,
+      creadoPorId: "a6f3d290-43a0-4b3f-a8e9-6d9a4c8d7d11", 
+    }
+  
+    const sendUpdate: IAgregadoUpdate={
+      ...data,
+      modificadoPorId: "f13298c2-7e1a-4b88-90fa-cf6136b4098e", 
+      id: id || "",
+    }
+
     await asyncAction.execute(
       async () =>
-        id ? CalidadesService.editar(id, data) : CalidadesService.crear(data),
-      getAllCalidadKey()
+        id ? AgregadoService.actualizar(sendUpdate) : AgregadoService.crear(sendAgregado),
+      getAllAgregadoKey()
     );
+    
   };
 
   const closeAcction = () => {
@@ -76,7 +88,7 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
 
   useEffect(() => {
     if (mode !== "crear" && dataCalidad) {
-      reset(dataCalidad);
+      reset(dataCalidad.data);
     } else if (mode === "crear" && open) {
       reset(defaultFormValues);
     }
@@ -119,16 +131,8 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
             <p>{values.nombre}</p>
           </div>
           <div>
-            <Label>Código de Material</Label>
-            <p>{values.codigoMaterial}</p>
-          </div>
-          <div>
             <Label>Descripción</Label>
             <p>{values.descripcion || "-"}</p>
-          </div>
-          <div>
-            <Label>Conforme</Label>
-            <p>{values.conforme ? "Sí" : "No"}</p>
           </div>
           <div>
             <Label>Activo</Label>
@@ -181,27 +185,6 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">
-          <Label required>Código de Material</Label>
-          <Controller
-            name="codigoMaterial"
-            control={control}
-            rules={{ required: "El código de material es requerido" }}
-            render={({ field }) => (
-              <Input
-                {...field}
-                className={styles.inputGrisBase}
-                style={{ border: `2px solid ${OrgColors.serotGris}` }}
-              />
-            )}
-          />
-          {errors.codigoMaterial && (
-            <span className="text-red-500">
-              {errors.codigoMaterial.message}
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-col justify-start w-full gap-0.5">
           <Label>Descripción</Label>
           <Textarea
             {...register("descripcion")}
@@ -215,21 +198,6 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
           {errors.descripcion && (
             <span className="text-red-500">{errors.descripcion.message}</span>
           )}
-        </div>
-
-        <div className="flex flex-col justify-start w-full gap-0.5">
-          <Controller
-            name="conforme"
-            control={control}
-            render={({ field }) => (
-              <Checkbox
-                size="large"
-                checked={field.value}
-                onChange={(e, data) => field.onChange(data.checked)}
-                label={field.value ? "Conforme" : "No conforme"}
-              />
-            )}
-          />
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">

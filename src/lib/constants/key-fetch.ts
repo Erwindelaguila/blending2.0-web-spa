@@ -31,3 +31,14 @@ export const updatePlantaKey = () => {
 export const deletePlantaKey = () => {
   return "/api/core/planta";
 };
+
+//Region Produccion
+export const getAllAgregadoKey = () => {
+  return `api/core/produccion/agregado`;
+};
+//http://localhost:7006/api/core/produccion/agregado
+
+
+export const getByIdAgregadoKey = (id: string ) => {
+  return `api/core/produccion/agregado/detail?id=${id}`;
+};
