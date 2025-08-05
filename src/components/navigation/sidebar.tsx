@@ -11,11 +11,11 @@ import {
   DoorArrowLeftFilled,
   DoorArrowLeft24Filled,
 } from "@fluentui/react-icons";
-import { NAVIGATION_MENU } from "@/config/app.config.client";
-import { getSelectedModule, clearSelectedModule } from "@/utils/module-manager";
-import { filterNavigationByModule } from "@/utils/navigation";
+import { useUserMenu } from "@/hooks/use-user-menu";
+import { useAuth } from "@/providers/auth-provider";
+import { clearSelectedModule } from "@/utils/module-manager";
 import { useSidebarStyles } from "@/styles/sidebar.styles";
-import type { ModuleId } from "@/config/app.config.server";
+import { ICON_MAP } from "@/utils/icon-mapping";
 import Image from "next/image";
 import { COLORS } from "@/config/app.config.server";
 
@@ -27,49 +27,27 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const styles = useSidebarStyles();
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
+
+  // ✅ CORRECTO: Usar el hook para obtener TODA la info desde el backend
+  const { 
+    menu: dynamicMenu, 
+    userInfo, // ✅ Información completa del usuario desde backend
+    isLoading: menuLoading, 
+    error: menuError 
+  } = useUserMenu();
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-  const [selectedModule, setSelectedModule] = useState<ModuleId | null>(null);
 
-  useEffect(() => {
-    const moduleSelect = getSelectedModule();
-    setSelectedModule(moduleSelect);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!selectedModule) return;
-
-    const segments = pathname.split("/").filter(Boolean);
-
-    if (segments.length > 0) {
-      const filteredNav = filterNavigationByModule(
-        NAVIGATION_MENU,
-        selectedModule
-      );
-      const mainSegment = segments[0];
-      const menuToOpen = filteredNav.find((menuItem) =>
-        menuItem.items?.some((subItem) =>
-          subItem.href.includes(`/${mainSegment}/`)
-        )
-      );
-
-      if (menuToOpen) {
-        setOpenMenus((prev) => ({ ...prev, [menuToOpen.id]: true }));
-      }
-    }
-  }, [pathname, selectedModule]);
-
-  const filteredNavigation = useMemo(() => {
-    if (!selectedModule) return [];
-    return filterNavigationByModule(NAVIGATION_MENU, selectedModule);
-  }, [selectedModule]);
+  // Usar el menú dinámico del backend
+  const filteredNavigation = dynamicMenu;
 
   const navigationStates = useMemo(() => {
     const isActive = (href: string) => pathname === href;
     const isMenuActive = (menuId: string) =>
       filteredNavigation
         .find((item) => item.id === menuId)
-        ?.items?.some((subItem) => pathname === subItem.href);
+        ?.items?.some((subItem) => pathname === subItem.href) || false;
 
     return { isActive, isMenuActive };
   }, [pathname, filteredNavigation]);
@@ -89,12 +67,42 @@ export function Sidebar({ collapsed }: SidebarProps) {
     [router]
   );
 
-  const handleLogout = useCallback(() => {
-    clearSelectedModule();
-    router.push("/");
-  }, [router]);
+  const handleLogout = useCallback(async () => {
+    try {
+      clearSelectedModule();
+      await logout(); // Usar el método de logout del contexto de auth
+      router.push("/");
+    } catch (error) {
+      console.error('Error durante logout:', error);
+      // Forzar redirección aunque haya error
+      router.push("/");
+    }
+  }, [logout, router]);
 
   const renderSidebarComponent = () => {
+    // Mostrar loading mientras se obtiene el menú
+    if (menuLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-white text-sm">Cargando menú...</div>
+        </div>
+      );
+    }
+
+    // Mostrar error si hay problemas obteniendo el menú
+    if (menuError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-4">
+          <div className="text-red-300 text-sm text-center mb-2">
+            Error cargando menú
+          </div>
+          <div className="text-red-200 text-xs text-center">
+            {menuError}
+          </div>
+        </div>
+      );
+    }
+
     switch (collapsed) {
       case true:
         return SidebarCollapsed();
@@ -109,28 +117,22 @@ export function Sidebar({ collapsed }: SidebarProps) {
     return (
       <>
         <div className="w-full h-1/15 flex items-center justify-center px-2 border-b-[1.5px] border-gray-500">
-          <Image
-            src="/icon-tasa-white.svg"
-            alt="Descripción de la imagen"
-            width={35}
-            height={35}
-          />
+          <button
+            type="button"
+            onClick={handleDashboardClick}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+            aria-label="Ir a Bienvenido"
+          >
+            <Image
+              src="/icon-tasa-white.svg"
+              alt="Logo TASA"
+              width={35}
+              height={35}
+            />
+          </button>
         </div>
         {/* Navegación */}
         <div className="w-full h-13/15 py-2 flex flex-col gap-2 items-center">
-          <Tooltip
-            content="Inicio"
-            withArrow
-            positioning={"after"}
-            relationship="label"
-          >
-            <div
-              className="w-13 h-13 flex items-center justify-center rounded-xs cursor-pointer hover:bg-[#FFFFFF14]"
-              onClick={handleDashboardClick}
-            >
-              <HomePerson24Filled className="text-white" />
-            </div>
-          </Tooltip>
 
           {/* Navegación filtrada por módulo */}
           {filteredNavigation.map((item) => {
@@ -138,7 +140,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               <div key={item.id}>
                 <div>
                   {item.items?.map((subItem) => {
-                    const SubIconComponent = subItem.icon;
+                    const SubIconComponent = subItem.iconName ? ICON_MAP[subItem.iconName] : null;
                     if (!subItem.href || subItem.href === "#") return null;
                     return (
                       <Tooltip
@@ -155,7 +157,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                             navigationStates.isActive(subItem.href) &&
                               styles.submenuItemActiveCollapsed
                           )}
-                          onClick={() => handleSubmenuClick(subItem.href)}
+                          onClick={() => subItem.href && handleSubmenuClick(subItem.href)}
                         >
                           {SubIconComponent && (
                             <SubIconComponent className="text-white" />
@@ -188,33 +190,28 @@ export function Sidebar({ collapsed }: SidebarProps) {
       <>
         {/* Logo */}
         <div className="w-full h-1/15 flex items-center px-2 border-b-[1.5px] border-gray-500">
-          <Image
-            src="/logo-tasa-white.svg"
-            alt="Descripción de la imagen"
-            width={90}
-            height={90}
-          />
+          <button
+            type="button"
+            onClick={handleDashboardClick}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+            aria-label="Ir a Bienvenido"
+          >
+            <Image
+              src="/logo-tasa-white.svg"
+              alt="Logo TASA"
+              width={90}
+              height={90}
+            />
+          </button>
         </div>
 
         {/* Navegación */}
         <div className="w-full h-13/15 py-2">
-          {/* Dashboard */}
-          <div
-            className={mergeClasses(
-              styles.menuItem
-              //navigationStates.isActive("/") && styles.menuItemActive
-            )}
-            onClick={handleDashboardClick}
-          >
-            <div className={styles.menuItemContent}>
-              <HomePerson24Filled className={styles.menuIcon} />
-              <span className={styles.menuText}>Inicio</span>
-            </div>
-          </div>
+
 
           {/* Navegación filtrada por módulo */}
           {filteredNavigation.map((item) => {
-            const IconComponent = item.icon;
+            const IconComponent = item.iconName ? ICON_MAP[item.iconName] : null;
             const isMenuOpen = openMenus[item.id];
             //const isMenuActiveState = navigationStates.isMenuActive(item.id);
 
@@ -247,7 +244,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   )}
                 >
                   {item.items?.map((subItem) => {
-                    const SubIconComponent = subItem.icon;
+                    const SubIconComponent = subItem.iconName ? ICON_MAP[subItem.iconName] : null;
                     if (!subItem.href || subItem.href === "#") return null;
                     return (
                       <div
@@ -257,7 +254,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                           navigationStates.isActive(subItem.href) &&
                             styles.submenuItemActive
                         )}
-                        onClick={() => handleSubmenuClick(subItem.href)}
+                        onClick={() => subItem.href && handleSubmenuClick(subItem.href)}
                       >
                         {SubIconComponent && (
                           <SubIconComponent className={styles.submenuIcon} />
@@ -272,16 +269,31 @@ export function Sidebar({ collapsed }: SidebarProps) {
           })}
         </div>
 
-        {/* Footer */}
-        <div className="w-full h-1/15 px-2 items-center flex">
+        {/* Footer con información del usuario */}
+        <div className="w-full h-1/15 px-2 items-center flex justify-between">
+          <div className="flex flex-col flex-1 min-w-0">
+            {/* ✅ CORRECTO: Nombre del usuario desde el backend */}
+            {userInfo?.Name && (
+              <div className="text-white text-xs font-medium truncate">
+                {userInfo.Name}
+              </div>
+            )}
+            {/* Mostrar rol principal */}
+            {userInfo?.Roles && userInfo.Roles.length > 0 && (
+              <div className="text-gray-300 text-xs truncate">
+                {userInfo.Roles[0]} {/* Rol principal */}
+              </div>
+            )}
+          </div>
+          
           <Button
             appearance="transparent"
             className={styles.signOutButton}
             icon={<DoorArrowLeft24Filled />}
             onClick={handleLogout}
-            size="large"
+            size="small"
           >
-            Cerrar sesión
+            Salir
           </Button>
         </div>
       </>

@@ -2,13 +2,7 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { PublicClientApplication, AccountInfo } from '@azure/msal-browser';
 import { jwtDecode } from 'jwt-decode';
-import type { IAuthenticatedUser } from '@/interface/auth';
-import { 
-  getUserRolesFromGroups, 
-  getPrimaryRole, 
-  getAccessibleModules, 
-  getPermissionsFromRoles
-} from '@/utils/azure-group-mapping';
+import type { IAuthenticatedUser, IAzureGroup, UserRole } from '@/interface/auth';
 import { msalConfig, loginRequest } from '@/config/auth.config';
 
 interface AuthContextType {
@@ -47,24 +41,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeMsal = async () => {
       try {
+        console.log('🔵 Inicializando MSAL...');
         const instance = new PublicClientApplication(msalConfig);
         await instance.initialize();
         setMsalInstance(instance);
+        console.log('✅ MSAL inicializado correctamente');
 
         // Manejar la respuesta de redirección si existe
+        console.log('🔵 Verificando respuesta de redirección...');
         const response = await instance.handleRedirectPromise();
         
         if (response) {
+          console.log('✅ Respuesta de redirección encontrada:', {
+            account: response.account?.username,
+            scopes: response.scopes,
+            tokenType: response.tokenType
+          });
           // Cargar datos del usuario después de login exitoso
           await loadUserData(instance, response.account);
         } else {
+          console.log('🔵 No hay respuesta de redirección, verificando cuentas existentes...');
           // Verificar si hay una cuenta existente
           const accounts = instance.getAllAccounts();
+          console.log('📊 Cuentas encontradas:', accounts.length);
+          
           if (accounts.length > 0) {
+            console.log('✅ Cuenta existente encontrada:', accounts[0].username);
             await loadUserData(instance, accounts[0]);
+          } else {
+            console.log('⚠️ No hay cuentas existentes');
           }
         }
       } catch (error) {
+        console.error('❌ Error al inicializar MSAL:', error);
         setError('Error al inicializar la autenticación');
       } finally {
         setIsLoading(false);
@@ -76,56 +85,69 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const loadUserData = async (instance: PublicClientApplication, account: AccountInfo) => {
     try {
+      console.log('🔵 Cargando datos del usuario:', account.username);
       setIsLoading(true);
       
-      // Obtener token silenciosamente
+      // ✅ MEJORES PRÁCTICAS: Solo obtener token JWT para el backend
       const silentRequest = {
         scopes: loginRequest.scopes,
         account: account,
       };
 
+      console.log('🔵 Solicitando token con scopes:', loginRequest.scopes);
       const response = await instance.acquireTokenSilent(silentRequest);
+      console.log('✅ Token JWT obtenido exitosamente');
 
-      // Obtener información desde el ID token (donde están los grupos y perfil)
-      let decodedToken: any = null;
-      
-      if (response.idToken) {
-        decodedToken = jwtDecode(response.idToken);
-      } else if (response.accessToken) {
-        decodedToken = jwtDecode(response.accessToken);
+      // ✅ MEJORES PRÁCTICAS: Guardar token para que el backend lo use
+      if (response.accessToken) {
+        sessionStorage.setItem('azure-ad-token', response.accessToken);
+        console.log('✅ Token guardado para el backend');
+        
+        // Debug: Mostrar información básica del token
+        try {
+          const payload = JSON.parse(atob(response.accessToken.split('.')[1]));
+          console.log('📊 Token info:', {
+            aud: payload.aud,
+            exp: new Date(payload.exp * 1000).toISOString(),
+            upn: payload.upn || payload.preferred_username
+          });
+        } catch (e) {
+          console.log('⚠️ No se pudo decodificar el token para debugging');
+        }
       }
 
-      // Crear perfil del usuario desde el token
-      const userProfile = {
-        displayName: decodedToken?.name || account.name || 'Usuario',
-        givenName: decodedToken?.given_name || '',
-        surname: decodedToken?.family_name || '',
-        userPrincipalName: decodedToken?.upn || account.username,
-        mail: decodedToken?.email || account.username,
-        id: decodedToken?.oid || account.localAccountId,
-      };
-
-      // Obtener grupos desde el token
-      const userGroups: string[] = decodedToken?.groups || [];
-
-      // Mapear grupos a roles y módulos
-      const userRoles = getUserRolesFromGroups(userGroups);
-      const primaryRole = getPrimaryRole(userRoles);
-      const accessibleModules = getAccessibleModules(userRoles);
-      const permissions = getPermissionsFromRoles(userRoles);
-
-      // Crear usuario autenticado
+      // ✅ MEJORES PRÁCTICAS: Usuario básico - EL BACKEND DETERMINARÁ TODO LO DEMÁS
       const authenticatedUser: IAuthenticatedUser = {
-        profile: userProfile,
-        role: primaryRole,
-        groups: userGroups.map(id => ({ id, displayName: `Group-${id}` })),
-        permissions,
-        accessibleModules,
+        profile: {
+          displayName: account.name || 'Usuario',
+          givenName: '',
+          surname: '',
+          userPrincipalName: account.username,
+          mail: account.username,
+          id: account.localAccountId || account.homeAccountId,
+        },
+        role: 'user', // Rol básico - el backend determinará el real usando Microsoft Graph
+        groups: [], // Vacío - el backend obtendrá los grupos desde Microsoft Graph
+        permissions: {
+          dashboard: true, // Solo dashboard básico hasta que el backend responda
+          configuraciones: false,
+          consultas: false,
+          mantenimientos: false,
+          modelos: false,
+        },
+        accessibleModules: [], // Vacío - el backend determinará los módulos
         isAuthenticated: true,
       };
 
+      console.log('✅ Usuario autenticado (básico) creado:', {
+        displayName: authenticatedUser.profile.displayName,
+        email: authenticatedUser.profile.userPrincipalName,
+        note: 'El backend determinará roles, grupos y permisos usando Microsoft Graph'
+      });
+      
       setUser(authenticatedUser);
     } catch (error) {
+      console.error('❌ Error al cargar datos del usuario:', error);
       setError('Error al cargar los datos del usuario');
     } finally {
       setIsLoading(false);
@@ -154,6 +176,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       setIsLoading(true);
+      
+      // Limpiar tokens del almacenamiento
+      sessionStorage.removeItem('azure-ad-token');
+      localStorage.removeItem('azure-ad-token');
+      
       await msalInstance.logoutPopup({
         postLogoutRedirectUri: msalConfig.auth.postLogoutRedirectUri,
       });

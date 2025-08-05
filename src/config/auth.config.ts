@@ -40,8 +40,16 @@ export const msalConfig: Configuration = {
   },
 };
 
+// ✅ SCOPES CORREGIDOS: Sin mezclar .default con scopes específicos
 export const loginRequest = {
-  scopes: ['User.Read', 'openid', 'profile', 'email'],
+  scopes: [
+    'openid', 
+    'profile', 
+    'User.Read',
+    // ✅ Scopes específicos para Microsoft Graph (sin .default)
+    'https://graph.microsoft.com/User.Read',
+    'https://graph.microsoft.com/Directory.Read.All'
+  ],
   prompt: 'select_account' as const,
 };
 

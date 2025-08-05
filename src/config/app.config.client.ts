@@ -1,130 +1,21 @@
 "use client";
-
-import { ITabConfigProduccion } from "@/interface";
 /**
  * Configuración central de la aplicación - PARTE CLIENTE
- * Importa componentes de React y código del cliente
+ * ✅ MIGRADO A MENÚ DINÁMICO: El menú ahora viene del backend
+ * Este archivo solo mantiene configuraciones estáticas auxiliares
  */
 import {
   SettingsRegular,
   BuildingRegular,
   ClipboardTaskRegular,
-  ArchiveSettings24Filled,
-  DataLine24Filled,
-  DocumentTableSearch24Filled,
-  AppsList24Filled,
-  PuzzleCube24Filled,
-  ClipboardTaskListRtl24Filled,
-  WrenchSettings24Filled,
-  Options24Color,
-  BuildingFactory24Filled,
-  Beaker24Filled,
-  ClipboardDataBar24Filled,
-  TableSettings24Filled,
-  Settings24Filled,
-  LayerDiagonal24Filled,
 } from "@fluentui/react-icons";
 import type { ComponentType } from "react";
 
 // ============================================================================
-// CONFIGURACIÓN DE NAVEGACIÓN CON ICONOS (SOLO CLIENTE)
+// ⚠️  NOTA: NAVIGATION_MENU ELIMINADO 
 // ============================================================================
-export interface MenuItem {
-  id: string;
-  label: string;
-  icon?: ComponentType<{ className?: string; fontSize?: number }>;
-  href: string;
-  items?: MenuItem[];
-}
-
-export const NAVIGATION_MENU: MenuItem[] = [
-  {
-    id: "modelos",
-    label: "Modelos",
-    icon: DataLine24Filled,
-    href: "#",
-    items: [
-      {
-        id: "homo-contenedores",
-        label: "Homogenización de Contenedores",
-        icon: PuzzleCube24Filled,
-        href: "/modelos/contenedores",
-      },
-      {
-        id: "homo-harina",
-        label: "Homogenización de Harina",
-        icon: ArchiveSettings24Filled,
-        href: "/modelos/harina",
-      },
-    ],
-  },
-  {
-    id: "consultas",
-    label: "Consultas",
-    icon: DocumentTableSearch24Filled,
-    href: "#",
-    items: [
-      {
-        id: "historico-contenedores",
-        label: "Histórico Homo. Contenedores",
-        icon: AppsList24Filled,
-        href: "/consultas/historico-contenedores",
-      },
-      {
-        id: "historico-harina",
-        label: "Histórico Homo. Harina",
-        icon: ClipboardTaskListRtl24Filled,
-        href: "/consultas/historico-harina",
-      },
-    ],
-  },
-  {
-    id: "mantenimientos",
-    label: "Mantenimientos",
-    icon: WrenchSettings24Filled,
-    href: "#",
-    items: [
-      {
-        id: "plantas-homogenizacion",
-        label: "Plantas de Homogenización",
-        icon: BuildingFactory24Filled,
-        href: "/mantenimientos/plantas",
-      },
-      {
-        id: "produccion",
-        label: "Producción",
-        icon: LayerDiagonal24Filled,
-        href: "/mantenimientos/produccion",
-      },
-      {
-        id: "parametros-calidad",
-        label: "Parámetros de Calidad",
-        icon: ClipboardDataBar24Filled,
-        href: "/mantenimientos/parametros",
-      },
-    ],
-  },
-  {
-    id: "configuraciones",
-    label: "Configuraciones",
-    icon: Options24Color,
-    href: "#",
-    items: [
-      {
-        id: "valores-calidad",
-        label: "Valores de Calidad - Parámetros",
-        icon: TableSettings24Filled,
-        href: "/configuraciones/valores-calidad",
-      },
-      {
-        id: "config-aplicacion",
-        label: "Configuración de la Aplicación",
-        icon: Settings24Filled,
-        href: "/configuraciones/aplicacion",
-      },
-    ],
-  },
-] as const;
+// El menú ahora es dinámico y viene del backend via useUserMenu()
+// Ver: src/hooks/use-user-menu.ts y src/services/menu-new.service.ts
 
 
 // ============================================================================

@@ -11,11 +11,12 @@
     "export": "next build && next export"
   },
   "dependencies": {
-    "@azure/msal-browser": "^4.15.0",
+    "@azure/msal-browser": "^4.18.0",
     "@azure/msal-react": "^3.0.15",
     "@fluentui/react-components": "^9.64.0",
     "@fluentui/react-datepicker-compat": "^0.5.8",
     "@fluentui/react-icons": "^2.0.301",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.10.0",
     "clsx": "^2.1.1",
@@ -25,7 +26,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.57.0",
     "react-redux": "^9.2.0",
-    "swr": "^2.3.3"
+    "swr": "^2.3.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
