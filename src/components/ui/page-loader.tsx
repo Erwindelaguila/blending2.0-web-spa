@@ -14,16 +14,17 @@ const useStyles = makeStyles({
     position: "fixed",
     top: "0",
     left: "0",
-    width: "100%",
-    height: "100%",
+    width: "100vw",
+    height: "100vh",
     background: COLORS.primary,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: "8888",
+    zIndex: "9999",
     backdropFilter: "blur(1.5px)",
-    transition: "background 0.4s cubic-bezier(.4,1.6,.6,1)",
+    transition: "none",
+    overflow: "hidden",
   },
   logo: {
     width: "180px",
@@ -90,45 +91,22 @@ const useStyles = makeStyles({
 })
 export function PageLoader({ isLoading, text = "Cargando..." }: PageLoaderProps) {
   const styles = useStyles()
-  const [shouldRender, setShouldRender] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
   const [dotCount, setDotCount] = useState(0);
 
   useEffect(() => {
-    if (!shouldRender) return;
+    if (!isLoading) return;
     const interval = setInterval(() => {
       setDotCount((prev) => (prev + 1) % 4);
     }, 400);
     return () => clearInterval(interval);
-  }, [shouldRender]);
+  }, [isLoading]);
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!isMounted) return
-
-    if (isLoading) {
-      setShouldRender(true)
-    } else {
-      const timer = setTimeout(() => setShouldRender(false), 200)
-      return () => clearTimeout(timer)
-    }
-  }, [isLoading, isMounted])
-
-  if (!isMounted || !shouldRender) {
-    return null
+  if (!isLoading) {
+    return null;
   }
 
   return (
-    <div
-      className={styles.container}
-      style={{
-        opacity: isLoading ? 1 : 0,
-        transition: "opacity 0.2s ease",
-      }}
-    >
+    <div className={styles.container}>
       <div className={styles.logo}>
         <div className={styles.borderAnim} />
         <img

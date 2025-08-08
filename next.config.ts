@@ -4,10 +4,20 @@ const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
   // ============================================================================
-  // CONFIGURACIÓN CSR PURO (Solo en producción)
+  // CONFIGURACIÓN CSR PURO (Desarrollo y Producción)
   // ============================================================================
 
-  ...(isDev ? {} : { output: "export" }),
+  // ✅ CSR puro en todos los ambientes
+  experimental: {
+    optimizePackageImports: [
+      "@fluentui/react-components",
+      "@fluentui/react-icons",
+    ],
+  },
+
+  // ✅ Configuración para CSR puro
+  trailingSlash: true,
+  output: isDev ? undefined : "export",
 
   images: {
     unoptimized: true,
@@ -45,13 +55,6 @@ const nextConfig: NextConfig = {
   // ============================================================================
   // OPTIMIZACIONES DE RENDIMIENTO
   // ============================================================================
-
-  experimental: {
-    optimizePackageImports: [
-      "@fluentui/react-components",
-      "@fluentui/react-icons",
-    ],
-  },
 
   // ============================================================================
   // CONFIGURACIÓN DE DESARROLLO

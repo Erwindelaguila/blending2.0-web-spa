@@ -2,12 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import { Button, Text, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from "@fluentui/react-components";
-import { NavigationRegular, SignOutRegular, PersonRegular } from "@fluentui/react-icons";
-import { MODULE_BREADCRUMBS, MODULE_NAMES } from "@/config/app.config.client";
-import { getSelectedModule } from "@/utils/module-manager";
+import { Button, Text } from "@fluentui/react-components";
+import { NavigationRegular, PersonRegular } from "@fluentui/react-icons";
 import { useHeaderStyles } from "@/styles/header.styles";
-import { useAuthContext } from "@/providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
+import { useUserMenu } from "@/hooks/use-user-menu";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -16,47 +15,34 @@ interface HeaderProps {
 export function Header({ toggleSidebar }: HeaderProps) {
   const styles = useHeaderStyles();
   const pathname = usePathname();
-  const { user, logout } = useAuthContext();
+  const { user } = useAuth();
+  const { userInfo } = useUserMenu();
 
   const breadcrumbInfo = useMemo(() => {
     if (pathname === "/") {
       return { breadcrumb: "Dashboard", currentModule: null };
     }
 
-    const selectedModule = getSelectedModule();
-    if (!selectedModule) {
-      return { breadcrumb: "Dashboard", currentModule: null };
+    if (userInfo?.enlaces) {
+      for (const enlace of Object.values(userInfo.enlaces)) {
+        if (enlace.url === pathname) {
+          return { 
+            breadcrumb: enlace.title || "Dashboard", 
+            currentModule: enlace.grupo ? userInfo.enlaces[enlace.grupo]?.title : null 
+          };
+        }
+      }
     }
 
-    const moduleBreadcrumbs =
-      MODULE_BREADCRUMBS[selectedModule as keyof typeof MODULE_BREADCRUMBS];
-    const breadcrumb =
-      moduleBreadcrumbs?.[pathname as keyof typeof moduleBreadcrumbs] ||
-      "Dashboard";
-    const moduleName =
-      MODULE_NAMES[selectedModule as keyof typeof MODULE_NAMES];
-
-    return { breadcrumb, currentModule: moduleName || null };
-  }, [pathname]);
-
-  const handleLogout = async () => {
-    await logout();
-  };
+    return { breadcrumb: "Dashboard", currentModule: null };
+  }, [pathname, userInfo]);
 
   const getUserDisplayName = () => {
-    if (!user?.profile) return "Usuario";
-    return user.profile.displayName || user.profile.givenName || "Usuario";
+    return userInfo?.name || user?.displayName || "Usuario";
   };
 
   const getUserRole = () => {
-    if (!user?.role) return "";
-    const roleNames = {
-      admin: "Administrador",
-      logistics: "Logística", 
-      quality: "Calidad",
-      user: "Usuario"
-    };
-    return roleNames[user.role] || user.role;
+    return userInfo?.roles?.[0] || "";
   };
 
   return (
@@ -75,36 +61,24 @@ export function Header({ toggleSidebar }: HeaderProps) {
       <div className={styles.headerRight}>
         <div className={styles.userInfo}>
           <div className={styles.userGreeting}>
-            <Menu>
-              <MenuTrigger disableButtonEnhancement>
-                <Button appearance="subtle" className="flex items-center gap-2">
-                  <PersonRegular className="w-4 h-4" />
-                  <div className="text-left">
-                    <Text className={styles.userName}>¡Hola {getUserDisplayName()}!</Text>
-                    <div className="flex gap-2 items-center">
-                      {breadcrumbInfo.currentModule && (
-                        <Text className={styles.moduleIndicator}>
-                          {breadcrumbInfo.currentModule}
-                        </Text>
-                      )}
-                      {user?.role && (
-                        <Text className="text-xs text-gray-500">
-                          • {getUserRole()}
-                        </Text>
-                      )}
-                    </div>
-                  </div>
-                </Button>
-              </MenuTrigger>
-              <MenuPopover>
-                <MenuList>
-                  <MenuItem onClick={handleLogout}>
-                    <SignOutRegular className="w-4 h-4 mr-2" />
-                    Cerrar sesión
-                  </MenuItem>
-                </MenuList>
-              </MenuPopover>
-            </Menu>
+            <div className="flex items-center gap-2">
+              <PersonRegular className="w-4 h-4" />
+              <div className="text-left">
+                <Text className={styles.userName}>¡Hola {getUserDisplayName()}!</Text>
+                <div className="flex gap-2 items-center">
+                  {breadcrumbInfo.currentModule && (
+                    <Text className={styles.moduleIndicator}>
+                      {breadcrumbInfo.currentModule}
+                    </Text>
+                  )}
+                  {getUserRole() && (
+                    <Text className="text-xs text-gray-500">
+                      • {getUserRole()}
+                    </Text>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

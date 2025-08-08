@@ -7,7 +7,7 @@ import { useInputStyles } from "@/styles/input.styles";
 import { PlantasService } from "@/services/plantas.service";
 import { Input, Label, Switch, Textarea, Spinner } from "@fluentui/react-components";
 import { useEffect } from "react";
-import { useAuth } from "@/providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import useSWR from "swr";
 import { fetchGetPlantasId, getAllPlantaKey } from "@/lib/constants/key-fetch";
@@ -50,7 +50,7 @@ export function PanelCrearPlanta({ open, mode, id, close }: IDrawer) {
 
   const { user } = useAuth();
   const onSubmit: SubmitHandler<IPlanta> = async (data) => {
-    const userId = user?.profile?.id;
+    const userId = user?.id;
     if (!userId) throw new Error("No se encontró el id del usuario autenticado");
     await asyncAction.execute(
       async () =>
