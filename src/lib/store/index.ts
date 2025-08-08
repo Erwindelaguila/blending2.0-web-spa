@@ -2,10 +2,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import stepReducer from "./slices/stepSlice";
 import stockDisponibleReducer from "./slices/stockDisponible";
-
+import authReducer from "./slices/authSlice";
 import { loadState, saveState } from "@/utils/persist-state";
 import blobReducer, { BlobState, initialState } from "./slices/blobSlice";
 
+// cargar estado persistido del blob
 const persistedBlobState = loadState<BlobState>("blobState") ?? initialState;
 
 export const store = configureStore({
@@ -13,9 +14,10 @@ export const store = configureStore({
     step: stepReducer,
     stockDisponible: stockDisponibleReducer,
     blob: blobReducer,
+    auth: authReducer,
   },
   preloadedState: {
-    blob: persistedBlobState ?? initialState,
+    blob: persistedBlobState,
   },
 });
 

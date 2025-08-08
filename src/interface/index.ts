@@ -8,4 +8,5 @@ export * from "./admin/calidad";
 export * from "./admin/parametro";
 export * from "./admin/planta";
 export * from "./api/base-response";
+export * from "./auth/user-menu";
 export * from "./quality/blob";

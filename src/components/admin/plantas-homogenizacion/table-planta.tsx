@@ -10,7 +10,8 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState} from "react";
+import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -166,9 +167,11 @@ export function TablePlanta() {
     }
   };
 
+  const { user } = useAuth();
   const acctionDeleteModal = async () => {
     if (!infoPlanta) return;
-    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
+    const userId = user?.id;
+    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
     await deleteAction.execute(
       async () => {
         await PlantasService.eliminar(infoPlanta.id, userId);

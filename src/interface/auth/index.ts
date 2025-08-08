@@ -1,6 +1,7 @@
 import type { UserRole } from '@/config/auth.config';
 
 export type { UserRole };
+export * from './auth-state';
 
 export interface IAzureUser {
   id: string;
@@ -33,7 +34,7 @@ export interface IAuthenticatedUser {
     modelos: boolean;
     dashboard: boolean;
   };
-  accessibleModules: string[]; // Módulos que el usuario puede ver
+  accessibleModules: string[]; 
   isAuthenticated: boolean;
 }
 

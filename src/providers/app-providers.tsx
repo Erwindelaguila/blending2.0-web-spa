@@ -12,12 +12,14 @@ interface AppProvidersProps {
 }
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <AuthProvider>
-      <LoadingProvider>
-        <AppThemeProvider>
-          <Provider store={store}> {children}</Provider>
-        </AppThemeProvider>
-      </LoadingProvider>
-    </AuthProvider>
+    <Provider store={store}>
+      <AuthProvider>
+        <LoadingProvider>
+          <AppThemeProvider>
+            {children}
+          </AppThemeProvider>
+        </LoadingProvider>
+      </AuthProvider>
+    </Provider>
   );
 }

@@ -12,6 +12,10 @@ export const fetchGetParametrosId = (id: string) => {
   return `/api/core/parametro/detail?id=${id}`;
 };
 
+export const getUserMenuKey = () => {
+  return "/api/core/user/menu";
+};
+
 export const getAllPlantaKey = () => {
   return "/api/core/planta";
 };

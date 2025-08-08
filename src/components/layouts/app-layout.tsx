@@ -1,58 +1,53 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { usePathname } from "next/navigation"
 import { ProtectedRoute } from "@/components/navigation/protected-route"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { PageLoader } from "@/components/ui/page-loader"
-import { AppSkeleton } from "@/components/ui/app-skeleton"
-import { useAuthContext } from "@/providers/auth-provider"
+import { useAuth } from "@/hooks/use-auth"
 
 interface AppLayoutProps {
   children: React.ReactNode
 }
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
-  const isDashboard = pathname === "/"
-  const { user, isLoading } = useAuthContext()
+  const { user, isAppLoading } = useAuth()
   
-  const [isAppReady, setIsAppReady] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
+  
+  const { isDashboard, isAuthenticated } = useMemo(() => ({
+    isDashboard: pathname === "/",
+    isAuthenticated: !!user?.isAuthenticated
+  }), [pathname, user?.isAuthenticated])
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsAppReady(true), 300)
+    if (isDashboard) return
+    
+    setIsNavigating(true)
+    const timer = setTimeout(() => setIsNavigating(false), 300)
     return () => clearTimeout(timer)
-  }, [])
+  }, [pathname, isDashboard])
 
-  useEffect(() => {
-    if (!isDashboard && isAppReady) {
-      setIsNavigating(true)
-      const timer = setTimeout(() => setIsNavigating(false), 400)
-      return () => clearTimeout(timer)
-    }
-    setIsNavigating(false)
-  }, [pathname, isDashboard, isAppReady])
-
-  if (!isAppReady) {
-    return <AppSkeleton />
+  if (isAppLoading) {
+    return <PageLoader isLoading text="Cargando aplicación" />
   }
 
-  // Para el dashboard, usar ProtectedRoute para login automático
-  if (isDashboard) {
+  if (!isAuthenticated) {
     return (
       <ProtectedRoute>
-        {isNavigating && <PageLoader isLoading text="Cargando..." />}
-        <DashboardLayout>{children}</DashboardLayout>
+        <PageLoader isLoading text="Autenticando" />
       </ProtectedRoute>
-    );
+    )
   }
 
-  // Para otras páginas, mantener la protección
+  const Layout = isDashboard ? DashboardLayout : MainLayout
+  
   return (
     <ProtectedRoute>
-      {isNavigating && <PageLoader isLoading text="Cargando..." />}
-      <MainLayout>{children}</MainLayout>
+      {isNavigating && <PageLoader isLoading text="Navegando..." />}
+      <Layout>{children}</Layout>
     </ProtectedRoute>
   )
 }
