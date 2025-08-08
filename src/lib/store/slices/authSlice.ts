@@ -183,6 +183,7 @@ const authSlice = createSlice({
         state.isAppLoading = false;
         if (action.payload) {
           const { enlaces, permisosUsuario, userInfo } = action.payload;
+          
           state.userInfo = {
             ...userInfo,
             enlaces,
@@ -197,12 +198,19 @@ const authSlice = createSlice({
             const enlace = enlaces[permiso];
             if (!enlace || !enlace.url || enlace.url === '#') return;
 
+           
+            if (permiso.startsWith('card-')) {
+              return;
+            }
+
             if (enlace.grupo) {
               if (!grupos[enlace.grupo]) {
+                const grupoEnlace = enlaces[enlace.grupo];
+                
                 grupos[enlace.grupo] = {
                   id: enlace.grupo,
-                  label: enlaces[enlace.grupo]?.title || enlace.grupo,
-                  iconName: enlaces[enlace.grupo]?.icon || 'Box',
+                  label: grupoEnlace?.title || enlace.grupo,
+                  iconName: grupoEnlace?.icon || 'Box',
                   items: [],
                 };
               }
@@ -237,6 +245,7 @@ const authSlice = createSlice({
           });
 
           const menuGrupos = Object.values(grupos).filter(grupo => grupo.items && grupo.items.length > 0);
+          
           state.menu = [
             ...menuGrupos,
             ...itemsSinGrupoFiltrados
