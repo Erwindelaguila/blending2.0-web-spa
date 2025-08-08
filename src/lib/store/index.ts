@@ -1,13 +1,28 @@
 // src/store/index.ts
 import { configureStore } from "@reduxjs/toolkit";
 import stepReducer from "./slices/stepSlice";
+import stockDisponibleReducer from "./slices/stockDisponible";
+
+import { loadState, saveState } from "@/utils/persist-state";
+import blobReducer, { BlobState, initialState } from "./slices/blobSlice";
+
+const persistedBlobState = loadState<BlobState>("blobState") ?? initialState;
 
 export const store = configureStore({
   reducer: {
     step: stepReducer,
+    stockDisponible: stockDisponibleReducer,
+    blob: blobReducer,
   },
-  //devTools: process.env.NODE_ENV !== "production", // útil en prod
+  preloadedState: {
+    blob: persistedBlobState ?? initialState,
+  },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+store.subscribe(() => {
+  const state = store.getState();
+  saveState("blobState", state.blob);
+});

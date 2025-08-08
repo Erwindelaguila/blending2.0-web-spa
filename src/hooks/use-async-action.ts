@@ -14,10 +14,14 @@ type ApiResponseState<T> = {
   isError: boolean;
   execute: (
     action: () => Promise<BaseResponse<T>>,
-    key?: string
+    key?: string,
+    setErrorPersonalizado?: (error: {
+      error: string;
+      success: BaseResponse<any> | null;
+    }) => void
   ) => Promise<void>;
   reset: () => void;
-  resetError:()=>void;
+  resetError: () => void;
 };
 
 export function useAsyncAction<T>(): ApiResponseState<T> {
@@ -26,7 +30,14 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
   const [state, setState] = useState<AsyncActionState>("init");
 
   const execute = useCallback(
-    async (action: () => Promise<BaseResponse<T>>, key?: string) => {
+    async (
+      action: () => Promise<BaseResponse<T>>,
+      key?: string,
+      setErrorPersonalizado?: (error: {
+        error: string;
+        success: BaseResponse<any> | null;
+      }) => void
+    ) => {
       setState("loading");
       setError(null);
       setResponse(null);
@@ -36,13 +47,29 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
         setResponse(result);
         setState("success");
 
+        if (setErrorPersonalizado) {
+          setErrorPersonalizado({
+            error: "",
+            success: result,
+          });
+        }
+
         if (key) {
           mutate(key);
         }
       } catch (err: any) {
-        const errMsg = err instanceof Error ? err.message : "Error inesperado";
+        const errMsg = err?.response?.data?.message ?? "Network Error";
+
         setError(errMsg);
         setState("error");
+
+        // Llama a la función personalizada si existe
+        if (setErrorPersonalizado) {
+          setErrorPersonalizado({
+            error: errMsg,
+            success: null,
+          });
+        }
       }
     },
     []
@@ -58,7 +85,6 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
     setState("init");
   }, []);
 
-
   return {
     response,
     error,
@@ -69,6 +95,6 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
     isError: state === "error",
     execute,
     reset,
-    resetError
+    resetError,
   };
 }

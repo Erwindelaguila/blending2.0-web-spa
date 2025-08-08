@@ -34,8 +34,9 @@ export const AppCombobox: React.FC<Props> = ({
   const borderColor = errorInput
     ? OrgColors.serotRojo
     : grayBorder
-    ? OrgColors.serotGris 
+    ? OrgColors.serotGris
     : OrgColors.celeste;
+  const hasOptions = options.length > 0;
 
   return (
     <div className="w-full">
@@ -47,17 +48,24 @@ export const AppCombobox: React.FC<Props> = ({
         style={{ border: `2px solid ${borderColor}` }}
         placeholder={placeholder}
         value={value}
+        clearable
         onOptionSelect={(_, data) => onChange(data.optionValue)}
       >
-        {options.map((option) => (
-          <Option
-            key={option}
-            value={option}
-            disabled={disabledOptions.includes(option)}
-          >
-            {option}
+        {hasOptions ? (
+          options.map((option) => (
+            <Option
+              key={option}
+              value={option}
+              disabled={disabledOptions.includes(option)}
+            >
+              {option}
+            </Option>
+          ))
+        ) : (
+          <Option value="no-options" disabled>
+            No hay opciones disponibles
           </Option>
-        ))}
+        )}
       </Combobox>
 
       {error && (

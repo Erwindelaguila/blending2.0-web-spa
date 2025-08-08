@@ -1,14 +1,51 @@
 "use client";
 
 import { OtrosParametros, ParametrosLogisticos, Title } from "@/components";
+import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { OrgColors } from "@/config/app.config.server";
+import { useAsyncAction } from "@/hooks/use-async-action";
+import { BaseResponse } from "@/interface";
+import { ExcelService } from "@/services/excel.service";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { hexToRgba } from "@/utils/colors";
 import { Button, Card, Divider } from "@fluentui/react-components";
 import { DocumentAdd24Filled } from "@fluentui/react-icons";
+import { useState } from "react";
 
 export default function ContenedoresPage() {
   const style = useButtonsStyles();
+  const asyncAction = useAsyncAction();
+
+   const [loadingFile, setLoadingFile] = useState<boolean>(false);
+
+  const [responseCargarExcel, setResponseCargarExcel] = useState<{
+    error: string;
+    success: BaseResponse<any> | null;
+  }>({
+    error: "",
+    success: null,
+  });
+
+  const handleUploadFile = async (file: File) => {
+    asyncAction.reset();
+    setResponseCargarExcel({
+      error: "",
+      success: null,
+    });
+    const allowedExtensions = /\.(xls|xlsx|csv)$/i;
+    if (!allowedExtensions.test(file.name)) {
+      setResponseCargarExcel({
+        error: "Formato no permitido. Solo se aceptan .xls y .xlsx",
+        success: null,
+      });
+      return;
+    }
+    await asyncAction.execute(
+      () => ExcelService.uploadExcelLogistica(file),
+      undefined,
+      setResponseCargarExcel
+    );
+  };
 
   return (
     <>
@@ -21,13 +58,17 @@ export default function ContenedoresPage() {
                   <Title title="Asignación" />
                 </div>
 
-                <Button
-                  size="large"
-                  icon={<DocumentAdd24Filled></DocumentAdd24Filled>}
-                  className={`w-[20rem] ${style.buttonCelesteBase}`}
-                >
-                  Adjuntar Asignación
-                </Button>
+                <FileUploadButton
+                  accept=".xls,.xlsx"
+                  label="Adjuntar Asignación"
+                  onFileSelected={async (file) => {
+                    setLoadingFile(true);
+                    await handleUploadFile(file);
+                    setLoadingFile(false);
+                  }}
+                  icon={true}
+                  loading={loadingFile}
+                />
 
                 <Divider
                   style={{

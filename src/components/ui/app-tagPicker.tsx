@@ -1,5 +1,6 @@
 import React, { useReducer, useMemo, forwardRef } from "react";
 import {
+  Button,
   Label,
   Tag,
   TagPicker,
@@ -11,6 +12,7 @@ import {
   Text,
 } from "@fluentui/react-components";
 import { OrgColors } from "@/config/app.config.server";
+import {  Dismiss16Regular } from "@fluentui/react-icons";
 
 type Props = {
   options: string[];
@@ -73,6 +75,10 @@ export const AppTagPicker = forwardRef<HTMLDivElement, Props>(
       );
     }, [options, state.inputValue, value]);
 
+    const handleClear = () => {
+      onChange([]);
+    };
+
     return (
       <div ref={ref} className="flex flex-col gap-1">
         {label && (
@@ -96,7 +102,23 @@ export const AppTagPicker = forwardRef<HTMLDivElement, Props>(
             dispatch({ type: "RESET_INPUT" });
           }}
         >
-          <TagPickerControl style={ errorInput ?  {border:`2px solid ${OrgColors.serotRojo}`} : {border:`2px solid ${OrgColors.celeste}`}}>
+          <TagPickerControl
+            style={
+              errorInput
+                ? { border: `2px solid ${OrgColors.serotRojo}` }
+                : { border: `2px solid ${OrgColors.celeste}` }
+            }
+            secondaryAction={
+              <Button
+                appearance="transparent"
+                size="small"
+                shape="rounded"
+                style={{ display: value.length > 0 ? "block" : "none" }}
+                onClick={handleClear}
+                icon={<Dismiss16Regular></Dismiss16Regular>}
+              />
+            }
+          >
             <TagPickerGroup aria-label="Selected Items">
               {value.map((option) => (
                 <Tag key={option} value={option} shape="rounded">
@@ -107,7 +129,6 @@ export const AppTagPicker = forwardRef<HTMLDivElement, Props>(
 
             <TagPickerInput
               aria-label="Select Items"
-              
               placeholder={value.length > 0 ? "" : placeholder}
               value={state.inputValue}
               onChange={(e) =>
@@ -116,7 +137,10 @@ export const AppTagPicker = forwardRef<HTMLDivElement, Props>(
             />
           </TagPickerControl>
 
-          <TagPickerList>
+          <TagPickerList
+            style={{ maxHeight: "15rem", overflowY: "auto" }}
+            className="scrollable-list"
+          >
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (
                 <TagPickerOption key={option} value={option}>
