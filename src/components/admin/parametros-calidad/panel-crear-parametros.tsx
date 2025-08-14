@@ -1,35 +1,40 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
+import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
-import { IParametro, IParametroResponse, IDrawer } from "@/interface";
+import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
-import { ParametrosService } from "@/services/parametros.service";
 import { Input, Label, Switch, Textarea, Spinner } from "@fluentui/react-components";
-import { useEffect } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import useSWR from "swr";
-import { fetchGetParametrosId, getAllParametroKey } from "@/lib/constants/key-fetch";
+import { useEffect } from "react";
+import { getByIdParametroKey } from "@/lib/constants/key-fetch";
+import { IParametro, IParametroSend, IParametroUpdate } from "@/interface/admin/parametro";
+import { ParametrosService } from "@/services/parametros.service";
 
-const defaultFormValues: IParametro = {
+const defaultFormValues: IParametroSend = {
   codigo: "",
   nombre: "",
   descripcion: "",
-  activo: false,
+  activo: true,
+  creadoPorId: "",
 };
 
-export function PanelCrearParametros({ open, mode, id, close }: IDrawer) {
+export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
+  const { user } = useAuth();
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     control,
     formState: { errors },
-  } = useForm<IParametro>({
+  } = useForm<IParametroSend>({
     defaultValues: defaultFormValues,
   });
 
@@ -37,40 +42,66 @@ export function PanelCrearParametros({ open, mode, id, close }: IDrawer) {
     data: dataParametro,
     isLoading: loadingParametro,
     error: errorParametro,
-  } = useSWR<IParametroResponse>(
-    id != undefined ? fetchGetParametrosId(id) : null,
-    () => ParametrosService.obtenerPorId(id!),
+  } = useSWR<BaseResponse<IParametro>>(
+    id != undefined ? getByIdParametroKey(id) : null,
+    ParametrosService.obtenerPorId,
     {
       revalidateOnFocus: false,
       revalidateIfStale: true,
     }
   );
 
-  const onSubmit: SubmitHandler<IParametro> = async (data) => {
-    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
-    
-    await asyncAction.execute(
-      async () =>
-        id 
-          ? ParametrosService.editar(id, data, userId)
-          : ParametrosService.crear(data, userId),
-      getAllParametroKey
-    );
+  const onSubmit: SubmitHandler<IParametroSend> = async (data) => {
+    if (!user?.id) {
+      console.error("Usuario no autenticado o sin ID");
+      return;
+    }
+
+    const sendParametro: IParametroSend = {
+      ...data,
+      creadoPorId: user.id,
+    };
+
+    const sendUpdate: IParametroUpdate = {
+      ...data,
+      modificadoPorId: user.id,
+      id: id || "",
+    };
+
+    await asyncAction.execute(async () => {
+      const result = id
+        ? await ParametrosService.actualizar(sendUpdate)
+        : await ParametrosService.crear(sendParametro);
+      return result;
+    });
   };
 
   const closeAction = () => {
+    if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
+      onSuccess(asyncAction.response.data as any, mode);
+    }
     reset(defaultFormValues);
     close();
     asyncAction.reset();
   };
 
   useEffect(() => {
-    if (mode !== "crear" && dataParametro) {
-      reset(dataParametro);
+    if (mode !== "crear" && dataParametro?.data) {
+      const { data } = dataParametro;
+      reset({
+        codigo: data.codigo,
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        activo: data.activo,
+        creadoPorId: user?.id || "",
+      });
     } else if (mode === "crear" && open) {
-      reset(defaultFormValues);
+      reset({
+        ...defaultFormValues,
+        creadoPorId: user?.id || "",
+      });
     }
-  }, [dataParametro, reset, mode, open]);
+  }, [dataParametro, reset, mode, open, user?.id]);
 
   const TITULOS_PANEL: Record<typeof mode, string> = {
     crear: "Nuevo Parámetro",

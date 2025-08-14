@@ -1,38 +1,46 @@
 import api from "@/lib/api/client";
 import { BaseResponse } from "@/interface";
-import { IPlantaRequest, IPlantaResponse, IPlantaGet } from "@/interface/admin/planta";
+import { IPlantaRequest, IPlantaResponse, IPlantaGet, IPlantaSend, IPlantaUpdate, PagedPlantaResponse } from "@/interface/admin/planta";
+import { getAllPlantaKey } from "@/lib/constants/key-fetch";
 
 export class PlantasService {
-  static async crear(data: IPlantaRequest, creadoPorId: string): Promise<BaseResponse<IPlantaResponse>> {
-    const response = await api.post<BaseResponse<IPlantaResponse>>(
-      "/api/core/planta", 
-      { ...data, creadoPorId }
-    );
-    return response.data;
-  }
-
-  static async editar(id: string, data: IPlantaRequest, modificadoPorId: string): Promise<BaseResponse<IPlantaResponse>> {
-    const response = await api.put<BaseResponse<IPlantaResponse>>(
-      "/api/core/planta",
-      { id, ...data, modificadoPorId }
-    );
-    return response.data;
-  }
-
-  static async eliminar(id: string, modificadoPorId: string): Promise<void> {
-    await api.delete(`/api/core/planta?id=${id}&modificadoPorId=${modificadoPorId}`);
-  }
-
-  static async listar(url:any): Promise<IPlantaGet[]> {
-    const response = await api.get<BaseResponse<IPlantaGet[]>>(url);
-    return response.data.data || [];
-  }
-
-  static async obtenerPorId(id: string): Promise<IPlantaGet> {
-    const response = await api.get<BaseResponse<IPlantaGet>>(`/api/core/planta/detail?id=${id}`);
-    if (!response.data.data) {
-      throw new Error("No se encontraron datos de la planta");
+  static async listar(page: number = 1, size: number = 10): Promise<BaseResponse<PagedPlantaResponse>> {
+    const url = `${getAllPlantaKey()}?page=${page}&size=${size}`;
+    const response = await api.get<BaseResponse<any>>(url);
+    const raw = response.data;
+    if (Array.isArray(raw.data)) {
+      const items: IPlantaResponse[] = raw.data;
+      return {
+        ...raw,
+        data: {
+          items,
+          total: items.length,
+          page,
+            size,
+          totalPages: 1,
+        },
+      } as BaseResponse<PagedPlantaResponse>;
     }
-    return response.data.data;
+    return raw as BaseResponse<PagedPlantaResponse>;
+  }
+
+  static async obtenerPorId(url: any): Promise<BaseResponse<IPlantaResponse>> {
+    const response = await api.get<BaseResponse<IPlantaResponse>>(url);
+    return response.data;
+  }
+
+  static async crear(data: IPlantaSend): Promise<BaseResponse<IPlantaResponse>> {
+    const response = await api.post<BaseResponse<IPlantaResponse>>(getAllPlantaKey(), data);
+    return response.data;
+  }
+
+  static async actualizar(data: IPlantaUpdate): Promise<BaseResponse<IPlantaResponse>> {
+    const response = await api.put<BaseResponse<IPlantaResponse>>(getAllPlantaKey(), data);
+    return response.data;
+  }
+
+  static async eliminar(id: string, eliminadoPorId: string): Promise<BaseResponse<void>> {
+    const response = await api.delete<BaseResponse<void>>(`${getAllPlantaKey()}?id=${id}&eliminadoPorId=${eliminadoPorId}`);
+    return response.data;
   }
 }

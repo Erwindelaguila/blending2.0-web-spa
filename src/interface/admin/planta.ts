@@ -19,4 +19,14 @@ export interface IPlantaResponse {
 // Mantener IPlanta e IPlantaGet para compatibilidad
 export interface IPlanta extends IPlantaRequest {}
 export interface IPlantaGet extends IPlantaResponse {}
- 
+
+export interface IPlantaSend extends IPlantaRequest { creadoPorId: string; }
+export interface IPlantaUpdate extends IPlantaRequest { id: string; modificadoPorId: string; }
+
+export interface PagedPlantaResponse {
+  items: IPlantaResponse[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number;
+}

@@ -16,46 +16,49 @@ export const Pagination = ({
 }: IPaginationBase) => {
   
   const renderPageNumbers = useMemo(() => {
+    // Si el backend nos da pageNumbers específicos, los usamos
+    if (pageNumbers && pageNumbers.length > 0) {
+      return pageNumbers;
+    }
+
+    // Si no, generamos la lógica de paginación con puntos suspensivos
     const pages: (number | string)[] = [];
     const maxVisiblePages = 5;
-
+    
     if (totalPages <= maxVisiblePages) {
-      // Mostrar todas las páginas si son pocas
+      // Si hay pocas páginas, mostrar todas
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Lógica mejorada para evitar parpadeo en transiciones
-      pages.push(1); // Siempre mostrar primera página
+      // Lógica para páginas con puntos suspensivos
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, currentPage + 2);
 
-      if (currentPage <= 3) {
-        // Páginas iniciales: 1 2 3 4 ... último
-        for (let i = 2; i <= Math.min(4, totalPages - 1); i++) {
-          pages.push(i);
+      // Siempre mostrar página 1
+      if (start > 1) {
+        pages.push(1);
+        if (start > 2) {
+          pages.push('...');
         }
-        if (totalPages > 4) {
-          pages.push("...");
-          pages.push(totalPages);
+      }
+
+      // Páginas alrededor de la actual
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      // Siempre mostrar última página
+      if (end < totalPages) {
+        if (end < totalPages - 1) {
+          pages.push('...');
         }
-      } else if (currentPage >= totalPages - 2) {
-        // Páginas finales: 1 ... (n-3) (n-2) (n-1) n
-        pages.push("...");
-        for (let i = Math.max(2, totalPages - 3); i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        // Páginas del medio: 1 ... (current-1) current (current+1) ... último
-        pages.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pages.push(i);
-        }
-        pages.push("...");
         pages.push(totalPages);
       }
     }
 
     return pages;
-  }, [currentPage, totalPages]);
+  }, [pageNumbers, totalPages, currentPage]);
 
   return (
     <div className="w-full h-full flex justify-between items-center select-none">
@@ -83,14 +86,14 @@ export const Pagination = ({
         >
           Anterior
         </Button>
-
+        
         <div className="flex items-center gap-1">
           {renderPageNumbers.map((pageNum, index) => {
-            if (pageNum === "...") {
+            if (pageNum === '...') {
               return (
                 <span
                   key={`ellipsis-${index}`}
-                  className="px-2 py-1 text-sm text-gray-500 select-none"
+                  className="px-3 py-1 text-sm text-gray-500"
                 >
                   ...
                 </span>
@@ -108,7 +111,7 @@ export const Pagination = ({
                     : { backgroundColor: "#f3f4f6", color: "#000" }
                 }
                 className={`px-3 py-1 rounded text-sm cursor-pointer hover:bg-gray-300 transition-colors ${
-                  page === currentPage ? "font-semibold" : ""
+                  page === currentPage ? 'hover:bg-opacity-80' : ''
                 }`}
               >
                 {page}
@@ -116,7 +119,7 @@ export const Pagination = ({
             );
           })}
         </div>
-
+        
         <Button
           appearance="secondary"
           className="px-3 py-1 rounded text-sm disabled:opacity-50"

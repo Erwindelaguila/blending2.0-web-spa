@@ -1,98 +1,119 @@
+"use client";
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
+import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
-import { IBaseProduccion, ICalidad, ICalidadGet, IDrawer } from "@/interface";
+import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import {
   Input,
   Label,
-  Spinner,
   Switch,
   Textarea,
+  Spinner,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { CalidadesService } from "@/services/calidades.service";
 import useSWR from "swr";
-import { CalidadFechApi } from "@/services/calidad-service-api";
 import { useEffect } from "react";
+import { getByIdLineaProduccionKey } from "@/lib/constants/key-fetch";
 import {
-  fetchGetCalidadesId,
-} from "@/lib/constants/key-fetch";
+  ILineaProduccion,
+  ILineaProduccionSend,
+  ILineaProduccionUpdate,
+} from "@/interface/admin/linea-produccion";
+import { LineaProduccionService } from "@/services/linea-produccion.service";
 
-const defaultFormValues: ICalidad = {
+const defaultFormValues: ILineaProduccionSend = {
   codigo: "",
   nombre: "",
-  codigoMaterial: "",
   descripcion: "",
-  conforme: false,
   activo: true,
+  creadoPorId: "",
 };
 
-export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
+export function LineaProduccionPanel({
+  open,
+  mode,
+  id,
+  close,
+  onSuccess,
+}: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
+  const { user } = useAuth();
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     control,
+    watch,
     formState: { errors },
-  } = useForm<IBaseProduccion>({
+  } = useForm<ILineaProduccionSend>({
     defaultValues: defaultFormValues,
   });
 
   const {
-    data: dataCalidad,
-    isLoading: loadingCalidad,
-    error: errorCalidad,
-  } = useSWR<ICalidadGet>(
-    id != undefined ? fetchGetCalidadesId(id) : null,
-    CalidadFechApi,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
-    }
+    data: dataLinea,
+    isLoading: loadingLinea,
+    error: errorLinea,
+  } = useSWR<BaseResponse<ILineaProduccion>>(
+    id != undefined ? getByIdLineaProduccionKey(id) : null,
+    LineaProduccionService.obtenerPorId,
+    { revalidateOnFocus: false, revalidateIfStale: true }
   );
 
-  const onSubmit: SubmitHandler<IBaseProduccion> = async (data) => {
-    /*
+  const onSubmit: SubmitHandler<ILineaProduccionSend> = async (data) => {
+    if (!user?.id) return;
+    const sendCreate: ILineaProduccionSend = { ...data, creadoPorId: user.id };
+    const sendUpdate: ILineaProduccionUpdate = {
+      ...data,
+      id: id || "",
+      modificadoPorId: user.id,
+    };
     await asyncAction.execute(
       async () =>
-        id ? CalidadesService.editar(id, data) : CalidadesService.crear(data),
-      getAllCalidadKey()
+        id
+          ? LineaProduccionService.actualizar(sendUpdate)
+          : LineaProduccionService.crear(sendCreate)
     );
-    */
   };
 
-  const closeAcction = () => {
+  const closeAction = () => {
+    if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
+      onSuccess(asyncAction.response.data as any, mode);
+    }
     reset(defaultFormValues);
     close();
     asyncAction.reset();
   };
 
   useEffect(() => {
-    if (mode !== "crear" && dataCalidad) {
-      reset(dataCalidad);
+    if (mode !== "crear" && dataLinea?.data) {
+      const { data } = dataLinea;
+      reset({
+        codigo: data.codigo,
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        activo: data.activo,
+        creadoPorId: user?.id || "",
+      });
     } else if (mode === "crear" && open) {
-      reset(defaultFormValues);
+      reset({ ...defaultFormValues, creadoPorId: user?.id || "" });
     }
-  }, [dataCalidad, reset, mode, open]);
+  }, [dataLinea, reset, mode, open, user?.id]);
 
   const TITULOS_PANEL: Record<typeof mode, string> = {
-    crear: "Nueva Linea de Producción",
-    editar: "Editar Linea de Producción",
-    detalle: "Detalle de Linea de Producción",
+    crear: "Nueva Línea de Producción",
+    editar: "Editar Línea de Producción",
+    detalle: "Detalle de Línea de Producción",
   };
-
 
   const renderContenidoSegunModo = () => {
     const values = watch();
 
-    if (loadingCalidad) {
+    if (loadingLinea) {
       return (
         <div className="py-2">
           <Spinner labelPosition="above" label="Cargando datos" />
@@ -100,12 +121,8 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
       );
     }
 
-    if (errorCalidad) {
-      return (
-        <div className="py-2 text-red-500">
-          Ocurrió un error al traer los datos.
-        </div>
-      );
+    if (errorLinea) {
+      return <div className="py-2 text-red-500">Error al cargar los datos.</div>;
     }
 
     if (mode === "detalle") {
@@ -119,14 +136,21 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
             <Label>Nombre</Label>
             <p>{values.nombre}</p>
           </div>
+          <div>
+            <Label>Descripción</Label>
+            <p>{values.descripcion || "-"}</p>
+          </div>
+          <div>
+            <Label>Activo</Label>
+            <p>{values.activo ? "Sí" : "No"}</p>
+          </div>
         </div>
       );
     }
 
-    // Crear y editar
     return (
       <div className="py-2 flex flex-col gap-3">
-        <div className="flex flex-col justify-start w-full gap-0.5">
+        <div className="flex flex-col gap-0.5">
           <Label required>Código</Label>
           <Controller
             name="codigo"
@@ -144,8 +168,7 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
             <span className="text-red-500">{errors.codigo.message}</span>
           )}
         </div>
-
-        <div className="flex flex-col justify-start w-full gap-0.5">
+        <div className="flex flex-col gap-0.5">
           <Label required>Nombre</Label>
           <Controller
             name="nombre"
@@ -159,15 +182,11 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
               />
             )}
           />
-
           {errors.nombre && (
             <span className="text-red-500">{errors.nombre.message}</span>
           )}
         </div>
-
-
-
-        <div className="flex flex-col justify-start w-full gap-0.5">
+        <div className="flex flex-col gap-0.5">
           <Label>Descripción</Label>
           <Textarea
             {...register("descripcion")}
@@ -182,9 +201,8 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
             <span className="text-red-500">{errors.descripcion.message}</span>
           )}
         </div>
-
-        <div className="flex flex-col justify-start w-full gap-0.5">
-          <Label>Estado</Label>
+        <div className="flex flex-col gap-0.5">
+          <Label>Activo</Label>
           <Controller
             name="activo"
             control={control}
@@ -192,7 +210,7 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
               <Switch
                 checked={field.value}
                 onChange={(e) => field.onChange(e.currentTarget.checked)}
-                label={field.value ? "Activo" : "Inactivo"}
+                label={field.value ? "Sí" : "No"}
               />
             )}
           />
@@ -204,7 +222,7 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
   return (
     <DrawerBase
       open={open}
-      close={closeAcction}
+      close={closeAction}
       title={TITULOS_PANEL[mode]}
       buttonAction={mode !== "detalle" ? handleSubmit(onSubmit) : undefined}
       BtnAccion={
@@ -233,17 +251,18 @@ export function LineaProduccionPanel({ open, mode, id, close }: IDrawer) {
           <AsyncActionDisplay
             state={asyncAction.state}
             loadingMessage={
-              id ? "Actualizando producto..." : "Creando nueva producto..."
+              id
+                ? "Actualizando línea de producción..."
+                : "Creando nueva línea de producción..."
             }
             successMessage={
               id
                 ? asyncAction.response?.message ??
-                  "Se actualizó correctamente el producto"
-                : asyncAction.response?.message ??
-                  "Se creó correctamente la producto"
+                  "Se actualizó correctamente"
+                : asyncAction.response?.message ?? "Se creó correctamente"
             }
             onSuccess={() => {
-              closeAcction();
+              closeAction();
             }}
             loadingType="progress"
           />

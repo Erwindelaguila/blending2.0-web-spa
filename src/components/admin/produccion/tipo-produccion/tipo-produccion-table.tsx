@@ -10,62 +10,104 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { ICalidad } from "@/interface";
-import { getAllCalidadKey } from "@/lib/constants/key-fetch";
-import { CalidadesService } from "@/services";
+import { BaseResponse } from "@/interface";
 import { TipoProduccionPanel } from "./tipo-produccion-panel";
+import { TipoProduccionService } from "@/services/tipo-produccion.service";
+import { LineaProduccionService } from "@/services/linea-produccion.service";
+import { AgregadoService } from "@/services/agregado.service";
+import {
+  ITipoProduccionResponse,
+  PagedTipoProduccionResponse,
+} from "@/interface/admin/tipo-produccion";
+import { useAuth } from "@/hooks/use-auth";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
   { uid: "nombre", name: "Nombre", width: 5 },
   { uid: "descripcion", name: "Descripción", width: 10 },
-  { uid: "codigoMaterial", name: "Código de Material", width: 5 },
+  { uid: "linea_produccion_id", name: "Línea", width: 5 },
+  { uid: "agregado_id", name: "Agregado", width: 5 },
   { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
+const buildTipoProduccionKey = (page: number, size: number) =>
+  `tipoproduccion-page-${page}-${size}`;
+
 export function TipoProduccionTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
+  const { user } = useAuth();
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const swrKey = buildTipoProduccionKey(page, pageSize);
 
   const {
-    data: dataCalidades,
-    isLoading: loadingCalidades,
-    error: errorCalidades,
-  } = useSWR<ICalidad[]>(getAllCalidadKey, CalidadesService.get, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-  });
+    data: dataTipos,
+    isLoading: loadingTipos,
+    error: errorTipos,
+  } = useSWR<BaseResponse<PagedTipoProduccionResponse>>(
+    swrKey,
+    () => TipoProduccionService.listar(page, pageSize),
+    { revalidateOnFocus: false, revalidateIfStale: true }
+  );
+
+  const { data: lineasLookup } = useSWR(
+    "lookup-lineas-produccion",
+    () => LineaProduccionService.listar(1, 500)
+  );
+  const { data: agregadosLookup } = useSWR(
+    "lookup-agregados-produccion",
+    () => AgregadoService.listar(1, 500)
+  );
+  const lineasMap = useMemo(() => {
+    return Object.fromEntries((lineasLookup?.data?.items || []).map((l: any) => [l.id, l.codigo]));
+  }, [lineasLookup]);
+  const agregadosMap = useMemo(() => {
+    return Object.fromEntries((agregadosLookup?.data?.items || []).map((a: any) => [a.id, a.codigo]));
+  }, [agregadosLookup]);
+
+  const rawItems: any[] = dataTipos?.data?.items || [];
+  const items: any[] = rawItems.map(it => ({
+    ...it,
+    linea_produccion_id: it.linea_produccion_id || it.LineaProduccionId || it.lineaProduccionId,
+    agregado_id: it.agregado_id || it.AgregadoId || it.agregadoId,
+  }));
+  const paginationCurrentPage = dataTipos?.data?.page || page;
+  const paginationTotalPages = dataTipos?.data?.totalPages || 1;
+  const paginationTotalItems =
+    dataTipos?.data?.total ||
+    (paginationTotalPages - 1) * pageSize + items.length;
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [idCalidad, setIdCalidad] = useState<string | undefined>(undefined);
-
+  const [idTipo, setIdTipo] = useState<string | undefined>(undefined);
+  const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
-  const [page, setPage] = useState(1);
 
   const handleOpenCrear = () => {
     setMode("crear");
-    setIdCalidad(undefined);
+    setIdTipo(undefined);
     setOpenPanel(true);
   };
 
   const handleOpenEditar = (registroId: string) => {
     setMode("editar");
-    setIdCalidad(registroId);
+    setIdTipo(registroId);
     setOpenPanel(true);
   };
 
   const handleOpenDetalle = (registroId: string) => {
     setMode("detalle");
-    setIdCalidad(registroId);
+    setIdTipo(registroId);
     setOpenPanel(true);
   };
 
@@ -73,18 +115,28 @@ export function TipoProduccionTable() {
     setOpenPanel(false);
 
     setTimeout(() => {
-      setIdCalidad(undefined); // importante limpiar el ID
+      setIdTipo(undefined); // importante limpiar el ID
       setMode("crear"); // o el modo por defecto
     }, 30);
   };
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setInfoTipo(null);
+    setIsClosingAfterSuccess(false);
+    deleteAction.reset();
+  };
 
-  const [infoCalidad, setInfoCalidad] = useState<{
+  const [infoTipo, setInfoTipo] = useState<{
     id: number;
     codigo: string;
   } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
+      case "linea_produccion_id":
+        return lineasMap[item.linea_produccion_id] || lineasMap[item.LineaProduccionId] || lineasMap[item.lineaProduccionId] || "";
+      case "agregado_id":
+        return agregadosMap[item.agregado_id] || agregadosMap[item.AgregadoId] || agregadosMap[item.agregadoId] || "";
       case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
@@ -107,7 +159,7 @@ export function TipoProduccionTable() {
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
-            <Tooltip content="Info Calidad" relationship="label">
+            <Tooltip content="Info" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
@@ -115,7 +167,7 @@ export function TipoProduccionTable() {
                 icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
               />
             </Tooltip>
-            <Tooltip content="Editar Calidad" relationship="label">
+            <Tooltip content="Editar" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
@@ -124,14 +176,14 @@ export function TipoProduccionTable() {
               />
             </Tooltip>
 
-            <Tooltip content="Eliminar Calidad" relationship="label">
+            <Tooltip content="Eliminar" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  setInfoCalidad({
+                  setInfoTipo({
                     id: item.id,
-                    codigo: item.code,
+                    codigo: item.codigo,
                   });
                   setOpenModal(true);
                 }}
@@ -145,16 +197,51 @@ export function TipoProduccionTable() {
     }
   };
 
-  const acctionDeleteModal = async () => {
-    if (!infoCalidad) return;
+  const handlePanelSuccess = () => {
+    const isLastPage = paginationCurrentPage === paginationTotalPages;
+    const isFullLastPage = items.length >= pageSize;
+    mutate(buildTipoProduccionKey(paginationCurrentPage, pageSize));
+    if (isLastPage && isFullLastPage) {
+      const nextPage = paginationCurrentPage + 1;
+      setPage(nextPage);
+      mutate(buildTipoProduccionKey(nextPage, pageSize));
+    } else {
+      if (paginationCurrentPage !== 1)
+        mutate(buildTipoProduccionKey(1, pageSize));
+    }
   };
+
+  const acctionDeleteModal = async () => {
+    if (!infoTipo) return;
+    const userId = user?.id;
+    if (!userId)
+      throw new Error("No se encontró el id del usuario autenticado");
+
+    const willBeLastOnPage = items.length === 1 && page > 1;
+    await deleteAction.execute(
+      async () => {
+        await TipoProduccionService.eliminar(infoTipo.id.toString(), userId);
+        return { success: true, message: "Tipo de Producción eliminado correctamente" };
+      },
+      buildTipoProduccionKey(page, pageSize)
+    );
+    mutate(buildTipoProduccionKey(page, pageSize));
+    if (willBeLastOnPage) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildTipoProduccionKey(prevPage, pageSize));
+    } else {
+      mutate(buildTipoProduccionKey(paginationTotalPages, pageSize));
+    }
+  };
+
   return (
     <>
       <Card style={{ width: "100%", height: "100%" }}>
         <div className="w-full h-full flex flex-col  ">
           <div className="w-full h-9/10 ">
             <div className="w-full h-2/25 flex justify-between items-start ">
-              <Title title="Tipos de producción" />
+              <Title title="Tipos de Producción" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
@@ -164,25 +251,24 @@ export function TipoProduccionTable() {
                 Nuevo
               </Button>
             </div>
-
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={[]}
+                data={items}
                 renderCell={renderCell}
-                isLoading={loadingCalidades}
-                error={errorCalidades}
+                isLoading={loadingTipos}
+                error={errorTipos}
                 height="100%"
               />
             </div>
           </div>
 
           <div className="w-full h-1/10">
-            {dataCalidades && (
+            {items.length > 0 && (
               <Pagination
-                currentPage={page}
-                totalPages={10}
-                totalItems={12}
+                currentPage={paginationCurrentPage}
+                totalPages={paginationTotalPages}
+                totalItems={paginationTotalItems}
                 onPageChange={setPage}
               />
             )}
@@ -194,23 +280,36 @@ export function TipoProduccionTable() {
         mode={mode}
         open={openPanel}
         close={handleClosePanel}
-        id={idCalidad}
+        id={idTipo}
+        onSuccess={handlePanelSuccess}
       />
 
       <ModalBase
         open={openModal}
-        setOpen={setOpenModal}
+        setOpen={(isOpen) => {
+          if (!isOpen) {
+            handleCloseModal();
+          } else {
+            setOpenModal(isOpen);
+          }
+        }}
         type="alert"
         buttonText="Eliminar"
+        closeOnOutsideClick={false}
         buttonAction={acctionDeleteModal}
+        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess}
       >
         <>
-          ¿Está seguro de eliminar la calidad con código{" "}
-          <span className="font-bold">{infoCalidad?.codigo}</span>?
+          {!deleteAction.isSuccess && (
+            <>
+              ¿Está seguro de eliminar el tipo de producción con código{" "}
+              <span className="font-bold">{infoTipo?.codigo}</span>?
+            </>
+          )}
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
-              loadingMessage="Eliminando calidad..."
+              loadingMessage="Eliminando tipo de producción..."
               successMessage=""
             />
           )}
@@ -227,10 +326,15 @@ export function TipoProduccionTable() {
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage=""
-              successMessage="Calidad eliminada correctamente"
+              successMessage="Tipo de Producción eliminado correctamente"
               onSuccess={() => {
-                deleteAction.reset();
+                setIsClosingAfterSuccess(true);
                 setOpenModal(false);
+                setInfoTipo(null);
+                setTimeout(() => {
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
+                }, 300);
               }}
             />
           )}

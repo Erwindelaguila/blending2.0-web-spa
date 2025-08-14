@@ -25,3 +25,18 @@ export interface IAgregado extends IAgregadoBase {
   modificadoPorId?: string;
   modificadoEl?: string;
 }
+
+// Interface para la respuesta paginada del backend (nueva estructura)
+export interface PagedAgregadoResponse {
+  data: IAgregado[]; // Los registros están en data
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+    totalCount: number;
+    hasPrevious: boolean;
+    hasNext: boolean;
+    previousPage: number | null;
+    nextPage: number | null;
+  };
+}

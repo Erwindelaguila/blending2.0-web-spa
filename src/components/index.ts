@@ -19,10 +19,11 @@ export * from "./admin/configuracion-app/table-configuracion";
 export * from "./admin/valores-calidad/table-valores-calidad";
 export * from "./logistica/homogenizacion/parametros-logisticos";
 export * from "./logistica/homogenizacion/otros-parametros";
-export * from "./admin/parametros-calidad/panel-crear-parametros"
-export * from "./admin/produccion/calidades/calidad-view"
-export * from "./admin/produccion/producto/producto-view"
+export * from "./admin/parametros-calidad/panel-crear-parametros";
+export * from "./admin/produccion/calidades/calidad-view";
+export * from "./admin/produccion/producto/producto-view";
+export * from "./admin/produccion/linea-produccion/linea-produccion-table";
+export * from "./admin/produccion/linea-produccion/linea-produccion-panel";
 
 
 
-    

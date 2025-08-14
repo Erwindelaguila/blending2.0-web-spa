@@ -17,10 +17,13 @@ import { Pagination } from "@/components/ui/pagination-base";
 import { PanelCrearParametros } from "./panel-crear-parametros";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
+import { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { IParametroGet } from "@/interface";
+import { BaseResponse } from "@/interface";
+import { IParametro, PagedParametroResponse } from "@/interface/admin/parametro";
 import { ParametrosService } from "@/services";
 import { getAllParametroKey } from "@/lib/constants/key-fetch";
+import { useAuth } from "@/hooks/use-auth";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -30,33 +33,42 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
+const buildParametrosKey = (page: number, size: number) => `parametros-page-${page}-${size}`;
+
 export function TableParametros() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
+  const { user } = useAuth();
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const swrKey = buildParametrosKey(page, pageSize);
   const {
     data: dataParametros,
     isLoading: loadingParametros,
     error: errorParametros,
-  } = useSWR<IParametroGet[]>(getAllParametroKey, ParametrosService.listar, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-  });
+  } = useSWR<BaseResponse<PagedParametroResponse>>(
+    swrKey,
+    () => ParametrosService.listar(page, pageSize),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateIfStale: false,
+      keepPreviousData: true,
+    }
+  );
+
+  const items: IParametro[] = dataParametros?.data?.items || [];
+  const paginationCurrentPage = dataParametros?.data?.page || page;
+  const paginationTotalPages = dataParametros?.data?.totalPages || 1;
+  const paginationTotalItems = dataParametros?.data?.total || (paginationTotalPages - 1) * pageSize + items.length;
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [idParametro, setIdParametro] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
-  const [page, setPage] = useState(1);
   const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
-  const itemsPerPage = 10; // O el valor que uses para paginación
-  
-  // Calcular paginación dinámica
-  const totalItems = dataParametros?.length || 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentPageData = dataParametros?.slice(startIndex, endIndex) || [];
 
   const handleOpenCrear = () => {
     setMode("crear");
@@ -97,8 +109,23 @@ export function TableParametros() {
     codigo: string;
   } | null>(null);
 
+  const handlePanelSuccess = () => {
+    const isLastPage = paginationCurrentPage === paginationTotalPages;
+    const isFullLastPage = items.length >= pageSize;
+    // Revalidar página actual
+    mutate(buildParametrosKey(paginationCurrentPage, pageSize));
+    if (isLastPage && isFullLastPage) {
+      const nextPage = paginationCurrentPage + 1;
+      setPage(nextPage);
+      mutate(buildParametrosKey(nextPage, pageSize));
+    } else {
+      // Opcional: asegurar consistencia con primera página
+      if (paginationCurrentPage !== 1) mutate(buildParametrosKey(1, pageSize));
+    }
+  };
+
   const renderCell = (item: any, columnKey: string) => {
-    const parametro = item as IParametroGet;
+    const parametro = item as IParametro;
     switch (columnKey) {
       case "activo":
         const statusColorMap: Record<string, string> = {
@@ -145,7 +172,6 @@ export function TableParametros() {
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  // Limpiar el estado anterior antes de abrir el modal
                   deleteAction.reset();
                   setIsClosingAfterSuccess(false);
                   setInfoParametro({
@@ -161,21 +187,28 @@ export function TableParametros() {
         );
 
       default:
-        return parametro[columnKey as keyof IParametroGet];
+        return parametro[columnKey as keyof IParametro];
     }
   };
 
   const acctionDeleteModal = async () => {
     if (!infoParametro) return;
-    const userId = "79D63898-7B42-4623-89AC-EF5E30C57228"; // Provisional, luego lo tomas de Auth
-    await deleteAction.execute(
-      async () => {
-        await ParametrosService.eliminar(infoParametro.id, userId);
-        return { success: true, message: "Parámetro eliminado correctamente" };
-      },
-      getAllParametroKey
-    );
-    // NO cerrar el modal aquí, dejar que el usuario haga clic en "Aceptar"
+    const userId = user?.id;
+    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
+    const willBeLastOnPage = items.length === 1 && page > 1;
+    await deleteAction.execute(async () => {
+      await ParametrosService.eliminar(infoParametro.id, userId);
+      return { success: true, message: "Parámetro eliminado correctamente" };
+    });
+    // Revalidar página actual
+    mutate(buildParametrosKey(page, pageSize));
+    if (willBeLastOnPage) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildParametrosKey(prevPage, pageSize));
+    } else {
+      mutate(buildParametrosKey(paginationTotalPages, pageSize));
+    }
   };
   return (
     <>
@@ -197,7 +230,7 @@ export function TableParametros() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={currentPageData}
+                data={items}
                 renderCell={renderCell}
                 isLoading={loadingParametros}
                 error={errorParametros}
@@ -207,11 +240,11 @@ export function TableParametros() {
           </div>
 
           <div className="w-full h-1/10">
-            {dataParametros && totalItems > 0 && (
+            {items.length > 0 && (
               <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                totalItems={totalItems}
+                currentPage={paginationCurrentPage}
+                totalPages={paginationTotalPages}
+                totalItems={paginationTotalItems}
                 onPageChange={setPage}
               />
             )}
@@ -224,6 +257,7 @@ export function TableParametros() {
         mode={mode}
         id={idParametro}
         close={handleClosePanel}
+        onSuccess={handlePanelSuccess}
       />
 
       <ModalBase

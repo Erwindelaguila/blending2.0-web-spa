@@ -16,12 +16,15 @@ import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
+import { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
 import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 import { AgregadoPanel } from "./agregado-panel";
 import { AgregadoService } from "@/services/agregado.service";
 import { IAgregado } from "@/interface/admin/agregado";
+import { useAuth } from "@/hooks/use-auth";
+import { PagedAgregadoResponse } from "@/interface/admin/agregado";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -31,22 +34,51 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
+const buildAgregadosKey = (page: number, size: number) => `agregados-page-${page}-${size}`;
+
 export function AgregadoTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
+  const { user } = useAuth();
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10; // tamaño de página enviado al backend
+
+  const swrKey = buildAgregadosKey(page, pageSize);
   const {
     data: dataAgregados,
     isLoading: loadingAgregados,
     error: errorAregados,
-  } = useSWR<BaseResponse<IAgregado[]>>(
-    getAllAgregadoKey,
-    AgregadoService.listar,
+  } = useSWR<BaseResponse<PagedAgregadoResponse>>(
+    swrKey, 
+    () => AgregadoService.listar(page, pageSize),
     {
       revalidateOnFocus: false,
-      revalidateIfStale: true,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000, // Evita llamadas duplicadas por 2 segundos
     }
   );
+
+  // Datos con nueva estructura del backend
+  const items: IAgregado[] = dataAgregados?.data?.data || [];
+
+  // Extraer metadatos de paginación de la nueva estructura
+  const pagination = dataAgregados?.data?.pagination;
+  const paginationCurrentPage = pagination?.currentPage || page;
+  const paginationTotalPages = pagination?.totalPages || 1;
+  const paginationTotalItems = pagination?.totalCount || 0;
+  const hasPrevious = pagination?.hasPrevious;
+  const hasNext = pagination?.hasNext;
+  const previousPage = pagination?.previousPage;
+  const nextPage = pagination?.nextPage;
+
+  // Handler optimizado de cambio de página
+  const handlePageChange = (newPage: number) => {
+    // Solo cambiar si es diferente y válido
+    if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
+      setPage(newPage);
+    }
+  };
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -54,7 +86,6 @@ export function AgregadoTable() {
   const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
 
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
-  const [page, setPage] = useState(1);
 
   const handleOpenCrear = () => {
     setMode("crear");
@@ -91,13 +122,12 @@ export function AgregadoTable() {
   };
 
   const [infoAgregado, setInfoAgregado] = useState<{
-    id: number;
+    id: string;
     codigo: string;
   } | null>(null);
 
-
-
   const renderCell = (item: any, columnKey: string) => {
+    const agregado = item as IAgregado;
     switch (columnKey) {
       case "activo":
         const statusColorMap: Record<string, string> = {
@@ -109,43 +139,43 @@ export function AgregadoTable() {
             appearance="filled"
             style={{
               backgroundColor:
-                statusColorMap[item.activo ? "Activo" : "Inactivo"] || "#666",
+                statusColorMap[agregado.activo ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "100%",
             }}
             size="large"
           >
-            {item.activo ? "ACTIVO" : "INACTIVO"}
+            {agregado.activo ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
-            <Tooltip content="Info Calidad" relationship="label">
+            <Tooltip content="Info Agregado" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenDetalle(item.id)}
+                onClick={() => handleOpenDetalle(agregado.id)}
                 icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
               />
             </Tooltip>
-            <Tooltip content="Editar Calidad" relationship="label">
+            <Tooltip content="Editar Agregado" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenEditar(item.id)}
+                onClick={() => handleOpenEditar(agregado.id)}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
 
-            <Tooltip content="Eliminar Calidad" relationship="label">
+            <Tooltip content="Eliminar Agregado" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
                 onClick={() => {
                   setInfoAgregado({
-                    id: item.id,
-                    codigo: item.codigo,
+                    id: agregado.id,
+                    codigo: agregado.codigo,
                   });
                   setOpenModal(true);
                 }}
@@ -155,12 +185,52 @@ export function AgregadoTable() {
           </div>
         );
       default:
-        return item[columnKey] ?? "";
+        return (agregado as any)[columnKey] ?? "";
     }
+  };
+
+  const handlePanelSuccess = () => {
+    // Limpiar cache de múltiples páginas para evitar datos obsoletos
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildAgregadosKey(i, pageSize), undefined, { revalidate: false });
+    }
+    
+    // Calcular la nueva última página asumiendo que se agregó un elemento
+    const newTotal = paginationTotalItems + 1;
+    const newLastPage = Math.ceil(newTotal / pageSize);
+    
+    // Navegar a la nueva última página y revalidar
+    setPage(newLastPage);
+    mutate(buildAgregadosKey(newLastPage, pageSize));
   };
 
   const acctionDeleteModal = async () => {
     if (!infoAgregado) return;
+    const userId = user?.id;
+    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
+    
+    await deleteAction.execute(
+      async () => {
+        await AgregadoService.eliminar(infoAgregado.id, userId);
+        return { success: true, message: "Agregado eliminado correctamente" };
+      },
+      buildAgregadosKey(page, pageSize)
+    );
+
+    // Limpiar cache de múltiples páginas después de eliminar
+    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+      mutate(buildAgregadosKey(i, pageSize), undefined, { revalidate: false });
+    }
+    
+    // Revalidar página actual
+    mutate(buildAgregadosKey(page, pageSize));
+    
+    // Si eliminamos el último elemento de la página y no es la página 1, ir a la anterior
+    if (items.length === 1 && page > 1) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildAgregadosKey(prevPage, pageSize));
+    }
   };
   return (
     <>
@@ -182,7 +252,7 @@ export function AgregadoTable() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataAgregados?.data ?? []}
+                data={items}
                 renderCell={renderCell}
                 isLoading={loadingAgregados}
                 error={errorAregados}
@@ -192,12 +262,16 @@ export function AgregadoTable() {
           </div>
 
           <div className="w-full h-1/10">
-            {dataAgregados && (
+            {items.length > 0 && (
               <Pagination
-                currentPage={page}
-                totalPages={10}
-                totalItems={12}
-                onPageChange={setPage}
+                currentPage={paginationCurrentPage}
+                totalPages={paginationTotalPages}
+                totalItems={paginationTotalItems}
+                onPageChange={handlePageChange}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>
@@ -209,6 +283,7 @@ export function AgregadoTable() {
         open={openPanel}
         close={handleClosePanel}
         id={idCalidad}
+        onSuccess={handlePanelSuccess}
       />
 
       <ModalBase
@@ -229,7 +304,7 @@ export function AgregadoTable() {
         <>
           {!deleteAction.isSuccess && (
             <>
-              ¿Está seguro de eliminar el agregado con código{" "}
+              ¿Está seguro de eliminar el agregado con código {" "}
               <span className="font-bold">{infoAgregado?.codigo}</span>?
             </>
           )}
@@ -237,7 +312,7 @@ export function AgregadoTable() {
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
-              loadingMessage="Eliminando calidad..."
+              loadingMessage="Eliminando agregado..."
               successMessage=""
             />
           )}
@@ -254,14 +329,11 @@ export function AgregadoTable() {
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage=""
-              successMessage="Calidad eliminada correctamente"
+              successMessage="Agregado eliminado correctamente"
               onSuccess={() => {
-                // Marcar que está cerrando después del éxito
                 setIsClosingAfterSuccess(true);
-                // Cerrar el modal inmediatamente
                 setOpenModal(false);
                 setInfoAgregado(null);
-
                 setTimeout(() => {
                   deleteAction.reset();
                   setIsClosingAfterSuccess(false);

@@ -1,6 +1,7 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
+import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
 import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
@@ -12,8 +13,7 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import useSWR from "swr";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   getAllAgregadoKey,
   getByIdAgregadoKey,
@@ -30,9 +30,10 @@ const defaultFormValues: IAgregadoSend = {
   creadoPorId: "",
 };
 
-export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
+export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
+  const { user } = useAuth();
 
   const {
     register,
@@ -46,53 +47,84 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
     defaultValues: defaultFormValues,
   });
 
-  const {
-    data: dataCalidad,
-    isLoading: loadingCalidad,
-    error: errorCalidad,
-  } = useSWR<BaseResponse<IAgregado>>(
-    id != undefined ? getByIdAgregadoKey(id) : null,
-    AgregadoService.obtenerPorId,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
-    }
-  );
+  // Cargar datos directamente sin cache cuando sea necesario
+  const [dataAgregado, setDataAgregado] = useState<BaseResponse<IAgregado> | null>(null);
+  const [loadingAgregado, setLoadingAgregado] = useState(false);
+  const [errorAgregado, setErrorAgregado] = useState<string | null>(null);
 
   const onSubmit: SubmitHandler<IAgregadoSend> = async (data) => {
-
-    const sendAgregado: IAgregadoSend = {
-      ...data,
-      creadoPorId: "a6f3d290-43a0-4b3f-a8e9-6d9a4c8d7d11", 
+    if (!user?.id) {
+      console.error("Usuario no autenticado o sin ID");
+      return;
     }
-  
-    const sendUpdate: IAgregadoUpdate={
-      ...data,
-      modificadoPorId: "f13298c2-7e1a-4b88-90fa-cf6136b4098e", 
-      id: id || "",
-    }
+    const sendAgregado: IAgregadoSend = { ...data, creadoPorId: user.id };
+    const sendUpdate: IAgregadoUpdate = { ...data, modificadoPorId: user.id, id: id || "" };
 
-    await asyncAction.execute(
-      async () =>
-        id ? AgregadoService.actualizar(sendUpdate) : AgregadoService.crear(sendAgregado),
-      getAllAgregadoKey()
-    );
-    
+    await asyncAction.execute(async () => {
+      const result = id
+        ? await AgregadoService.actualizar(sendUpdate)
+        : await AgregadoService.crear(sendAgregado);
+      return result;
+    });
   };
 
   const closeAcction = () => {
+    if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
+      onSuccess(asyncAction.response.data as any, mode);
+    }
     reset(defaultFormValues);
     close();
     asyncAction.reset();
   };
 
+  // useEffect 1: Cargar datos cuando se abre el panel en modo editar/detalle
   useEffect(() => {
-    if (mode !== "crear" && dataCalidad) {
-      reset(dataCalidad.data);
-    } else if (mode === "crear" && open) {
-      reset(defaultFormValues);
+    const loadData = async () => {
+      if (!open) return;
+      
+      if (mode === "crear") {
+        // Modo crear: resetear a valores por defecto
+        reset(defaultFormValues);
+        setDataAgregado(null);
+        setErrorAgregado(null);
+        return;
+      }
+      
+      if (mode === "editar" || mode === "detalle") {
+        if (!id) {
+          setErrorAgregado("ID no proporcionado para cargar datos");
+          return;
+        }
+        
+        // Cargar datos directamente sin cache
+        setLoadingAgregado(true);
+        setErrorAgregado(null);
+        
+        try {
+          const response = await AgregadoService.obtenerPorId(getByIdAgregadoKey(id));
+          setDataAgregado(response);
+          reset(response.data);
+        } catch (error) {
+          setErrorAgregado("Error al cargar los datos");
+          console.error("Error loading agregado:", error);
+        } finally {
+          setLoadingAgregado(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [open, mode, id, reset]);
+
+  // useEffect 2: Limpiar estado cuando se cierra el panel
+  useEffect(() => {
+    if (!open) {
+      setDataAgregado(null);
+      setLoadingAgregado(false);
+      setErrorAgregado(null);
+      asyncAction.reset();
     }
-  }, [dataCalidad, reset, mode, open]);
+  }, [open]);
 
   const TITULOS_PANEL: Record<typeof mode, string> = {
     crear: "Nuevo Agregado",
@@ -103,7 +135,7 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
   const renderContenidoSegunModo = () => {
     const values = watch();
 
-    if (loadingCalidad) {
+    if (loadingAgregado) {
       return (
         <div className="py-2">
           <Spinner labelPosition="above" label="Cargando datos" />
@@ -111,7 +143,7 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
       );
     }
 
-    if (errorCalidad) {
+    if (errorAgregado) {
       return (
         <div className="py-2 text-red-500">
           Ocurrió un error al traer los datos.
@@ -250,14 +282,14 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
           <AsyncActionDisplay
             state={asyncAction.state}
             loadingMessage={
-              id ? "Actualizando calidad..." : "Creando nueva calidad..."
+              id ? "Actualizando agregado..." : "Creando nuevo agregado..."
             }
             successMessage={
               id
                 ? asyncAction.response?.message ??
-                  "Se actualizó correctamente la calidad"
+                  "Se actualizó correctamente el agregado"
                 : asyncAction.response?.message ??
-                  "Se creó correctamente la calidad"
+                  "Se creó correctamente el agregado"
             }
             onSuccess={() => {
               closeAcction();

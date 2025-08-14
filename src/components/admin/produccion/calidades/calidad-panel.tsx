@@ -2,7 +2,7 @@ import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
-import { ICalidad, ICalidadGet, IDrawer } from "@/interface";
+import { IDrawer } from "@/interface/components/drawer";
 import { useInputStyles } from "@/styles/input.styles";
 import {
   Checkbox,
@@ -13,37 +13,41 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { CalidadesService } from "@/services/calidades.service";
 import useSWR from "swr";
-import { CalidadFechApi } from "@/services/calidad-service-api";
 import { useEffect } from "react";
+import { fetchGetCalidadesId } from "@/lib/constants/key-fetch";
+import { CalidadesService } from "@/services/calidades.service";
+import { useAuth } from "@/hooks/use-auth";
+import { BaseResponse } from "@/interface";
 import {
-  fetchGetCalidadesId,
-  getAllCalidadKey,
-} from "@/lib/constants/key-fetch";
+  ICalidadResponse,
+  ICalidadSend,
+  ICalidadUpdate,
+} from "@/interface/admin/calidad";
 
-const defaultFormValues: ICalidad = {
+const defaultFormValues: ICalidadSend = {
   codigo: "",
   nombre: "",
   codigoMaterial: "",
   descripcion: "",
   conforme: false,
   activo: true,
+  creadoPorId: "",
 };
 
-export function CalidadPanel({ open, mode, id, close }: IDrawer) {
+export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
+  const { user } = useAuth();
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },
-  } = useForm<ICalidad>({
+  } = useForm<ICalidadSend>({
     defaultValues: defaultFormValues,
   });
 
@@ -51,24 +55,39 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
     data: dataCalidad,
     isLoading: loadingCalidad,
     error: errorCalidad,
-  } = useSWR<ICalidadGet>(
+  } = useSWR<BaseResponse<ICalidadResponse>>(
     id != undefined ? fetchGetCalidadesId(id) : null,
-    CalidadFechApi,
+    CalidadesService.obtenerPorId,
     {
       revalidateOnFocus: false,
       revalidateIfStale: true,
     }
   );
 
-  const onSubmit: SubmitHandler<ICalidad> = async (data) => {
+  const onSubmit: SubmitHandler<ICalidadSend> = async (data) => {
+    if (!user?.id) {
+      console.error("Usuario no autenticado o sin ID");
+      return;
+    }
+    const sendCreate: ICalidadSend = { ...data, creadoPorId: user.id };
+    const sendUpdate: ICalidadUpdate = {
+      ...data,
+      id: id ? Number(id) : 0,
+      modificadoPorId: user.id,
+    };
+
     await asyncAction.execute(
       async () =>
-        id ? CalidadesService.editar(id, data) : CalidadesService.crear(data),
-      getAllCalidadKey()
+        id
+          ? await CalidadesService.actualizar(sendUpdate)
+          : await CalidadesService.crear(sendCreate)
     );
   };
 
   const closeAcction = () => {
+    if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
+      onSuccess(asyncAction.response.data as any, mode);
+    }
     reset(defaultFormValues);
     close();
     asyncAction.reset();
@@ -76,7 +95,7 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
 
   useEffect(() => {
     if (mode !== "crear" && dataCalidad) {
-      reset(dataCalidad);
+      reset({ ...(dataCalidad.data as any), creadoPorId: "" });
     } else if (mode === "crear" && open) {
       reset(defaultFormValues);
     }
