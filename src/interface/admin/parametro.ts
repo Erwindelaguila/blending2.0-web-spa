@@ -55,20 +55,8 @@ export interface PagedParametroResponse {
 }
 
 // Nueva estructura para compatibilidad con el backend actualizado
-export interface PaginationMeta {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  previousPage?: number;
-  nextPage?: number;
-}
-
-export interface NewPagedParametroResponse {
-  data: IParametroResponse[];
-  pagination: PaginationMeta;
-}
+import { PagedResponse } from "@/interface";
+export type NewPagedParametroResponse = PagedResponse<IParametroResponse>;
 
 // Mantener IParametroGet para compatibilidad
 export interface IParametroGet extends IParametroResponse {}

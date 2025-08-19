@@ -22,23 +22,7 @@ export interface IAgregado extends IAgregadoBase {
   modificadoPorId?: string;
   modificadoEl?: string;
 }
-export interface PagedAgregadoResponse {
-  data: IAgregado[]; 
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    pageSize: number;
-    totalCount: number;
-    hasPrevious: boolean;
-    hasNext: boolean;
-    previousPage: number | null;
-    nextPage: number | null;
-  };
-}
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedAgregadoResponse = PagedResponse<IAgregado>;
 
-
-export interface AgregadoFiltersParams {
-  codigo?: string;
-  estado?: number;
-  fechaDesde?: string; 
-}
+export interface AgregadoFiltersParams extends BaseFiltersParams {}

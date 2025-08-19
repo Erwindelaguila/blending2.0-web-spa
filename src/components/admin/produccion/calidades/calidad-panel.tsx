@@ -200,6 +200,7 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             render={({ field }) => (
               <Input
                 {...field}
+                value={field.value ?? ""}
                 className={styles.inputGrisBase}
                 style={{ border: `2px solid ${OrgColors.serotGris}` }}
               />
@@ -219,6 +220,7 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             render={({ field }) => (
               <Input
                 {...field}
+                value={field.value ?? ""}
                 className={styles.inputGrisBase}
                 style={{ border: `2px solid ${OrgColors.serotGris}` }}
               />
@@ -239,7 +241,7 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             render={({ field }) => (
               <Input
                 value={field.value ?? ""}
-                onChange={(_, data) => field.onChange(data.value === "" ? null : data.value)}
+                onChange={(_, data) => field.onChange(data.value)}
                 className={styles.inputGrisBase}
                 style={{ border: `2px solid ${OrgColors.serotGris}` }}
               />
@@ -254,14 +256,21 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
 
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label>Descripción</Label>
-          <Textarea
-            {...register("descripcion")}
-            size="large"
-            className={styles.inputGrisBase}
-            style={{
-              height: "10rem",
-              border: `2px solid ${OrgColors.serotGris}`,
-            }}
+          <Controller
+            name="descripcion"
+            control={control}
+            render={({ field }) => (
+              <Textarea
+                value={field.value ?? ""}
+                onChange={(_, data) => field.onChange(data.value)}
+                size="large"
+                className={styles.inputGrisBase}
+                style={{
+                  height: "10rem",
+                  border: `2px solid ${OrgColors.serotGris}`,
+                }}
+              />
+            )}
           />
           {errors.descripcion && (
             <span className="text-red-500">{errors.descripcion.message}</span>
@@ -275,8 +284,8 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             render={({ field }) => (
               <Checkbox
                 size="large"
-                checked={field.value}
-                onChange={(e, data) => field.onChange(data.checked)}
+                checked={!!field.value}
+                onChange={(_, data) => field.onChange(!!data.checked)}
                 label={field.value ? "Conforme" : "No conforme"}
               />
             )}
@@ -290,8 +299,8 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             control={control}
             render={({ field }) => (
               <Switch
-                checked={field.value}
-                onChange={(e) => field.onChange(e.currentTarget.checked)}
+                checked={!!field.value}
+                onChange={(_, data) => field.onChange(!!data.checked)}
                 label={field.value ? "Activo" : "Inactivo"}
               />
             )}

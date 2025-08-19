@@ -26,26 +26,5 @@ export interface IPlantaGet extends IPlantaResponse {}
 export interface IPlantaSend extends IPlantaRequest { creadoPorId: string; }
 export interface IPlantaUpdate extends IPlantaRequest { id: string; modificadoPorId: string; }
 
-export interface PagedPlantaResponse {
-  items: IPlantaResponse[];
-  total: number;
-  page: number;
-  size: number;
-  totalPages: number;
-}
-
-// Nueva estructura para compatibilidad con el backend actualizado
-export interface PaginationMeta {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  previousPage?: number;
-  nextPage?: number;
-}
-
-export interface NewPagedPlantaResponse {
-  data: IPlantaResponse[];
-  pagination: PaginationMeta;
-}
+import { PagedResponse } from "@/interface";
+export type NewPagedPlantaResponse = PagedResponse<IPlantaResponse>;

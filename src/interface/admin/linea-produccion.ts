@@ -23,25 +23,8 @@ export interface ILineaProduccion extends ILineaProduccionBase {
   modificadoEl?: string;
 }
 
-export interface PaginationMeta {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  previousPage?: number;
-  nextPage?: number;
-}
+import { PaginationMeta, PagedResponse, BaseFiltersParams } from "@/interface";
 
-export interface NewPagedLineaProduccionResponse {
-  data: ILineaProduccion[];
-  pagination: PaginationMeta;
-}
+export type PagedLineaProduccionResponse = PagedResponse<ILineaProduccion>;
 
-export type PagedLineaProduccionResponse = NewPagedLineaProduccionResponse;
-
-export interface LineaProduccionFiltersParams {
-  codigo?: string;
-  estado?: number;
-  fechaDesde?: string;
-}
+export interface LineaProduccionFiltersParams extends BaseFiltersParams {}

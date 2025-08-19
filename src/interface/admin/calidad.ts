@@ -4,11 +4,16 @@ export interface ICalidadRequest {
   codigoMaterial: string | null;
   descripcion: string;
   activo: boolean;
-  conforme: boolean; // UI field (maps to backend noConforme = !conforme)
+  conforme: boolean; 
 }
 
-export interface ICalidadSend extends ICalidadRequest { creadoPorId: string; }
-export interface ICalidadUpdate extends ICalidadRequest { id: string; modificadoPorId: string; }
+export interface ICalidadSend extends ICalidadRequest {
+  creadoPorId: string;
+}
+export interface ICalidadUpdate extends ICalidadRequest {
+  id: string;
+  modificadoPorId: string;
+}
 
 export interface ICalidadResponse {
   id: string;
@@ -17,15 +22,13 @@ export interface ICalidadResponse {
   codigoMaterial: string | null;
   descripcion: string;
   activo: boolean;
-  conforme: boolean; // normalized
+  conforme: boolean; 
   creadoEl?: string | null;
   modificadoEl?: string | null;
 }
 
-export interface PagedCalidadResponse {
-  items: ICalidadResponse[];
-  total: number;
-  page: number;
-  size: number;
-  totalPages: number;
-}
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+
+export type PagedCalidadResponse = PagedResponse<ICalidadResponse>;
+
+export interface CalidadFiltersParams extends BaseFiltersParams {}
