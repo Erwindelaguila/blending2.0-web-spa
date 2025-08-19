@@ -8,119 +8,40 @@ export const msalConfig: Configuration = {
     postLogoutRedirectUri: process.env.NEXT_PUBLIC_AZURE_POST_LOGOUT_REDIRECT_URI || '',
   },
   cache: {
-    cacheLocation: 'localStorage',
+    cacheLocation: 'sessionStorage',
     storeAuthStateInCookie: false,
   },
   system: {
     loggerOptions: {
       loggerCallback: (level, message, containsPii) => {
-        if (containsPii) {
-          return;
-        }
-        switch (level) {
-          case LogLevel.Error:
-            console.error('MSAL Error:', message);
-            return;
-          case LogLevel.Info:
-            console.info('MSAL Info:', message);
-            return;
-          case LogLevel.Verbose:
-            console.debug('MSAL Verbose:', message);
-            return;
-          case LogLevel.Warning:
-            console.warn('MSAL Warning:', message);
-            return;
-        }
+        if (containsPii) return;
+        console.log(`MSAL ${LogLevel[level]}:`, message);
       },
       piiLoggingEnabled: false,
     },
-    windowHashTimeout: 60000,
-    iframeHashTimeout: 6000,
-    loadFrameTimeout: 0,
   },
 };
 
-// ✅ SCOPES CORREGIDOS: Sin mezclar .default con scopes específicos
 export const loginRequest = {
   scopes: [
-    'openid', 
-    'profile', 
-    'User.Read',
-    // ✅ Scopes específicos para Microsoft Graph (sin .default)
-    'https://graph.microsoft.com/User.Read',
-    'https://graph.microsoft.com/Directory.Read.All'
+    'openid',
+    'profile',
+    // Incluir el scope de tu API directamente en el login
+    process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID 
+      ? `api://${process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID}/access_as_user`
+      : `api://${process.env.NEXT_PUBLIC_AZURE_CLIENT_ID}/access_as_user`
   ],
   prompt: 'select_account' as const,
 };
 
-export const roleConfig = {
-  groups: {
-    'blending2.0-web-spa-Administradores': 'admin',
-    'blending2.0-web-spa-Logistica': 'logistics',
-    'blending2.0-web-spa-Calidad': 'quality',
-  },
-  defaultRole: 'user',
-} as const;
+export const apiRequest = {
+  scopes: [
+    // Si tienes el backend client ID como variable de entorno
+    process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID 
+      ? `api://${process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID}/access_as_user`
+      // Fallback: usa el mismo client ID si no tienes backend separado
+      : `api://${process.env.NEXT_PUBLIC_AZURE_CLIENT_ID}/access_as_user`
+  ],
+};
 
-export type UserRole = 'admin' | 'logistics' | 'quality' | 'user';
 
-export const groupModuleAccess = {
-  'blending2.0-web-spa-Administradores': ['administrador'],
-  'blending2.0-web-spa-Logistica': ['logistica'],
-  'blending2.0-web-spa-Calidad': ['calidad'],
-} as const;
-
-export function getUserModuleAccessByEmail(email: string): string[] {
-  if (email.includes('admin') || email.includes('administrador')) {
-    return ['administrador', 'logistica', 'calidad'];
-  }
-  if (email.includes('logistica')) {
-    return ['logistica'];
-  }
-  if (email.includes('calidad')) {
-    return ['calidad'];
-  }
-  return ['logistica'];
-}
-
-export function getUserModuleAccess(groups: Array<{displayName: string}>): string[] {
-  const accessibleModules = new Set<string>();
-  groups.forEach(group => {
-    const modules = groupModuleAccess[group.displayName as keyof typeof groupModuleAccess];
-    if (modules) {
-      modules.forEach(module => accessibleModules.add(module));
-    }
-  });
-  return Array.from(accessibleModules);
-}
-
-export const modulePermissions = {
-  admin: {
-    configuraciones: true,
-    consultas: true,
-    mantenimientos: true,
-    modelos: true,
-    dashboard: true,
-  },
-  logistics: {
-    configuraciones: false,
-    consultas: true,
-    mantenimientos: false,
-    modelos: true,
-    dashboard: true,
-  },
-  quality: {
-    configuraciones: false,
-    consultas: true,
-    mantenimientos: false,
-    modelos: true,
-    dashboard: true,
-  },
-  user: {
-    configuraciones: false,
-    consultas: false,
-    mantenimientos: false,
-    modelos: false,
-    dashboard: true,
-  },
-} as const;

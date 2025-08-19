@@ -3,15 +3,80 @@ import { IAgregado, IAgregadoSend, IAgregadoUpdate, PagedAgregadoResponse } from
 import { api } from "@/lib/api";
 import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 
+export interface AgregadoFiltersParams {
+  codigo?: string;
+  estado?: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+  tipoFecha?: string; // 'todos' | 'creados' | 'modificados'
+}
+
 export class AgregadoService {
-  static async listar(page: number = 1, size: number = 10): Promise<any> {
-    const url = `${getAllAgregadoKey()}?page=${page}&size=${size}`;
+  static async listar(page: number = 1, size: number = 10, filters?: AgregadoFiltersParams): Promise<any> {
+    let url = `${getAllAgregadoKey()}?page=${page}&size=${size}`;
+    
+    // Agregar parámetros de filtro si existen
+    if (filters) {
+      if (filters.codigo) {
+        url += `&codigo=${encodeURIComponent(filters.codigo)}`;
+      }
+      if (filters.estado !== undefined) {
+        // Contrato: estado=1 (activos) o estado=0 (inactivos)
+        url += `&estado=${filters.estado}`;
+      }
+      if (filters.fechaInicio) {
+        url += `&fechaInicio=${encodeURIComponent(filters.fechaInicio)}`;
+      }
+      if (filters.fechaFin) {
+        url += `&fechaFin=${encodeURIComponent(filters.fechaFin)}`;
+      }
+      if (filters.tipoFecha) {
+        url += `&tipoFecha=${encodeURIComponent(filters.tipoFecha)}`;
+      }
+    }
+    
+    console.log("🌐 URL enviada al backend:", url);
+    
     const response = await api.get<any>(url);
     
     // El backend devuelve directamente: { succeeded: true, data: { items: [...], currentPage: 4, totalPages: 4, ... } }
     const raw = response.data;
     
-    if (raw?.data && Array.isArray(raw.data.items)) {
+    // Caso 1: Backend devuelve PascalCase { Data: [], Pagination: {} }
+    if (raw?.Data && Array.isArray(raw.Data)) {
+      return {
+        succeeded: raw.succeeded || true,
+        message: raw.message || "Agregados obtenidos correctamente",
+        errors: raw.errors || null,
+        statusCode: raw.statusCode || 200,
+        data: {
+          data: raw.Data.map((item: any) => ({
+            id: item.Id,
+            codigo: item.Codigo,
+            nombre: item.Nombre,
+            descripcion: item.Descripcion,
+            activo: item.Activo,
+            fechaCreacion: item.CreadoEl,
+            creadoPorId: item.CreadoPorId,
+            modificadoPorId: item.ModificadoPorId,
+            modificadoEl: item.ModificadoEl
+          })),
+          pagination: raw.Pagination ? {
+            currentPage: raw.Pagination.CurrentPage || 1,
+            totalPages: raw.Pagination.TotalPages || 1,
+            pageSize: raw.Pagination.PageSize || 10,
+            totalCount: raw.Pagination.TotalCount || raw.Data.length,
+            hasPrevious: raw.Pagination.HasPrevious || false,
+            hasNext: raw.Pagination.HasNext || false,
+            previousPage: raw.Pagination.PreviousPage || null,
+            nextPage: raw.Pagination.NextPage || null
+          } : undefined
+        }
+      };
+    }
+    
+    // Caso 2: Backend devuelve camelCase { data: { data: [], pagination: {} } }
+    if (raw?.data && Array.isArray(raw.data.data)) {
       const data = raw.data;
       return {
         succeeded: raw.succeeded,
@@ -19,24 +84,15 @@ export class AgregadoService {
         errors: raw.errors,
         statusCode: raw.statusCode,
         data: {
-          items: data.items,
+          data: data.data,
           // campos legacy para compatibilidad
-          page: data.currentPage,
-          totalPages: data.totalPages,
-          size: data.pageSize,
-          total: data.totalCount,
+          items: data.data,
+          page: data.pagination?.currentPage,
+          totalPages: data.pagination?.totalPages,
+          size: data.pagination?.pageSize,
+          total: data.pagination?.totalCount,
           // metadatos nuevos directamente del backend
-          meta: {
-            currentPage: data.currentPage,
-            totalPages: data.totalPages,
-            pageSize: data.pageSize,
-            totalCount: data.totalCount,
-            hasPrevious: data.hasPrevious,
-            hasNext: data.hasNext,
-            previousPage: data.previousPage,
-            nextPage: data.nextPage,
-            pageNumbers: data.pageNumbers,
-          },
+          pagination: data.pagination,
         },
       };
     }

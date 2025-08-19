@@ -30,3 +30,19 @@ export interface PagedLineaProduccionResponse {
   size: number;
   totalPages: number;
 }
+
+// Nueva estructura para compatibilidad con el backend actualizado
+export interface PaginationMeta {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  previousPage?: number;
+  nextPage?: number;
+}
+
+export interface NewPagedLineaProduccionResponse {
+  data: ILineaProduccion[];
+  pagination: PaginationMeta;
+}

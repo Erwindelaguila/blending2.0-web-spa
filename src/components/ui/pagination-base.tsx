@@ -8,7 +8,6 @@ export const Pagination = ({
   totalPages,
   totalItems,
   onPageChange,
-  pageNumbers,
   hasPrevious,
   hasNext,
   previousPage,

@@ -4,7 +4,7 @@ import { Title } from "@/components/ui/title";
 import { OrgColors } from "@/config/app.config.server";
 import { Badge, Button, Card, Tooltip } from "@fluentui/react-components";
 import { Add24Regular, Delete24Filled, Edit24Filled, Info24Filled } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -13,9 +13,10 @@ import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
 import { LineaProduccionPanel } from "./linea-produccion-panel";
-import { LineaProduccionService } from "@/services/linea-produccion.service";
-import { ILineaProduccion, PagedLineaProduccionResponse } from "@/interface/admin/linea-produccion";
+import { LineaProduccionService, LineaProduccionFiltersParams } from "@/services/linea-produccion.service";
+import { ILineaProduccion } from "@/interface/admin/linea-produccion";
 import { useAuth } from "@/hooks/use-auth";
+import { useLineaProduccionContext } from './linea-produccion-context';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -25,23 +26,83 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildLineasKey = (page: number, size: number) => `lineaproduccion-page-${page}-${size}`;
+const buildLineasKey = (page: number, size: number, filters?: LineaProduccionFiltersParams) => {
+  const params = new URLSearchParams();
+  params.set('page', page.toString());
+  params.set('size', size.toString());
+  
+  if (filters?.codigo) params.set('codigo', filters.codigo);
+  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString()); // 1 o 0
+  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
+  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
+  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
+  
+  return `linea-produccion-${params.toString()}`;
+};
 
 export function LineaProduccionTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
   const { user } = useAuth();
+  const { filters } = useLineaProduccionContext();
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 10; // tamaño de página enviado al backend
 
-  const swrKey = buildLineasKey(page, pageSize);
-  const { data: dataLineas, isLoading: loadingLineas, error: errorLineas } = useSWR<BaseResponse<PagedLineaProduccionResponse>>(swrKey, () => LineaProduccionService.listar(page, pageSize), { revalidateOnFocus: false, revalidateIfStale: true });
+  // Convertir filtros del contexto al formato del servicio
+  const serviceFilters: LineaProduccionFiltersParams | undefined = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined;
+    
+    return {
+      codigo: filters.codigo,
+      estado: filters.estado, // 1=activos, 0=inactivos, undefined=todos
+      fechaInicio: filters.fechaInicio?.toISOString().split('T')[0],
+      fechaFin: filters.fechaFin?.toISOString().split('T')[0],
+      tipoFecha: filters.tipoFecha,
+    };
+  }, [filters]);
 
-  const items: ILineaProduccion[] = dataLineas?.data?.items || [];
-  const paginationCurrentPage = dataLineas?.data?.page || page;
-  const paginationTotalPages = dataLineas?.data?.totalPages || 1;
-  const paginationTotalItems = dataLineas?.data?.total || (paginationTotalPages - 1) * pageSize + items.length;
+  const swrKey = buildLineasKey(page, pageSize, serviceFilters);
+  
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [serviceFilters]);
+
+  const {
+    data: dataLineas,
+    isLoading: loadingLineas,
+    error: errorLineas,
+  } = useSWR<BaseResponse<any>>(
+    swrKey, 
+    () => LineaProduccionService.listar(page, pageSize, serviceFilters),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000, // Evita llamadas duplicadas por 2 segundos
+    }
+  );
+
+  // Datos con nueva estructura del backend
+  const items: ILineaProduccion[] = dataLineas?.data?.data || [];
+
+  // Extraer metadatos de paginación de la nueva estructura
+  const pagination = dataLineas?.data?.pagination;
+  const paginationCurrentPage = pagination?.currentPage || page;
+  const paginationTotalPages = pagination?.totalPages || 1;
+  const paginationTotalItems = pagination?.totalCount || 0;
+  const hasPrevious = pagination?.hasPrevious;
+  const hasNext = pagination?.hasNext;
+  const previousPage = pagination?.previousPage;
+  const nextPage = pagination?.nextPage;
+
+  // Handler optimizado de cambio de página
+  const handlePageChange = (newPage: number) => {
+    // Solo cambiar si es diferente y válido
+    if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
+      setPage(newPage);
+    }
+  };
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -81,16 +142,35 @@ export function LineaProduccionTable() {
   const handlePanelSuccess = () => {
     const isLastPage = paginationCurrentPage === paginationTotalPages;
     const isFullLastPage = items.length >= pageSize;
-    mutate(buildLineasKey(paginationCurrentPage, pageSize));
-    if (isLastPage && isFullLastPage) { const nextPage = paginationCurrentPage + 1; setPage(nextPage); mutate(buildLineasKey(nextPage, pageSize)); } else { if (paginationCurrentPage !== 1) mutate(buildLineasKey(1, pageSize)); }
+    mutate(buildLineasKey(paginationCurrentPage, pageSize, serviceFilters));
+    if (isLastPage && isFullLastPage) { 
+      const nextPage = paginationCurrentPage + 1; 
+      setPage(nextPage); 
+      mutate(buildLineasKey(nextPage, pageSize, serviceFilters)); 
+    } else { 
+      if (paginationCurrentPage !== 1) mutate(buildLineasKey(1, pageSize, serviceFilters)); 
+    }
   };
 
   const acctionDeleteModal = async () => {
-    if (!infoLinea) return; const userId = user?.id; if (!userId) throw new Error("No se encontró el id del usuario autenticado");
+    if (!infoLinea) return; 
+    const userId = user?.id; 
+    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
     const willBeLastOnPage = items.length === 1 && page > 1;
-    await deleteAction.execute(async () => { await LineaProduccionService.eliminar(infoLinea.id, userId); return { success: true, message: "Línea de producción eliminada correctamente" }; });
-    mutate(buildLineasKey(page, pageSize));
-    if (willBeLastOnPage) { const prevPage = page - 1; setPage(prevPage); mutate(buildLineasKey(prevPage, pageSize)); } else { mutate(buildLineasKey(paginationTotalPages, pageSize)); }
+    
+    await deleteAction.execute(async () => { 
+      await LineaProduccionService.eliminar(infoLinea.id, userId); 
+      return { success: true, message: "Línea de producción eliminada correctamente" }; 
+    });
+    
+    mutate(buildLineasKey(page, pageSize, serviceFilters));
+    if (willBeLastOnPage) { 
+      const prevPage = page - 1; 
+      setPage(prevPage); 
+      mutate(buildLineasKey(prevPage, pageSize, serviceFilters)); 
+    } else { 
+      mutate(buildLineasKey(paginationTotalPages, pageSize, serviceFilters)); 
+    }
   };
 
   return (
@@ -106,7 +186,7 @@ export function LineaProduccionTable() {
               <TableBase columns={columns} data={items} renderCell={renderCell} isLoading={loadingLineas} error={errorLineas} height="100%" />
             </div>
           </div>
-          <div className="w-full h-1/10">{items.length > 0 && (<Pagination currentPage={paginationCurrentPage} totalPages={paginationTotalPages} totalItems={paginationTotalItems} onPageChange={setPage} />)}</div>
+          <div className="w-full h-1/10">{items.length > 0 && (<Pagination currentPage={paginationCurrentPage} totalPages={paginationTotalPages} totalItems={paginationTotalItems} onPageChange={handlePageChange} />)}</div>
         </div>
       </Card>
 

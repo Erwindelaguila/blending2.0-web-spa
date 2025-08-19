@@ -1,5 +1,5 @@
-import { PublicClientApplication, AccountInfo } from '@azure/msal-browser';
-import { msalConfig, loginRequest } from '@/config/auth.config';
+import { PublicClientApplication, AccountInfo, InteractionRequiredAuthError } from '@azure/msal-browser';
+import { msalConfig, loginRequest, apiRequest } from '@/config/auth.config';
 import { AuthUser } from '@/interface/auth';
 
 export class AuthService {
@@ -24,14 +24,32 @@ export class AuthService {
       const response = await this.instance.handleRedirectPromise();
       
       if (response?.account) {
-        const token = response.accessToken;
         const user = this.mapAccountToUser(response.account);
         
-        if (token) {
-          sessionStorage.setItem('azure-ad-token', token);
+        // Si el response incluye accessToken y es para nuestra API, usarlo directamente
+        if (response.accessToken && this.isApiToken(response.accessToken)) {
+          sessionStorage.setItem('azure-ad-token', response.accessToken);
+          return { user, token: response.accessToken };
         }
         
-        return { user, token };
+        // Si no, obtener access token específico para la API del backend
+        try {
+          const apiTokenRequest = {
+            ...apiRequest,
+            account: response.account,
+          };
+          const apiResponse = await this.instance.acquireTokenSilent(apiTokenRequest);
+          const token = apiResponse.accessToken;
+          
+          if (token) {
+            sessionStorage.setItem('azure-ad-token', token);
+          }
+          
+          return { user, token };
+        } catch (apiError) {
+          console.warn('No se pudo obtener token de API:', apiError);
+          return { user, token: null };
+        }
       }
     } catch (error) {
       console.error('Error handling redirect response:', error);
@@ -40,32 +58,68 @@ export class AuthService {
     return { user: null, token: null };
   }
 
+  // Helper para verificar si el token es para nuestra API
+  private static isApiToken(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const expectedAud = process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID 
+        ? `api://${process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID}`
+        : `api://${process.env.NEXT_PUBLIC_AZURE_CLIENT_ID}`;
+      return payload.aud === expectedAud && payload.scp?.includes('access_as_user');
+    } catch (_) {
+      return false;
+    }
+  }
+
   static async getExistingUser(): Promise<{ user: AuthUser | null; token: string | null }> {
     if (!this.instance) throw new Error('MSAL not initialized');
 
     const accounts = this.instance.getAllAccounts();
     
     if (accounts.length > 0) {
+      const user = this.mapAccountToUser(accounts[0]);
+      
+      // Primero verificar si ya tenemos un token válido en storage
+      const storedToken = sessionStorage.getItem('azure-ad-token');
+      if (storedToken && this.isTokenValid(storedToken)) {
+        return { user, token: storedToken };
+      }
+      
+      // Solo si no hay token válido, solicitar uno nuevo
       try {
-        const silentRequest = {
-          scopes: loginRequest.scopes,
+        const apiTokenRequest = {
+          ...apiRequest,
           account: accounts[0],
         };
 
-        const response = await this.instance.acquireTokenSilent(silentRequest);
-        const user = this.mapAccountToUser(accounts[0]);
+        const response = await this.instance.acquireTokenSilent(apiTokenRequest);
+        const token = response.accessToken;
         
-        if (response.accessToken) {
-          sessionStorage.setItem('azure-ad-token', response.accessToken);
+        if (token) {
+          sessionStorage.setItem('azure-ad-token', token);
         }
         
-        return { user, token: response.accessToken };
+        return { user, token };
       } catch (error) {
+        if (error instanceof InteractionRequiredAuthError) {
+          return { user: null, token: null };
+        }
         return { user: null, token: null };
       }
     }
 
     return { user: null, token: null };
+  }
+
+  // Método helper para validar token
+  private static isTokenValid(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const now = Math.floor(Date.now() / 1000);
+      return !!payload.exp && payload.exp > now + 300; // 5 min buffer
+    } catch (_) {
+      return false;
+    }
   }
 
   static async login(): Promise<void> {
@@ -82,12 +136,30 @@ export class AuthService {
   static async logout(): Promise<void> {
     if (!this.instance) throw new Error('MSAL not initialized');
 
+    // Limpiar tokens del almacenamiento
     sessionStorage.removeItem('azure-ad-token');
     localStorage.removeItem('azure-ad-token');
     
     await this.instance.logoutRedirect({
       postLogoutRedirectUri: msalConfig.auth.postLogoutRedirectUri,
     });
+  }
+
+  /**
+   * Limpia la sesión completamente para forzar nuevos scopes
+   * Útil cuando cambias scopes en la configuración
+   */
+  static async clearSession(): Promise<void> {
+    if (!this.instance) throw new Error('MSAL not initialized');
+
+    // Limpiar todos los tokens almacenados
+    sessionStorage.clear();
+    localStorage.removeItem('azure-ad-token');
+    
+    // Limpiar cache de MSAL
+    await this.instance.clearCache();
+    
+    console.log('Sesión limpiada. Inicia sesión nuevamente para obtener nuevos scopes.');
   }
 
   static async refreshToken(): Promise<string | null> {
@@ -97,20 +169,25 @@ export class AuthService {
     if (accounts.length === 0) return null;
 
     try {
-      const silentRequest = {
-        scopes: loginRequest.scopes,
+      const apiTokenRequest = {
+        ...apiRequest,
         account: accounts[0],
         forceRefresh: true,
       };
       
-      const response = await this.instance.acquireTokenSilent(silentRequest);
+      const response = await this.instance.acquireTokenSilent(apiTokenRequest);
       
-      if (response.accessToken) {
-        sessionStorage.setItem('azure-ad-token', response.accessToken);
+      const token = response.accessToken;
+      if (token) {
+        sessionStorage.setItem('azure-ad-token', token);
       }
       
-      return response.accessToken;
+      return token;
     } catch (error) {
+      if (error instanceof InteractionRequiredAuthError) {
+        await this.login();
+        return null;
+      }
       await this.login();
       return null;
     }

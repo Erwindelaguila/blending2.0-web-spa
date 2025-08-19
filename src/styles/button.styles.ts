@@ -41,6 +41,15 @@ export const useButtonsStyles = makeStyles({
     },
   },
 
+  buttonNaranjaBase: {
+    ...baseButtonStyle,
+    backgroundColor: "#ff8c00",
+    ":hover": {
+      backgroundColor: hexToRgba("#ff8c00", 0.85),
+      color: "#fff",
+    },
+  },
+
   buttonBase: {
     ...baseButtonStyle,
     backgroundColor: OrgColors.gris,

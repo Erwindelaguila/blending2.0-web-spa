@@ -16,7 +16,7 @@ import { BaseResponse } from "@/interface";
 import { IPlantaResponse, PagedPlantaResponse } from "@/interface/admin/planta";
 import { PlantasService } from "@/services/plantas.service";
 import { useAuth } from "@/hooks/use-auth";
-import { getAllPlantaKey, fetchGetPlantasId } from "@/lib/constants/key-fetch";
+import { usePlantaContext } from "@/components/admin/plantas-homogenizacion/planta-context";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -27,18 +27,44 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildPlantasKey = (page: number, size: number) => `plantas-page-${page}-${size}`;
+const buildPlantasKey = (page: number, size: number, filters?: any) => {
+  const params = new URLSearchParams();
+  params.set('page', page.toString());
+  params.set('size', size.toString());
+  
+  if (filters?.codigo) params.set('codigo', filters.codigo);
+  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString());
+  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
+  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
+  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
+  
+  return `plantas-${params.toString()}`;
+};
 
 export function TablePlanta() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
   const { user } = useAuth();
+  const { filters } = usePlantaContext();
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const swrKey = buildPlantasKey(page, pageSize);
-  const { data: dataPlantas, isLoading: loadingPlantas, error: errorPlantas } = useSWR<BaseResponse<PagedPlantaResponse>>(swrKey, () => PlantasService.listar(page, pageSize), { revalidateOnFocus: false, revalidateIfStale: true });
+  // Mapear los filtros a los parámetros del servicio
+  const serviceFilters = {
+    codigo: filters.codigo || '',
+    estado: filters.estado,
+    fechaInicio: filters.fechaInicio ? filters.fechaInicio.toISOString().split('T')[0] : undefined,
+    fechaFin: filters.fechaFin ? filters.fechaFin.toISOString().split('T')[0] : undefined,
+    tipoFecha: filters.tipoFecha
+  };
+
+  const swrKey = buildPlantasKey(page, pageSize, serviceFilters);
+  const { data: dataPlantas, isLoading: loadingPlantas, error: errorPlantas } = useSWR<BaseResponse<PagedPlantaResponse>>(
+    swrKey, 
+    () => PlantasService.listar(page, pageSize, serviceFilters), 
+    { revalidateOnFocus: false, revalidateIfStale: true }
+  );
 
   const items: IPlantaResponse[] = dataPlantas?.data?.items || [];
   const paginationCurrentPage = dataPlantas?.data?.page || page;
@@ -83,17 +109,34 @@ export function TablePlanta() {
   const handlePanelSuccess = () => {
     const isLastPage = paginationCurrentPage === paginationTotalPages;
     const isFullLastPage = items.length >= pageSize;
-    mutate(buildPlantasKey(paginationCurrentPage, pageSize));
-    if (isLastPage && isFullLastPage) { const nextPage = paginationCurrentPage + 1; setPage(nextPage); mutate(buildPlantasKey(nextPage, pageSize)); } else { if (paginationCurrentPage !== 1) mutate(buildPlantasKey(1, pageSize)); }
+    mutate(buildPlantasKey(paginationCurrentPage, pageSize, serviceFilters));
+    if (isLastPage && isFullLastPage) { 
+      const nextPage = paginationCurrentPage + 1; 
+      setPage(nextPage); 
+      mutate(buildPlantasKey(nextPage, pageSize, serviceFilters)); 
+    } else { 
+      if (paginationCurrentPage !== 1) mutate(buildPlantasKey(1, pageSize, serviceFilters)); 
+    }
   };
 
   const { user: userAuth } = useAuth();
   const acctionDeleteModal = async () => {
-    if (!infoPlanta) return; const userId = userAuth?.id; if (!userId) throw new Error("No se encontró el id del usuario autenticado");
+    if (!infoPlanta) return; 
+    const userId = userAuth?.id; 
+    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
     const willBeLastOnPage = items.length === 1 && page > 1;
-    await deleteAction.execute(async () => { await PlantasService.eliminar(infoPlanta.id, userId); return { success: true, message: "Planta eliminada correctamente" }; });
-    mutate(buildPlantasKey(page, pageSize));
-    if (willBeLastOnPage) { const prevPage = page - 1; setPage(prevPage); mutate(buildPlantasKey(prevPage, pageSize)); } else { mutate(buildPlantasKey(paginationTotalPages, pageSize)); }
+    await deleteAction.execute(async () => { 
+      await PlantasService.eliminar(infoPlanta.id, userId); 
+      return { success: true, message: "Planta eliminada correctamente" }; 
+    });
+    mutate(buildPlantasKey(page, pageSize, serviceFilters));
+    if (willBeLastOnPage) { 
+      const prevPage = page - 1; 
+      setPage(prevPage); 
+      mutate(buildPlantasKey(prevPage, pageSize, serviceFilters)); 
+    } else { 
+      mutate(buildPlantasKey(paginationTotalPages, pageSize, serviceFilters)); 
+    }
   };
 
   return (

@@ -6,6 +6,9 @@ export const fetchGetCalidadesId = (id: string) => {
   return `/api/core/produccion/calidad/detail?id=${id}`; // endpoint detalle con query id
 };
 
+// Alias para consistencia de nomenclatura en servicios
+export const getByIdCalidadKey = (id: string) => fetchGetCalidadesId(id);
+
 export const getAllParametroKey = "/api/core/parametro";
 
 export const getByIdParametroKey = (id: string) => {
@@ -17,7 +20,7 @@ export const fetchGetParametrosId = (id: string) => {
 };
 
 export const getUserMenuKey = () => {
-  return "/api/core/user/menu";
+  return "/api/auth/user/menu";
 };
 
 export const getAllPlantaKey = () => {
@@ -48,7 +51,7 @@ export const getAllAgregadoKey = () => {
 
 
 export const getByIdAgregadoKey = (id: string ) => {
-  return `api/core/produccion/agregado/detail?id=${id}`;
+  return `/api/core/produccion/agregado/detail?id=${id}`;
 };
 
 export const deleteAgregadoKey = () => {
@@ -79,4 +82,17 @@ export const getByIdTipoProduccionKey = (id: string) => {
 
 export const deleteTipoProduccionKey = () => {
   return `/api/core/produccion/tipoproduccion`;
+};
+
+// Region Produccion - Producto
+export const getAllProductoKey = () => {
+  return `/api/core/produccion/producto`;
+};
+
+export const getByIdProductoKey = (id: string) => {
+  return `/api/core/produccion/producto/detail?id=${id}`;
+};
+
+export const deleteProductoKey = () => {
+  return `/api/core/produccion/producto`;
 };

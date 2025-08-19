@@ -7,11 +7,12 @@ import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import { Input, Label, Switch, Textarea, Spinner } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import useSWR from "swr";
-import { useEffect } from "react";
-import { getByIdParametroKey } from "@/lib/constants/key-fetch";
-import { IParametro, IParametroSend, IParametroUpdate } from "@/interface/admin/parametro";
+import { useEffect, useState } from "react";
+import { IParametroResponse, IParametroSend, IParametroUpdate } from "@/interface/admin/parametro";
 import { ParametrosService } from "@/services/parametros.service";
+import { getByIdParametroKey } from "@/lib/constants/key-fetch";
+import { CalendarClock20Regular, Edit20Regular, Info20Regular } from "@fluentui/react-icons";
+import { formatearFechaCompleta } from "@/utils/date";
 
 const defaultFormValues: IParametroSend = {
   codigo: "",
@@ -20,6 +21,8 @@ const defaultFormValues: IParametroSend = {
   activo: true,
   creadoPorId: "",
 };
+
+// usar util compartido de fechas
 
 export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
@@ -38,35 +41,18 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     defaultValues: defaultFormValues,
   });
 
-  const {
-    data: dataParametro,
-    isLoading: loadingParametro,
-    error: errorParametro,
-  } = useSWR<BaseResponse<IParametro>>(
-    id != undefined ? getByIdParametroKey(id) : null,
-    ParametrosService.obtenerPorId,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
-    }
-  );
+  // Cargar datos directamente sin cache cuando sea necesario
+  const [dataParametro, setDataParametro] = useState<BaseResponse<IParametroResponse> | null>(null);
+  const [loadingParametro, setLoadingParametro] = useState(false);
+  const [errorParametro, setErrorParametro] = useState<string | null>(null);
 
   const onSubmit: SubmitHandler<IParametroSend> = async (data) => {
     if (!user?.id) {
       console.error("Usuario no autenticado o sin ID");
       return;
     }
-
-    const sendParametro: IParametroSend = {
-      ...data,
-      creadoPorId: user.id,
-    };
-
-    const sendUpdate: IParametroUpdate = {
-      ...data,
-      modificadoPorId: user.id,
-      id: id || "",
-    };
+    const sendParametro: IParametroSend = { ...data, creadoPorId: user.id };
+    const sendUpdate: IParametroUpdate = { ...data, modificadoPorId: user.id, id: id || "" };
 
     await asyncAction.execute(async () => {
       const result = id
@@ -76,7 +62,7 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     });
   };
 
-  const closeAction = () => {
+  const closeAcction = () => {
     if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
       onSuccess(asyncAction.response.data as any, mode);
     }
@@ -85,37 +71,71 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     asyncAction.reset();
   };
 
+  // useEffect 1: Cargar datos cuando se abre el panel en modo editar/detalle
   useEffect(() => {
-    if (mode !== "crear" && dataParametro?.data) {
-      const { data } = dataParametro;
-      reset({
-        codigo: data.codigo,
-        nombre: data.nombre,
-        descripcion: data.descripcion,
-        activo: data.activo,
-        creadoPorId: user?.id || "",
-      });
-    } else if (mode === "crear" && open) {
-      reset({
-        ...defaultFormValues,
-        creadoPorId: user?.id || "",
-      });
-    }
-  }, [dataParametro, reset, mode, open, user?.id]);
+    const loadData = async () => {
+      if (!open) return;
+      
+      if (mode === "crear") {
+        // Modo crear: resetear a valores por defecto
+        reset(defaultFormValues);
+        setDataParametro(null);
+        setErrorParametro(null);
+        return;
+      }
+      
+      if (mode === "editar" || mode === "detalle") {
+        if (!id) {
+          console.error("ID es requerido para modo editar/detalle");
+          setErrorParametro("ID es requerido");
+          return;
+        }
+        
+        setLoadingParametro(true);
+        setErrorParametro(null);
+        
+        try {
+          const url = getByIdParametroKey(id);
+          const response = await ParametrosService.obtenerPorId(url);
+          setDataParametro(response as BaseResponse<IParametroResponse>);
+          
+          if (response && response.data) {
+            const parametro = response.data as any;
+            // Poblar el formulario con los datos del parámetro
+            setValue("codigo", parametro.codigo || "");
+            setValue("nombre", parametro.nombre || "");
+            setValue("descripcion", parametro.descripcion || "");
+            setValue("activo", parametro.activo ?? true);
+          }
+        } catch (error) {
+          console.error("Error cargando parámetro:", error);
+          setErrorParametro("Error al cargar los datos del parámetro");
+        } finally {
+          setLoadingParametro(false);
+        }
+      }
+    };
 
-  const TITULOS_PANEL: Record<typeof mode, string> = {
-    crear: "Nuevo Parámetro",
-    editar: "Editar Parámetro",
-    detalle: "Detalle de Parámetro",
-  };
+    loadData();
+  }, [open, mode, id, setValue, reset]);
+
+  // Limpiar estados cuando se cierre el panel
+  useEffect(() => {
+    if (!open) {
+      setDataParametro(null);
+      setLoadingParametro(false);
+      setErrorParametro(null);
+      asyncAction.reset();
+    }
+  }, [open]);
+
+  const values = watch();
 
   const renderContenidoSegunModo = () => {
-    const values = watch();
-
     if (loadingParametro) {
       return (
-        <div className="py-2">
-          <Spinner labelPosition="above" label="Cargando datos" />
+        <div className="py-4 flex justify-center">
+          <Spinner size="medium" label="Cargando datos del parámetro..." />
         </div>
       );
     }
@@ -130,23 +150,99 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
 
     if (mode === "detalle") {
       return (
-        <div className="py-2 flex flex-col gap-3">
-          <div>
-            <Label>Código</Label>
-            <p>{values.codigo}</p>
+        <div className="py-4 flex flex-col gap-6">
+          {/* Información principal */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Código</Label>
+              <Input
+                value={values.codigo || ""}
+                readOnly
+                className={`${styles.inputGrisBase} font-medium`}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Nombre</Label>
+              <Input
+                value={values.nombre || ""}
+                readOnly
+                className={styles.inputGrisBase}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Descripción</Label>
+              <Textarea
+                value={values.descripcion || "Sin descripción"}
+                readOnly
+                className={styles.inputGrisBase}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Estado</Label>
+              <div className="flex items-center">
+                <Input
+                  value={values.activo ? "Activo" : "Inactivo"}
+                  readOnly
+                  className={styles.inputGrisBase}
+                  style={{ 
+                    border: `2px solid ${values.activo ? "#28a745" : "#dc3545"}`,
+                    backgroundColor: values.activo ? "#d4edda" : "#f8d7da",
+                    color: values.activo ? "#155724" : "#721c24",
+                    fontWeight: "500",
+                    width: "100px",
+                    textAlign: "center"
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label>Nombre</Label>
-            <p>{values.nombre}</p>
-          </div>
-          <div>
-            <Label>Descripción</Label>
-            <p>{values.descripcion || "-"}</p>
-          </div>
-          <div>
-            <Label>Activo</Label>
-            <p>{values.activo ? "Sí" : "No"}</p>
-          </div>
+
+          {/* Información de auditoría */}
+          {dataParametro?.data && (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info20Regular className="text-blue-500" />
+                <h4 className="font-semibold text-gray-700 text-lg">Información de Registro</h4>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-gray-600 flex items-center gap-2">
+                    <CalendarClock20Regular className="text-blue-500" />
+                    Fecha de Creación
+                  </Label>
+                  <Input value={formatearFechaCompleta(dataParametro.data.creadoEl)} readOnly className={styles.inputGrisBase} style={{ border: `2px solid #e3f2fd`, backgroundColor: "#f3f8ff", color: "#1976d2", fontWeight: "500", fontSize: "14px" }} />
+                </div>
+                {dataParametro.data.modificadoEl && dataParametro.data.modificadoEl !== dataParametro.data.creadoEl && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-gray-600 flex items-center gap-2">
+                      <Edit20Regular className="text-orange-500" />
+                      Última Modificación
+                    </Label>
+                    <Input value={formatearFechaCompleta(dataParametro.data.modificadoEl)} readOnly className={styles.inputGrisBase} style={{ border: `2px solid #fff3e0`, backgroundColor: "#fffaf5", color: "#f57c00", fontWeight: "500", fontSize: "14px" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -169,7 +265,7 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
             )}
           />
           {errors.codigo && (
-            <span className="text-red-500">{errors.codigo.message}</span>
+            <span className="text-red-500 text-sm">{errors.codigo.message}</span>
           )}
         </div>
 
@@ -188,36 +284,36 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
             )}
           />
           {errors.nombre && (
-            <span className="text-red-500">{errors.nombre.message}</span>
+            <span className="text-red-500 text-sm">{errors.nombre.message}</span>
           )}
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label>Descripción</Label>
-          <Textarea
-            {...register("descripcion")}
-            size="large"
-            className={styles.inputGrisBase}
-            style={{
-              height: "10rem",
-              border: `2px solid ${OrgColors.serotGris}`,
-            }}
+          <Controller
+            name="descripcion"
+            control={control}
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                className={styles.inputGrisBase}
+                style={{ border: `2px solid ${OrgColors.serotGris}` }}
+                rows={3}
+              />
+            )}
           />
-          {errors.descripcion && (
-            <span className="text-red-500">{errors.descripcion.message}</span>
-          )}
         </div>
 
         <div className="flex flex-col justify-start w-full gap-0.5">
-          <Label>Activo</Label>
+          <Label>Estado</Label>
           <Controller
             name="activo"
             control={control}
-            render={({ field }) => (
+            render={({ field: { onChange, value } }) => (
               <Switch
-                checked={field.value}
-                onChange={(e) => field.onChange(e.currentTarget.checked)}
-                label={field.value ? "Sí" : "No"}
+                checked={value}
+                onChange={(e, data) => onChange(data.checked)}
+                label={value ? "Activo" : "Inactivo"}
               />
             )}
           />
@@ -226,15 +322,19 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     );
   };
 
+  const TITULOS_PANEL: Record<typeof mode, string> = {
+    crear: "Nuevo Parámetro",
+    editar: "Editar Parámetro",
+    detalle: "Detalle de Parámetro",
+  };
+
   return (
     <DrawerBase
       open={open}
-      close={closeAction}
+      close={closeAcction}
       title={TITULOS_PANEL[mode]}
       buttonAction={mode !== "detalle" ? handleSubmit(onSubmit) : undefined}
-      BtnAccion={
-        mode !== "detalle" && !asyncAction.isLoading && !asyncAction.isSuccess
-      }
+      BtnAccion={mode !== "detalle" && !asyncAction.isLoading && !asyncAction.isSuccess}
       btnDetails={mode === "detalle"}
       drawerTypeModal={mode !== "detalle"}
       position="end"
@@ -246,33 +346,27 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
           loadingMessage=""
           successMessage=""
           error={asyncAction.error}
-          onErrorDismiss={() => asyncAction.resetError()}
+          onErrorDismiss={() => asyncAction.resetError?.() ?? asyncAction.reset()}
         />
       )}
 
-      {(mode === "detalle" || asyncAction.isFromInit || asyncAction.error) &&
-        renderContenidoSegunModo()}
+      {(mode === "detalle" || (asyncAction as any).isFromInit || asyncAction.error) && renderContenidoSegunModo()}
 
-      {mode !== "detalle" &&
-        (asyncAction.isLoading || asyncAction.isSuccess) && (
-          <AsyncActionDisplay
-            state={asyncAction.state}
-            loadingMessage={
-              id ? "Actualizando parámetro..." : "Creando nuevo parámetro..."
-            }
-            successMessage={
-              id
-                ? asyncAction.response?.message ??
-                  "Se actualizó correctamente el parámetro"
-                : asyncAction.response?.message ??
-                  "Se creó correctamente el parámetro"
-            }
-            onSuccess={() => {
-              closeAction();
-            }}
-            loadingType="progress"
-          />
-        )}
+      {mode !== "detalle" && (asyncAction.isLoading || asyncAction.isSuccess) && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage={id ? "Actualizando parámetro..." : "Creando nuevo parámetro..."}
+          successMessage={
+            id
+              ? asyncAction.response?.message ?? "Se actualizó correctamente el parámetro"
+              : asyncAction.response?.message ?? "Se creó correctamente el parámetro"
+          }
+          onSuccess={() => {
+            closeAcction();
+          }}
+          loadingType="progress"
+        />
+      )}
     </DrawerBase>
   );
 }

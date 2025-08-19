@@ -14,6 +14,9 @@ export interface IPlantaResponse {
   numeroRuma: number;
   activo: boolean;
   creadoEl: string; // DateTime generado por el backend
+  modificadoEl?: string; // DateTime de modificación
+  creadoPorId: string;
+  modificadoPorId?: string;
 }
 
 // Mantener IPlanta e IPlantaGet para compatibilidad
@@ -29,4 +32,20 @@ export interface PagedPlantaResponse {
   page: number;
   size: number;
   totalPages: number;
+}
+
+// Nueva estructura para compatibilidad con el backend actualizado
+export interface PaginationMeta {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  previousPage?: number;
+  nextPage?: number;
+}
+
+export interface NewPagedPlantaResponse {
+  data: IPlantaResponse[];
+  pagination: PaginationMeta;
 }

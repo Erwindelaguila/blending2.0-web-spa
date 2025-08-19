@@ -10,7 +10,7 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -22,6 +22,7 @@ import { CalidadesService } from "@/services/calidades.service";
 import { useAuth } from "@/hooks/use-auth";
 import { CalidadPanel } from "./calidad-panel";
 import { PagedCalidadResponse, ICalidadResponse } from "@/interface/admin/calidad";
+import { useCalidadContext } from "./calidad-context";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -32,34 +33,60 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildCalidadesKey = (page: number, size: number) =>
-  `calidades-page-${page}-${size}`;
+const buildCalidadesKey = (page: number, size: number, filters?: any) => {
+  const params = new URLSearchParams();
+  params.set("page", page.toString());
+  params.set("size", size.toString());
+  if (filters?.codigo) params.set("codigo", filters.codigo);
+  if (filters?.estado !== undefined) params.set("estado", String(filters.estado));
+  if (filters?.fechaInicio) params.set("fechaInicio", filters.fechaInicio);
+  if (filters?.fechaFin) params.set("fechaFin", filters.fechaFin);
+  if (filters?.tipoFecha) params.set("tipoFecha", filters.tipoFecha);
+  return `calidades-${params.toString()}`;
+};
 
 export function CalidadTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
   const { user } = useAuth();
+  const { filters } = useCalidadContext();
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const swrKey = buildCalidadesKey(page, pageSize);
+  const serviceFilters = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined;
+    return {
+      codigo: filters.codigo,
+      estado: filters.estado,
+      fechaInicio: filters.fechaInicio?.toISOString().split("T")[0],
+      fechaFin: filters.fechaFin?.toISOString().split("T")[0],
+      tipoFecha: filters.tipoFecha,
+    };
+  }, [filters]);
+
+  const swrKey = buildCalidadesKey(page, pageSize, serviceFilters);
+
+  useEffect(() => { setPage(1); }, [serviceFilters]);
   const {
     data: dataCalidades,
     isLoading: loadingCalidades,
     error: errorCalidades,
-  } = useSWR<BaseResponse<PagedCalidadResponse>>(
+  } = useSWR<any>(
     swrKey,
-    () => CalidadesService.listar(page, pageSize),
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    () => CalidadesService.listar(page, pageSize, serviceFilters as any),
+    { revalidateOnFocus: false, revalidateOnReconnect: false, dedupingInterval: 2000 }
   );
 
-  const items: ICalidadResponse[] = dataCalidades?.data?.items || [];
-  const paginationCurrentPage = dataCalidades?.data?.page || page;
-  const paginationTotalPages = dataCalidades?.data?.totalPages || 1;
-  const paginationTotalItems =
-    dataCalidades?.data?.total ||
-    (paginationTotalPages - 1) * pageSize + items.length;
+  const items: ICalidadResponse[] = (dataCalidades as any)?.data?.items || (dataCalidades as any)?.data?.data || [];
+  const pagination = (dataCalidades as any)?.data?.meta || (dataCalidades as any)?.data?.pagination;
+  const paginationCurrentPage = pagination?.currentPage ?? (dataCalidades?.data as any)?.page ?? page;
+  const paginationTotalPages = pagination?.totalPages ?? (dataCalidades?.data as any)?.totalPages ?? 1;
+  const paginationTotalItems = pagination?.totalCount ?? (dataCalidades?.data as any)?.total ?? 0;
+  const hasPrevious = pagination?.hasPrevious;
+  const hasNext = pagination?.hasNext;
+  const previousPage = pagination?.previousPage;
+  const nextPage = pagination?.nextPage;
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -100,10 +127,7 @@ export function CalidadTable() {
     deleteAction.reset();
   };
 
-  const [infoCalidad, setInfoCalidad] = useState<{
-    id: number;
-    codigo: string;
-  } | null>(null);
+  const [infoCalidad, setInfoCalidad] = useState<{ id: string; codigo: string; } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
@@ -167,16 +191,16 @@ export function CalidadTable() {
   };
 
   const handlePanelSuccess = () => {
-    const isLastPage = paginationCurrentPage === paginationTotalPages;
-    const isFullLastPage = items.length >= pageSize;
-    mutate(buildCalidadesKey(paginationCurrentPage, pageSize));
-    if (isLastPage && isFullLastPage) {
-      const nextPage = paginationCurrentPage + 1;
-      setPage(nextPage);
-      mutate(buildCalidadesKey(nextPage, pageSize));
+    for (let i = 1; i <= (paginationTotalPages || 1) + 2; i++) {
+      mutate(buildCalidadesKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+    if (mode === "crear") {
+      const newTotal = (paginationTotalItems || 0) + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize) || 1;
+      setPage(newLastPage);
+      mutate(buildCalidadesKey(newLastPage, pageSize, serviceFilters));
     } else {
-      if (paginationCurrentPage !== 1)
-        mutate(buildCalidadesKey(1, pageSize));
+      mutate(buildCalidadesKey(page, pageSize, serviceFilters));
     }
   };
 
@@ -192,15 +216,15 @@ export function CalidadTable() {
         await CalidadesService.eliminar(infoCalidad.id.toString(), userId);
         return { success: true, message: "Calidad eliminada correctamente" };
       },
-      buildCalidadesKey(page, pageSize)
+      buildCalidadesKey(page, pageSize, serviceFilters)
     );
-    mutate(buildCalidadesKey(page, pageSize));
+    mutate(buildCalidadesKey(page, pageSize, serviceFilters));
     if (willBeLastOnPage) {
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildCalidadesKey(prevPage, pageSize));
+      mutate(buildCalidadesKey(prevPage, pageSize, serviceFilters));
     } else {
-      mutate(buildCalidadesKey(paginationTotalPages, pageSize));
+      mutate(buildCalidadesKey(paginationTotalPages, pageSize, serviceFilters));
     }
   };
 
@@ -239,7 +263,13 @@ export function CalidadTable() {
                 currentPage={paginationCurrentPage}
                 totalPages={paginationTotalPages}
                 totalItems={paginationTotalItems}
-                onPageChange={setPage}
+                onPageChange={(p) => {
+                  if (p !== page && p >= 1 && p <= (paginationTotalPages || 1)) setPage(p);
+                }}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>

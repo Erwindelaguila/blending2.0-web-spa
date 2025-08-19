@@ -11,7 +11,10 @@ export interface IParametroResponse {
   nombre: string;
   descripcion: string;
   activo: boolean;
-  fechaCreacion: string;
+  creadoEl: string; // DateTime generado por el backend
+  modificadoEl?: string; // DateTime de modificación
+  creadoPorId: string;
+  modificadoPorId?: string;
 }
 
 // Interfaces para manejo consistente similar a agregado
@@ -44,11 +47,27 @@ export interface IParametro extends IParametroBase {
 
 // Interface para la respuesta paginada del backend
 export interface PagedParametroResponse {
-  items: IParametro[];
+  items: IParametroResponse[];
   total: number;
   page: number;
   size: number;
   totalPages: number;
+}
+
+// Nueva estructura para compatibilidad con el backend actualizado
+export interface PaginationMeta {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  previousPage?: number;
+  nextPage?: number;
+}
+
+export interface NewPagedParametroResponse {
+  data: IParametroResponse[];
+  pagination: PaginationMeta;
 }
 
 // Mantener IParametroGet para compatibilidad

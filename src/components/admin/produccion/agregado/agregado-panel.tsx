@@ -20,6 +20,12 @@ import {
 } from "@/lib/constants/key-fetch";
 import { IAgregado, IAgregadoSend, IAgregadoUpdate } from "@/interface/admin/agregado";
 import { AgregadoService } from "@/services/agregado.service";
+import { formatearFechaCompleta } from "@/utils/date";
+import { 
+  CalendarClock20Regular, 
+  Edit20Regular, 
+  Info20Regular 
+} from "@fluentui/react-icons";
 
 
 const defaultFormValues: IAgregadoSend = {
@@ -153,23 +159,124 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
 
     if (mode === "detalle") {
       return (
-        <div className="py-2 flex flex-col gap-3">
-          <div>
-            <Label>Código</Label>
-            <p>{values.codigo}</p>
+        <div className="py-4 flex flex-col gap-6">
+          {/* Información principal */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Código</Label>
+              <Input
+                value={values.codigo || ""}
+                readOnly
+                className={`${styles.inputGrisBase} font-medium`}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Nombre</Label>
+              <Input
+                value={values.nombre || ""}
+                readOnly
+                className={styles.inputGrisBase}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Descripción</Label>
+              <Textarea
+                value={values.descripcion || "Sin descripción"}
+                readOnly
+                className={styles.inputGrisBase}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057",
+                  minHeight: "80px",
+                  resize: "none"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Estado</Label>
+              <div className="flex items-center">
+                <Input
+                  value={values.activo ? "Activo" : "Inactivo"}
+                  readOnly
+                  className={styles.inputGrisBase}
+                  style={{ 
+                    border: `2px solid ${values.activo ? "#28a745" : "#dc3545"}`,
+                    backgroundColor: values.activo ? "#d4edda" : "#f8d7da",
+                    color: values.activo ? "#155724" : "#721c24",
+                    fontWeight: "500",
+                    width: "100px",
+                    textAlign: "center"
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label>Nombre</Label>
-            <p>{values.nombre}</p>
-          </div>
-          <div>
-            <Label>Descripción</Label>
-            <p>{values.descripcion || "-"}</p>
-          </div>
-          <div>
-            <Label>Activo</Label>
-            <p>{values.activo ? "Sí" : "No"}</p>
-          </div>
+          
+          {/* Información de auditoría */}
+          {dataAgregado?.data?.creadoEl && (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info20Regular className="text-blue-500" />
+                <h4 className="font-semibold text-gray-700 text-lg">Información de Registro</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-gray-600 flex items-center gap-2">
+                    <CalendarClock20Regular className="text-blue-500" />
+                    Fecha de Creación
+                  </Label>
+                  <Input
+                    value={formatearFechaCompleta(dataAgregado.data.creadoEl)}
+                    readOnly
+                    className={styles.inputGrisBase}
+                    style={{ 
+                      border: `2px solid #e3f2fd`,
+                      backgroundColor: "#f3f8ff",
+                      color: "#1976d2",
+                      fontWeight: "500",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+                
+                {dataAgregado.data.modificadoEl && dataAgregado.data.modificadoEl !== dataAgregado.data.creadoEl && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-gray-600 flex items-center gap-2">
+                      <Edit20Regular className="text-orange-500" />
+                      Última Modificación
+                    </Label>
+                    <Input
+                      value={formatearFechaCompleta(dataAgregado.data.modificadoEl)}
+                      readOnly
+                      className={styles.inputGrisBase}
+                      style={{ 
+                        border: `2px solid #fff3e0`,
+                        backgroundColor: "#fffaf5",
+                        color: "#f57c00",
+                        fontWeight: "500",
+                        fontSize: "14px"
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }

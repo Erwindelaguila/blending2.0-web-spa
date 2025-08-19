@@ -1,7 +1,7 @@
 import { IBaseProduccion } from "./produccion";
 
 export interface ITipoProduccionSend extends ITipoProduccionRequest { creadoPorId: string; }
-export interface ITipoProduccionUpdate extends ITipoProduccionRequest { id: number; modificadoPorId: string; }
+export interface ITipoProduccionUpdate extends ITipoProduccionRequest { id: string; modificadoPorId: string; }
 
 export interface ITipoProduccion extends IBaseProduccion {
   linea_produccion_id: string;
@@ -18,7 +18,7 @@ export interface ITipoProduccionRequest {
 }
 
 export interface ITipoProduccionResponse {
-  id: number;
+  id: string;
   codigo: string;
   nombre: string;
   descripcion: string;

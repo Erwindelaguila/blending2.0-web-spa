@@ -10,7 +10,7 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -20,10 +20,10 @@ import useSWR from "swr";
 import { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
-import { IParametro, PagedParametroResponse } from "@/interface/admin/parametro";
+import { IParametroResponse, PagedParametroResponse } from "@/interface/admin/parametro";
 import { ParametrosService } from "@/services";
-import { getAllParametroKey } from "@/lib/constants/key-fetch";
 import { useAuth } from "@/hooks/use-auth";
+import { useParametroContext } from './parametro-context';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -33,36 +33,68 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildParametrosKey = (page: number, size: number) => `parametros-page-${page}-${size}`;
-
 export function TableParametros() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
   const { user } = useAuth();
+  const { filters } = useParametroContext();
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const swrKey = buildParametrosKey(page, pageSize);
+  // Mapear los filtros a los parámetros del servicio
+  const serviceFilters = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined as any;
+    return {
+      codigo: filters.codigo || '',
+      estado: filters.estado,
+      fechaInicio: filters.fechaInicio ? filters.fechaInicio.toISOString().split('T')[0] : undefined,
+      fechaFin: filters.fechaFin ? filters.fechaFin.toISOString().split('T')[0] : undefined,
+      tipoFecha: filters.tipoFecha
+    };
+  }, [filters]);
+
+  // Llave SWR local (igual patrón que agregados y el contexto)
+  const buildParametrosKey = (pageNum: number, sizeNum: number, f?: typeof serviceFilters) => {
+    const params = new URLSearchParams();
+    params.set('page', pageNum.toString());
+    params.set('size', sizeNum.toString());
+    if (f?.codigo) params.set('codigo', f.codigo);
+    if (f?.estado !== undefined) params.set('estado', f.estado.toString());
+    if (f?.fechaInicio) params.set('fechaInicio', f.fechaInicio);
+    if (f?.fechaFin) params.set('fechaFin', f.fechaFin);
+    if (f?.tipoFecha) params.set('tipoFecha', f.tipoFecha);
+    return `parametros-${params.toString()}`;
+  };
+
+  const swrKey = buildParametrosKey(page, pageSize, serviceFilters);
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [serviceFilters]);
   const {
     data: dataParametros,
     isLoading: loadingParametros,
     error: errorParametros,
-  } = useSWR<BaseResponse<PagedParametroResponse>>(
+  } = useSWR<BaseResponse<any>>(
     swrKey,
-    () => ParametrosService.listar(page, pageSize),
+    () => ParametrosService.listar(page, pageSize, serviceFilters),
     {
-      revalidateOnFocus: false,
+  revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      revalidateIfStale: false,
-      keepPreviousData: true,
+      dedupingInterval: 2000,
     }
   );
 
-  const items: IParametro[] = dataParametros?.data?.items || [];
-  const paginationCurrentPage = dataParametros?.data?.page || page;
-  const paginationTotalPages = dataParametros?.data?.totalPages || 1;
-  const paginationTotalItems = dataParametros?.data?.total || (paginationTotalPages - 1) * pageSize + items.length;
+  // Support both new (data/pagination) and legacy (items/page/total) shapes
+  const items: IParametroResponse[] = (dataParametros as any)?.data?.data || (dataParametros as any)?.data?.items || [];
+  const pagination = (dataParametros as any)?.data?.pagination;
+  const paginationCurrentPage = pagination?.currentPage ?? (dataParametros as any)?.data?.page ?? page;
+  const paginationTotalPages = pagination?.totalPages ?? (dataParametros as any)?.data?.totalPages ?? 1;
+  const paginationTotalItems = pagination?.totalCount ?? (dataParametros as any)?.data?.total ?? 0;
+  const hasPrevious = pagination?.hasPrevious;
+  const hasNext = pagination?.hasNext;
+  const previousPage = pagination?.previousPage;
+  const nextPage = pagination?.nextPage;
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -109,23 +141,30 @@ export function TableParametros() {
     codigo: string;
   } | null>(null);
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
+      setPage(newPage);
+    }
+  };
+
   const handlePanelSuccess = () => {
-    const isLastPage = paginationCurrentPage === paginationTotalPages;
-    const isFullLastPage = items.length >= pageSize;
-    // Revalidar página actual
-    mutate(buildParametrosKey(paginationCurrentPage, pageSize));
-    if (isLastPage && isFullLastPage) {
-      const nextPage = paginationCurrentPage + 1;
-      setPage(nextPage);
-      mutate(buildParametrosKey(nextPage, pageSize));
+    // Clear caches for multiple pages
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildParametrosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+
+    if (mode === "crear") {
+      const newTotal = (paginationTotalItems || 0) + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize) || 1;
+      setPage(newLastPage);
+      mutate(buildParametrosKey(newLastPage, pageSize, serviceFilters));
     } else {
-      // Opcional: asegurar consistencia con primera página
-      if (paginationCurrentPage !== 1) mutate(buildParametrosKey(1, pageSize));
+      mutate(buildParametrosKey(page, pageSize, serviceFilters));
     }
   };
 
   const renderCell = (item: any, columnKey: string) => {
-    const parametro = item as IParametro;
+    const parametro = item as IParametroResponse;
     switch (columnKey) {
       case "activo":
         const statusColorMap: Record<string, string> = {
@@ -187,7 +226,7 @@ export function TableParametros() {
         );
 
       default:
-        return parametro[columnKey as keyof IParametro];
+        return parametro[columnKey as keyof IParametroResponse];
     }
   };
 
@@ -201,13 +240,13 @@ export function TableParametros() {
       return { success: true, message: "Parámetro eliminado correctamente" };
     });
     // Revalidar página actual
-    mutate(buildParametrosKey(page, pageSize));
+  mutate(buildParametrosKey(page, pageSize, serviceFilters));
     if (willBeLastOnPage) {
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildParametrosKey(prevPage, pageSize));
+  mutate(buildParametrosKey(prevPage, pageSize, serviceFilters));
     } else {
-      mutate(buildParametrosKey(paginationTotalPages, pageSize));
+  mutate(buildParametrosKey(paginationTotalPages, pageSize, serviceFilters));
     }
   };
   return (
@@ -245,7 +284,11 @@ export function TableParametros() {
                 currentPage={paginationCurrentPage}
                 totalPages={paginationTotalPages}
                 totalItems={paginationTotalItems}
-                onPageChange={setPage}
+                onPageChange={handlePageChange}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>

@@ -10,7 +10,8 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -21,10 +22,11 @@ import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
 import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 import { AgregadoPanel } from "./agregado-panel";
-import { AgregadoService } from "@/services/agregado.service";
+import { AgregadoService, AgregadoFiltersParams } from "@/services/agregado.service";
 import { IAgregado } from "@/interface/admin/agregado";
 import { useAuth } from "@/hooks/use-auth";
 import { PagedAgregadoResponse } from "@/interface/admin/agregado";
+import { useAgregadoContext } from './agregado-context';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -34,24 +36,56 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildAgregadosKey = (page: number, size: number) => `agregados-page-${page}-${size}`;
+const buildAgregadosKey = (page: number, size: number, filters?: AgregadoFiltersParams) => {
+  const params = new URLSearchParams();
+  params.set('page', page.toString());
+  params.set('size', size.toString());
+  
+  if (filters?.codigo) params.set('codigo', filters.codigo);
+  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString()); // 1 o 0
+  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
+  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
+  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
+  
+  return `agregados-${params.toString()}`;
+};
 
 export function AgregadoTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
   const { user } = useAuth();
+  const { filters } = useAgregadoContext();
 
   const [page, setPage] = useState(1);
   const pageSize = 10; // tamaño de página enviado al backend
 
-  const swrKey = buildAgregadosKey(page, pageSize);
+  // Convertir filtros del contexto al formato del servicio
+  const serviceFilters: AgregadoFiltersParams | undefined = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined;
+    
+    return {
+      codigo: filters.codigo,
+      estado: filters.estado, // 1=activos, 0=inactivos, undefined=todos
+      fechaInicio: filters.fechaInicio?.toISOString().split('T')[0],
+      fechaFin: filters.fechaFin?.toISOString().split('T')[0],
+      tipoFecha: filters.tipoFecha,
+    };
+  }, [filters]);
+
+  const swrKey = buildAgregadosKey(page, pageSize, serviceFilters);
+  
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [serviceFilters]);
+
   const {
     data: dataAgregados,
     isLoading: loadingAgregados,
     error: errorAregados,
   } = useSWR<BaseResponse<PagedAgregadoResponse>>(
     swrKey, 
-    () => AgregadoService.listar(page, pageSize),
+    () => AgregadoService.listar(page, pageSize, serviceFilters),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -192,16 +226,19 @@ export function AgregadoTable() {
   const handlePanelSuccess = () => {
     // Limpiar cache de múltiples páginas para evitar datos obsoletos
     for (let i = 1; i <= paginationTotalPages + 2; i++) {
-      mutate(buildAgregadosKey(i, pageSize), undefined, { revalidate: false });
+      mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
     
-    // Calcular la nueva última página asumiendo que se agregó un elemento
-    const newTotal = paginationTotalItems + 1;
-    const newLastPage = Math.ceil(newTotal / pageSize);
-    
-    // Navegar a la nueva última página y revalidar
-    setPage(newLastPage);
-    mutate(buildAgregadosKey(newLastPage, pageSize));
+    if (mode === "crear") {
+      // Solo cuando se crea, ir a la nueva última página
+      const newTotal = paginationTotalItems + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize);
+      setPage(newLastPage);
+      mutate(buildAgregadosKey(newLastPage, pageSize, serviceFilters));
+    } else {
+      // Cuando se edita, quedarse en la página actual
+      mutate(buildAgregadosKey(page, pageSize, serviceFilters));
+    }
   };
 
   const acctionDeleteModal = async () => {
@@ -219,17 +256,17 @@ export function AgregadoTable() {
 
     // Limpiar cache de múltiples páginas después de eliminar
     for (let i = 1; i <= paginationTotalPages + 1; i++) {
-      mutate(buildAgregadosKey(i, pageSize), undefined, { revalidate: false });
+      mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
     
     // Revalidar página actual
-    mutate(buildAgregadosKey(page, pageSize));
+    mutate(buildAgregadosKey(page, pageSize, serviceFilters));
     
     // Si eliminamos el último elemento de la página y no es la página 1, ir a la anterior
     if (items.length === 1 && page > 1) {
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildAgregadosKey(prevPage, pageSize));
+      mutate(buildAgregadosKey(prevPage, pageSize, serviceFilters));
     }
   };
   return (

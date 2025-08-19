@@ -1,37 +1,25 @@
-import { IBaseProduccion } from "./produccion";
-
-export interface ICalidadSend extends ICalidadRequest { creadoPorId: string; }
-export interface ICalidadUpdate extends ICalidadRequest { id: number; modificadoPorId: string; }
-
-export interface ICalidad extends IBaseProduccion {
-  codigoMaterial: string;
-  conforme: boolean;
-}
-
-export interface ICalidadGet extends ICalidad {
-  id: number;
-  fechaCreacion: string; 
-}
-
-
 export interface ICalidadRequest {
   codigo: string;
   nombre: string;
-  codigoMaterial: string;
+  codigoMaterial: string | null;
   descripcion: string;
   activo: boolean;
-  conforme: boolean;
+  conforme: boolean; // UI field (maps to backend noConforme = !conforme)
 }
 
+export interface ICalidadSend extends ICalidadRequest { creadoPorId: string; }
+export interface ICalidadUpdate extends ICalidadRequest { id: string; modificadoPorId: string; }
+
 export interface ICalidadResponse {
-  id: number;
+  id: string;
   codigo: string;
   nombre: string;
-  codigoMaterial: string;
+  codigoMaterial: string | null;
   descripcion: string;
   activo: boolean;
-  conforme: boolean;
-  fechaCreacion: string;
+  conforme: boolean; // normalized
+  creadoEl?: string | null;
+  modificadoEl?: string | null;
 }
 
 export interface PagedCalidadResponse {
