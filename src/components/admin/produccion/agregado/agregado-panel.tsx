@@ -33,7 +33,6 @@ const TITULOS_PANEL: Record<IDrawer["mode"], string> = {
   detalle: "Detalle de Agregado",
 };
 
-
 const defaultFormValues: IAgregadoSend = {
   codigo: "",
   nombre: "",

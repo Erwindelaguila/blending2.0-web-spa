@@ -13,10 +13,13 @@ import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
 import { LineaProduccionPanel } from "./linea-produccion-panel";
-import { LineaProduccionService, LineaProduccionFiltersParams } from "@/services/linea-produccion.service";
+import { LineaProduccionService } from "@/services/linea-produccion.service";
+import { LineaProduccionFiltersParams } from "@/interface/admin/linea-produccion";
 import { ILineaProduccion } from "@/interface/admin/linea-produccion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLineaProduccionContext } from './linea-produccion-context';
+import { buildPaginatedSWRKey } from '@/utils/swr-keys';
+import { PAGINATION_CONFIG } from '@/config/pagination.config';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -26,19 +29,7 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildLineasKey = (page: number, size: number, filters?: LineaProduccionFiltersParams) => {
-  const params = new URLSearchParams();
-  params.set('page', page.toString());
-  params.set('size', size.toString());
-  
-  if (filters?.codigo) params.set('codigo', filters.codigo);
-  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString()); // 1 o 0
-  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
-  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
-  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
-  
-  return `linea-produccion-${params.toString()}`;
-};
+const buildLineasKey = (page: number, size: number, filters?: LineaProduccionFiltersParams) => buildPaginatedSWRKey('linea-produccion', page, size, filters);
 
 export function LineaProduccionTable() {
   const style = useButtonsStyles();
@@ -46,59 +37,49 @@ export function LineaProduccionTable() {
   const { user } = useAuth();
   const { filters } = useLineaProduccionContext();
 
-  const [page, setPage] = useState(1);
-  const pageSize = 10; // tamaño de página enviado al backend
+  const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
+  const pageSize = PAGINATION_CONFIG.DEFAULT_SIZE;
 
-  // Convertir filtros del contexto al formato del servicio
   const serviceFilters: LineaProduccionFiltersParams | undefined = useMemo(() => {
     if (!filters || Object.keys(filters).length === 0) return undefined;
     
     return {
       codigo: filters.codigo,
-      estado: filters.estado, // 1=activos, 0=inactivos, undefined=todos
-      fechaInicio: filters.fechaInicio?.toISOString().split('T')[0],
-      fechaFin: filters.fechaFin?.toISOString().split('T')[0],
-      tipoFecha: filters.tipoFecha,
+      estado: filters.estado,
+      fechaDesde: filters.fechaDesde?.toISOString().split('T')[0],
     };
-  }, [filters]);
+  }, [filters]);  const swrKey = buildLineasKey(page, pageSize, serviceFilters);
 
-  const swrKey = buildLineasKey(page, pageSize, serviceFilters);
   
-  // Reset page to 1 when filters change
   useEffect(() => {
-    setPage(1);
-  }, [serviceFilters]);
-
-  const {
+    setPage(PAGINATION_CONFIG.DEFAULT_PAGE);
+  }, [serviceFilters]);  const {
     data: dataLineas,
     isLoading: loadingLineas,
     error: errorLineas,
   } = useSWR<BaseResponse<any>>(
-    swrKey, 
+    swrKey,
     () => LineaProduccionService.listar(page, pageSize, serviceFilters),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 2000, // Evita llamadas duplicadas por 2 segundos
+      dedupingInterval: 2000,
     }
   );
 
-  // Datos con nueva estructura del backend
-  const items: ILineaProduccion[] = dataLineas?.data?.data || [];
+  const respData = dataLineas?.data;
+  const items: ILineaProduccion[] = respData?.data ?? [];
+  const {
+    currentPage: paginationCurrentPage = page,
+    totalPages: paginationTotalPages = 1,
+    totalCount: paginationTotalItems = 0,
+    hasPrevious,
+    hasNext,
+    previousPage,
+    nextPage,
+  } = respData?.pagination ?? {};
 
-  // Extraer metadatos de paginación de la nueva estructura
-  const pagination = dataLineas?.data?.pagination;
-  const paginationCurrentPage = pagination?.currentPage || page;
-  const paginationTotalPages = pagination?.totalPages || 1;
-  const paginationTotalItems = pagination?.totalCount || 0;
-  const hasPrevious = pagination?.hasPrevious;
-  const hasNext = pagination?.hasNext;
-  const previousPage = pagination?.previousPage;
-  const nextPage = pagination?.nextPage;
-
-  // Handler optimizado de cambio de página
   const handlePageChange = (newPage: number) => {
-    // Solo cambiar si es diferente y válido
     if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
       setPage(newPage);
     }
@@ -143,33 +124,33 @@ export function LineaProduccionTable() {
     const isLastPage = paginationCurrentPage === paginationTotalPages;
     const isFullLastPage = items.length >= pageSize;
     mutate(buildLineasKey(paginationCurrentPage, pageSize, serviceFilters));
-    if (isLastPage && isFullLastPage) { 
-      const nextPage = paginationCurrentPage + 1; 
-      setPage(nextPage); 
-      mutate(buildLineasKey(nextPage, pageSize, serviceFilters)); 
-    } else { 
-      if (paginationCurrentPage !== 1) mutate(buildLineasKey(1, pageSize, serviceFilters)); 
+    if (isLastPage && isFullLastPage) {
+      const nextPage = paginationCurrentPage + 1;
+      setPage(nextPage);
+      mutate(buildLineasKey(nextPage, pageSize, serviceFilters));
+    } else {
+      if (paginationCurrentPage !== 1) mutate(buildLineasKey(1, pageSize, serviceFilters));
     }
   };
 
   const acctionDeleteModal = async () => {
-    if (!infoLinea) return; 
-    const userId = user?.id; 
+    if (!infoLinea) return;
+    const userId = user?.id;
     if (!userId) throw new Error("No se encontró el id del usuario autenticado");
     const willBeLastOnPage = items.length === 1 && page > 1;
-    
-    await deleteAction.execute(async () => { 
-      await LineaProduccionService.eliminar(infoLinea.id, userId); 
-      return { success: true, message: "Línea de producción eliminada correctamente" }; 
-    });
-    
+
+    await deleteAction.execute(async () => {
+      await LineaProduccionService.eliminar(infoLinea.id, userId);
+      return { success: true, message: "Línea de producción eliminada correctamente" };
+    }, buildLineasKey(page, pageSize, serviceFilters));
+
     mutate(buildLineasKey(page, pageSize, serviceFilters));
-    if (willBeLastOnPage) { 
-      const prevPage = page - 1; 
-      setPage(prevPage); 
-      mutate(buildLineasKey(prevPage, pageSize, serviceFilters)); 
-    } else { 
-      mutate(buildLineasKey(paginationTotalPages, pageSize, serviceFilters)); 
+    if (willBeLastOnPage) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildLineasKey(prevPage, pageSize, serviceFilters));
+    } else {
+      mutate(buildLineasKey(paginationTotalPages, pageSize, serviceFilters));
     }
   };
 

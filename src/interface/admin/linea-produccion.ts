@@ -23,15 +23,6 @@ export interface ILineaProduccion extends ILineaProduccionBase {
   modificadoEl?: string;
 }
 
-export interface PagedLineaProduccionResponse {
-  items: ILineaProduccion[];
-  total: number;
-  page: number;
-  size: number;
-  totalPages: number;
-}
-
-// Nueva estructura para compatibilidad con el backend actualizado
 export interface PaginationMeta {
   currentPage: number;
   totalPages: number;
@@ -45,4 +36,12 @@ export interface PaginationMeta {
 export interface NewPagedLineaProduccionResponse {
   data: ILineaProduccion[];
   pagination: PaginationMeta;
+}
+
+export type PagedLineaProduccionResponse = NewPagedLineaProduccionResponse;
+
+export interface LineaProduccionFiltersParams {
+  codigo?: string;
+  estado?: number;
+  fechaDesde?: string;
 }

@@ -52,7 +52,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
     defaultValues: defaultFormValues,
   });
 
-  // Cargar datos directamente sin cache cuando sea necesario
   const [dataLinea, setDataLinea] = useState<BaseResponse<ILineaProduccion> | null>(null);
   const [loadingLinea, setLoadingLinea] = useState(false);
   const [errorLinea, setErrorLinea] = useState<string | null>(null);
@@ -82,13 +81,11 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
     asyncAction.reset();
   };
 
-  // useEffect 1: Cargar datos cuando se abre el panel en modo editar/detalle
   useEffect(() => {
     const loadData = async () => {
       if (!open) return;
       
-      if (mode === "crear") {
-        // Modo crear: resetear a valores por defecto
+  if (mode === "crear") {
         reset(defaultFormValues);
         setDataLinea(null);
         setErrorLinea(null);
@@ -101,7 +98,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
           return;
         }
         
-        // Cargar datos directamente sin cache
         setLoadingLinea(true);
         setErrorLinea(null);
         
@@ -121,7 +117,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
     loadData();
   }, [open, mode, id, reset]);
 
-  // useEffect 2: Limpiar estado cuando se cierra el panel
   useEffect(() => {
     if (!open) {
       setDataLinea(null);
@@ -159,7 +154,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
     if (mode === "detalle") {
       return (
         <div className="py-4 flex flex-col gap-6">
-          {/* Información principal */}
           <div className="grid grid-cols-1 gap-4">
             <div className="flex flex-col gap-2">
               <Label className="font-semibold text-gray-700">Código</Label>
@@ -225,7 +219,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
             </div>
           </div>
           
-          {/* Información de auditoría */}
           {dataLinea?.data?.creadoEl && (
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center gap-2 mb-4">
@@ -280,7 +273,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
       );
     }
 
-    // Crear y editar
     return (
       <div className="py-2 flex flex-col gap-3">
         <div className="flex flex-col justify-start w-full gap-0.5">
