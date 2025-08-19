@@ -55,7 +55,7 @@ export function AgregadoTable() {
     
     return {
       codigo: filters.codigo,
-  estado: filters.estado,
+      estado: filters.estado,
       fechaDesde: filters.fechaDesde?.toISOString().split('T')[0],
     };
   }, [filters]);

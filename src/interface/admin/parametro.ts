@@ -45,18 +45,16 @@ export interface IParametro extends IParametroBase {
   modificadoEl?: string;
 }
 
-// Interface para la respuesta paginada del backend
-export interface PagedParametroResponse {
-  items: IParametroResponse[];
-  total: number;
-  page: number;
-  size: number;
-  totalPages: number;
-}
-
 // Nueva estructura para compatibilidad con el backend actualizado
 import { PagedResponse } from "@/interface";
-export type NewPagedParametroResponse = PagedResponse<IParametroResponse>;
+import { BaseFiltersParams } from "@/interface/components/filters";
+
+export type PagedParametroResponse = PagedResponse<IParametroResponse>;
+
+// Filtros para parámetros extendiendo la base común
+export interface ParametroFiltersParams extends BaseFiltersParams {
+  // BaseFiltersParams ya incluye: codigo?, estado?, fechaDesde?
+}
 
 // Mantener IParametroGet para compatibilidad
 export interface IParametroGet extends IParametroResponse {}

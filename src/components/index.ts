@@ -16,8 +16,8 @@ export * from "./admin/plantas-homogenizacion/planta-filter";
 export * from "./admin/plantas-homogenizacion/planta-context";
 export * from "./ui/modal-base";
 // Parámetros de calidad
-export * from "./admin/parametros-calidad/table-parametros";
-export * from "./admin/parametros-calidad/panel-crear-parametros";
+export * from "./admin/parametros-calidad/parametro-table";
+export * from "./admin/parametros-calidad/parametro-panel";
 export * from "./admin/parametros-calidad/parametro-context";
 export * from "./admin/parametros-calidad/parametro-filter";
 export * from "./admin/configuracion-app/panel-crear-conguracion";

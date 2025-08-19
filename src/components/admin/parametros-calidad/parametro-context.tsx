@@ -2,13 +2,13 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { mutate } from 'swr';
+import { buildPaginatedSWRKey } from '@/utils/swr-keys';
+import { PAGINATION_CONFIG } from '@/config/pagination.config';
 
 export interface ParametroFilters {
   codigo?: string;
-  estado?: number; // 1=activos, 0=inactivos, undefined=todos
-  fechaInicio?: Date;
-  fechaFin?: Date;
-  tipoFecha?: string; // 'todos' | 'creados' | 'modificados' | undefined
+  estado?: number; 
+  fechaDesde?: Date;
 }
 
 export interface ParametroContextType {
@@ -20,67 +20,43 @@ export interface ParametroContextType {
 
 const ParametroContext = createContext<ParametroContextType | undefined>(undefined);
 
-// Helper para construir key estable (mismo que en tabla)
-const buildSWRKey = (page: number, size: number, filters?: any) => {
-  const params = new URLSearchParams();
-  params.set('page', page.toString());
-  params.set('size', size.toString());
-  
-  if (filters?.codigo) params.set('codigo', filters.codigo);
-  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString());
-  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
-  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
-  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
-  
-  return `parametros-${params.toString()}`;
-};
-
 export function ParametroProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<ParametroFilters>({});
 
   const setFiltersWithRefresh = (newFilters: ParametroFilters) => {
     setFilters(newFilters);
+    
     const serviceFilters = {
       codigo: newFilters.codigo,
       estado: newFilters.estado,
-      fechaInicio: newFilters.fechaInicio?.toISOString().split('T')[0],
-      fechaFin: newFilters.fechaFin?.toISOString().split('T')[0],
-      tipoFecha: newFilters.tipoFecha,
+      fechaDesde: newFilters.fechaDesde?.toISOString().split('T')[0],
     };
-
-    for (let page = 1; page <= 5; page++) {
-      for (const size of [10, 20, 50]) {
-        const key = buildSWRKey(page, size, serviceFilters);
-        mutate(key);
-      }
-    }
+    
+    const newKey = buildPaginatedSWRKey('parametros', PAGINATION_CONFIG.DEFAULT_PAGE, PAGINATION_CONFIG.DEFAULT_SIZE, serviceFilters);
+    mutate(newKey);
   };
 
   const clearFilters = () => {
     setFilters({});
-    for (let page = 1; page <= 5; page++) {
-      for (const size of [10, 20, 50]) {
-        const key = buildSWRKey(page, size, {});
-        mutate(key);
-      }
-    }
+    const emptyKey = buildPaginatedSWRKey('parametros', PAGINATION_CONFIG.DEFAULT_PAGE, PAGINATION_CONFIG.DEFAULT_SIZE, {});
+    mutate(emptyKey);
   };
 
   const hasActiveFilters = Boolean(
-    filters.codigo ||
-    filters.estado !== undefined ||
-    filters.fechaInicio ||
-    filters.fechaFin ||
-    filters.tipoFecha
+    filters.codigo || 
+    filters.estado !== undefined || 
+    filters.fechaDesde
   );
 
   return (
-    <ParametroContext.Provider value={{
-      filters,
-      setFilters: setFiltersWithRefresh,
-      clearFilters,
-      hasActiveFilters,
-    }}>
+    <ParametroContext.Provider
+      value={{
+        filters,
+        setFilters: setFiltersWithRefresh,
+        clearFilters,
+        hasActiveFilters,
+      }}
+    >
       {children}
     </ParametroContext.Provider>
   );
@@ -89,7 +65,7 @@ export function ParametroProvider({ children }: { children: ReactNode }) {
 export function useParametroContext() {
   const context = useContext(ParametroContext);
   if (context === undefined) {
-    throw new Error('useParametroContext debe ser usado dentro de un ParametroProvider');
+    throw new Error('useParametroContext debe usarse dentro de un ParametroProvider para prevenir fallos');
   }
   return context;
 }

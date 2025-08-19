@@ -1,41 +1,30 @@
 "use client";
-"use client";
-import React, { useState, useEffect } from 'react';
-import {
-  Button,
-  Card,
-  Divider,
-  Input,
-  Label,
-  Dropdown,
-  Option,
-} from "@fluentui/react-components";
+
+import React, { useEffect, useState } from 'react';
+import { Button, Card, Divider, Input, Label, Dropdown, Option } from "@fluentui/react-components";
 import { Title } from "@/components/ui/title";
 import { DatePicker } from "@fluentui/react-datepicker-compat";
 import { OrgColors } from "@/config/app.config.server";
 import { Search24Regular, DismissCircle24Regular } from "@fluentui/react-icons";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { useParametroContext, ParametroFilters } from './parametro-context';
+import { datePickerStringsEs } from '@/utils/date';
 
 export function ParametroFilter() {
   const stylebtn = useButtonsStyles();
   const { filters, setFilters, clearFilters } = useParametroContext();
-  
+
   const [localFilters, setLocalFilters] = useState<ParametroFilters>({
     codigo: filters.codigo || "",
     estado: filters.estado,
-    fechaInicio: filters.fechaInicio || undefined,
-    fechaFin: filters.fechaFin || undefined,
-    tipoFecha: filters.tipoFecha || undefined,
+    fechaDesde: filters.fechaDesde || undefined,
   });
 
   useEffect(() => {
     setLocalFilters({
       codigo: filters.codigo || "",
       estado: filters.estado,
-      fechaInicio: filters.fechaInicio || undefined,
-      fechaFin: filters.fechaFin || undefined,
-      tipoFecha: filters.tipoFecha || undefined,
+      fechaDesde: filters.fechaDesde || undefined,
     });
   }, [filters]);
 
@@ -45,13 +34,8 @@ export function ParametroFilter() {
     { value: "0", label: "Inactivos" },
   ];
 
-  const fechaTipoOptions = [
-    { value: "creados", label: "Creados" },
-    { value: "modificados", label: "Modificados" },
-  ];
-
   const handleCodigoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalFilters(prev => ({ ...prev, codigo: event.target.value }));
+    setLocalFilters((prev: ParametroFilters) => ({ ...prev, codigo: event.target.value }));
   };
 
   const handleCodigoKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -62,19 +46,11 @@ export function ParametroFilter() {
 
   const handleEstadoChange = (_event: any, data: any) => {
     const numValue = data.optionValue === "" ? undefined : parseInt(data.optionValue);
-    setLocalFilters(prev => ({ ...prev, estado: numValue }));
+    setLocalFilters((prev: ParametroFilters) => ({ ...prev, estado: numValue }));
   };
 
-  const handleFechaTipoChange = (_event: any, data: any) => {
-    setLocalFilters(prev => ({ ...prev, tipoFecha: data.optionValue }));
-  };
-
-  const handleFechaInicioChange = (date: Date | null | undefined) => {
-    setLocalFilters(prev => ({ ...prev, fechaInicio: date || undefined }));
-  };
-
-  const handleFechaFinChange = (date: Date | null | undefined) => {
-    setLocalFilters(prev => ({ ...prev, fechaFin: date || undefined }));
+  const handleFechaDesdeChange = (date: Date | null | undefined) => {
+    setLocalFilters((prev: ParametroFilters) => ({ ...prev, fechaDesde: date || undefined }));
   };
 
   const handleFilter = () => {
@@ -83,30 +59,21 @@ export function ParametroFilter() {
       cleanFilters.codigo = localFilters.codigo.trim();
     }
     if (localFilters.estado !== undefined) {
-      cleanFilters.estado = localFilters.estado; // 1, 0 o undefined
+      cleanFilters.estado = localFilters.estado;
     }
-    if (localFilters.fechaInicio) {
-      cleanFilters.fechaInicio = localFilters.fechaInicio;
-    }
-    if (localFilters.fechaFin) {
-      cleanFilters.fechaFin = localFilters.fechaFin;
-    }
-    if (localFilters.tipoFecha) {
-      cleanFilters.tipoFecha = localFilters.tipoFecha;
-    } else if (localFilters.fechaInicio || localFilters.fechaFin) {
-      cleanFilters.tipoFecha = 'creados';
+    if (localFilters.fechaDesde) {
+      cleanFilters.fechaDesde = localFilters.fechaDesde;
     }
     setFilters(cleanFilters);
   };
 
   const handleClear = () => {
-    setLocalFilters({
+    const emptyFilters = {
       codigo: "",
       estado: undefined,
-      fechaInicio: undefined,
-      fechaFin: undefined,
-      tipoFecha: undefined,
-    });
+      fechaDesde: undefined,
+    };
+    setLocalFilters(emptyFilters);
     clearFilters();
   };
 
@@ -160,99 +127,22 @@ export function ParametroFilter() {
                     ))}
                   </Dropdown>
                 </div>
-
-                <Divider vertical appearance="default" style={{ height: '80%', width: '3px', backgroundColor: OrgColors.serotGris }} />
-
+                
                 <div className="flex-1 flex items-center gap-4">
                   <div className="flex flex-col">
-                    <Label size="medium">Fecha </Label>
+                    <Label size="medium">Fecha</Label>
                     <DatePicker
                       size="medium"
                       style={{
                         border: `2px solid ${OrgColors.serotGris}`,
                         minWidth: "140px"
                       }}
-                      placeholder="Desde"
-                      value={localFilters.fechaInicio || null}
-                      onSelectDate={handleFechaInicioChange}
+                      placeholder="Buscar por fecha..."
+                      value={localFilters.fechaDesde || null}
+                      onSelectDate={handleFechaDesdeChange}
                       formatDate={(date) => date ? date.toLocaleDateString('es-ES') : ''}
-                      strings={{
-                        months: [
-                          'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                        ],
-                        shortMonths: [
-                          'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-                        ],
-                        days: [
-                          'Domingo', 'Lunes', 'Martes', 'Miércoles', 
-                          'Jueves', 'Viernes', 'Sábado'
-                        ],
-                        shortDays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-                        goToToday: 'Ir a hoy',
-                        prevMonthAriaLabel: 'Mes anterior',
-                        nextMonthAriaLabel: 'Mes siguiente',
-                        prevYearAriaLabel: 'Año anterior',
-                        nextYearAriaLabel: 'Año siguiente',
-                        closeButtonAriaLabel: 'Cerrar selector de fecha',
-                      }}
+                      strings={datePickerStringsEs}
                     />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <Label size="medium">Fecha </Label>
-                    <DatePicker
-                      size="medium"
-                      style={{
-                        border: `2px solid ${OrgColors.serotGris}`,
-                        minWidth: "140px"
-                      }}
-                      placeholder="Hasta"
-                      value={localFilters.fechaFin || null}
-                      onSelectDate={handleFechaFinChange}
-                      formatDate={(date) => date ? date.toLocaleDateString('es-ES') : ''}
-                      strings={{
-                        months: [
-                          'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                        ],
-                        shortMonths: [
-                          'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-                        ],
-                        days: [
-                          'Domingo', 'Lunes', 'Martes', 'Miércoles', 
-                          'Jueves', 'Viernes', 'Sábado'
-                        ],
-                        shortDays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-                        goToToday: 'Ir a hoy',
-                        prevMonthAriaLabel: 'Mes anterior',
-                        nextMonthAriaLabel: 'Mes siguiente',
-                        prevYearAriaLabel: 'Año anterior',
-                        nextYearAriaLabel: 'Año siguiente',
-                        closeButtonAriaLabel: 'Cerrar selector de fecha',
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <Label size="medium">Tipo Fecha</Label>
-                    <Dropdown
-                      placeholder="Seleccione tipo"
-                      value={fechaTipoOptions.find(opt => opt.value === localFilters.tipoFecha)?.label || ""}
-                      onOptionSelect={handleFechaTipoChange}
-                      style={{
-                        border: `2px solid ${OrgColors.serotGris}`,
-                        minWidth: "160px"
-                      }}
-                    >
-                      {fechaTipoOptions.map(option => (
-                        <Option key={option.value} value={option.value}>
-                          {option.label}
-                        </Option>
-                      ))}
-                    </Dropdown>
                   </div>
                 </div>
               </div>
@@ -271,7 +161,7 @@ export function ParametroFilter() {
                 <Button
                   size="large"
                   icon={<Search24Regular />}
-                  className={`${stylebtn.buttonAzulOscuroBase} `}
+                  className={`w-[12rem] ${stylebtn.buttonAzulOscuroBase}`}
                   onClick={handleFilter}
                 >
                   Filtrar

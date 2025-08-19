@@ -44,7 +44,6 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },

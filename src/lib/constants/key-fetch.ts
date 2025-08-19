@@ -9,7 +9,9 @@ export const fetchGetCalidadesId = (id: string) => {
 // Alias para consistencia de nomenclatura en servicios
 export const getByIdCalidadKey = (id: string) => fetchGetCalidadesId(id);
 
-export const getAllParametroKey = "/api/core/parametro";
+export const getAllParametroKey = () => {
+  return "/api/core/parametro";
+};
 
 export const getByIdParametroKey = (id: string) => {
   return `/api/core/parametro/detail?id=${id}`;

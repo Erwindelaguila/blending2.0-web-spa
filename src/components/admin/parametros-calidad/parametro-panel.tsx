@@ -22,18 +22,14 @@ const defaultFormValues: IParametroSend = {
   creadoPorId: "",
 };
 
-// usar util compartido de fechas
-
-export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDrawer) {
+export function ParametroPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
   const { user } = useAuth();
 
   const {
-    register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },
@@ -41,7 +37,6 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     defaultValues: defaultFormValues,
   });
 
-  // Cargar datos directamente sin cache cuando sea necesario
   const [dataParametro, setDataParametro] = useState<BaseResponse<IParametroResponse> | null>(null);
   const [loadingParametro, setLoadingParametro] = useState(false);
   const [errorParametro, setErrorParametro] = useState<string | null>(null);
@@ -51,13 +46,13 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
       console.error("Usuario no autenticado o sin ID");
       return;
     }
-    const sendParametro: IParametroSend = { ...data, creadoPorId: user.id };
-    const sendUpdate: IParametroUpdate = { ...data, modificadoPorId: user.id, id: id || "" };
+    const sendCreate: IParametroSend = { ...data, creadoPorId: user.id };
+    const sendUpdate: IParametroUpdate = { ...data, id: id || "", modificadoPorId: user.id };
 
     await asyncAction.execute(async () => {
       const result = id
         ? await ParametrosService.actualizar(sendUpdate)
-        : await ParametrosService.crear(sendParametro);
+        : await ParametrosService.crear(sendCreate);
       return result;
     });
   };
@@ -71,45 +66,33 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     asyncAction.reset();
   };
 
-  // useEffect 1: Cargar datos cuando se abre el panel en modo editar/detalle
   useEffect(() => {
     const loadData = async () => {
       if (!open) return;
-      
+
       if (mode === "crear") {
-        // Modo crear: resetear a valores por defecto
         reset(defaultFormValues);
         setDataParametro(null);
         setErrorParametro(null);
         return;
       }
-      
+
       if (mode === "editar" || mode === "detalle") {
         if (!id) {
-          console.error("ID es requerido para modo editar/detalle");
-          setErrorParametro("ID es requerido");
+          setErrorParametro("ID no proporcionado para cargar datos");
           return;
         }
-        
+
         setLoadingParametro(true);
         setErrorParametro(null);
-        
+
         try {
-          const url = getByIdParametroKey(id);
-          const response = await ParametrosService.obtenerPorId(url);
-          setDataParametro(response as BaseResponse<IParametroResponse>);
-          
-          if (response && response.data) {
-            const parametro = response.data as any;
-            // Poblar el formulario con los datos del parámetro
-            setValue("codigo", parametro.codigo || "");
-            setValue("nombre", parametro.nombre || "");
-            setValue("descripcion", parametro.descripcion || "");
-            setValue("activo", parametro.activo ?? true);
-          }
+          const response = await ParametrosService.obtenerPorId(getByIdParametroKey(id));
+          setDataParametro(response);
+          reset(response.data);
         } catch (error) {
-          console.error("Error cargando parámetro:", error);
-          setErrorParametro("Error al cargar los datos del parámetro");
+          setErrorParametro("Error al cargar los datos");
+          console.error("Error loading parámetro:", error);
         } finally {
           setLoadingParametro(false);
         }
@@ -117,9 +100,8 @@ export function PanelCrearParametros({ open, mode, id, close, onSuccess }: IDraw
     };
 
     loadData();
-  }, [open, mode, id, setValue, reset]);
+  }, [open, mode, id, reset]);
 
-  // Limpiar estados cuando se cierre el panel
   useEffect(() => {
     if (!open) {
       setDataParametro(null);

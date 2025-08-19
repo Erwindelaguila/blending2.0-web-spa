@@ -26,5 +26,7 @@ export interface IPlantaGet extends IPlantaResponse {}
 export interface IPlantaSend extends IPlantaRequest { creadoPorId: string; }
 export interface IPlantaUpdate extends IPlantaRequest { id: string; modificadoPorId: string; }
 
-import { PagedResponse } from "@/interface";
-export type NewPagedPlantaResponse = PagedResponse<IPlantaResponse>;
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedPlantaResponse = PagedResponse<IPlantaResponse>;
+
+export interface PlantaFiltersParams extends BaseFiltersParams {}

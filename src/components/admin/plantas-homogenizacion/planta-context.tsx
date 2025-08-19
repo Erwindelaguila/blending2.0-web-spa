@@ -2,13 +2,13 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { mutate } from 'swr';
+import { buildPaginatedSWRKey } from '@/utils/swr-keys';
+import { PAGINATION_CONFIG } from '@/config/pagination.config';
 
 export interface PlantaFilters {
   codigo?: string;
-  estado?: number; // 1=activos, 0=inactivos, undefined=todos
-  fechaInicio?: Date;
-  fechaFin?: Date;
-  tipoFecha?: string; // 'creados' | 'modificados' | undefined
+  estado?: number; 
+  fechaDesde?: Date;
 }
 
 export interface PlantaContextType {
@@ -20,65 +20,38 @@ export interface PlantaContextType {
 
 const PlantaContext = createContext<PlantaContextType | undefined>(undefined);
 
-// Helper para construir key estable (mismo que en tabla)
-const buildSWRKey = (page: number, size: number, filters?: any) => {
-  const params = new URLSearchParams();
-  params.set('page', page.toString());
-  params.set('size', size.toString());
-  
-  if (filters?.codigo) params.set('codigo', filters.codigo);
-  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString());
-  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
-  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
-  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
-  
-  return `plantas-${params.toString()}`;
-};
-
 export function PlantaProvider({ children }: { children: ReactNode }) {
-  const [filters, setFilters] = useState<PlantaFilters>({
-    // Sin estado por defecto - completamente limpio
-  });
+  const [filters, setFilters] = useState<PlantaFilters>({});
 
   const setFiltersWithRefresh = (newFilters: PlantaFilters) => {
     setFilters(newFilters);
     
-    // Convertir filtros para el servicio
     const serviceFilters = {
       codigo: newFilters.codigo,
       estado: newFilters.estado,
-      fechaInicio: newFilters.fechaInicio?.toISOString().split('T')[0],
-      fechaFin: newFilters.fechaFin?.toISOString().split('T')[0],
-      tipoFecha: newFilters.tipoFecha,
+      fechaDesde: newFilters.fechaDesde?.toISOString().split('T')[0],
     };
-    
-    // Forzar fetch inmediato desde página 1
-    const newKey = buildSWRKey(1, 10, serviceFilters);
-    console.log("🔄 Forzando refresh con key:", newKey);
+  const newKey = buildPaginatedSWRKey('plantas', PAGINATION_CONFIG.DEFAULT_PAGE, PAGINATION_CONFIG.DEFAULT_SIZE, serviceFilters);
     mutate(newKey);
   };
 
   const clearFilters = () => {
-    setFilters({}); // Completamente vacío - sin defaults
-    // También forzar refresh cuando limpia
-    const emptyKey = buildSWRKey(1, 10, {});
-    console.log("🧹 Limpiando filtros con key:", emptyKey);
-    mutate(emptyKey);
+  setFilters({});
+  const emptyKey = buildPaginatedSWRKey('plantas', PAGINATION_CONFIG.DEFAULT_PAGE, PAGINATION_CONFIG.DEFAULT_SIZE, {});
+  mutate(emptyKey);
   };
 
   const hasActiveFilters = Boolean(
-    filters.codigo || 
-    filters.estado !== undefined || 
-    filters.fechaInicio || 
-    filters.fechaFin ||
-    filters.tipoFecha
+  filters.codigo || 
+  filters.estado !== undefined || 
+  filters.fechaDesde
   );
 
   return (
     <PlantaContext.Provider
       value={{
         filters,
-        setFilters: setFiltersWithRefresh, // Usar la versión que hace mutate
+    setFilters: setFiltersWithRefresh,
         clearFilters,
         hasActiveFilters,
       }}
@@ -91,7 +64,7 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
 export function usePlantaContext() {
   const context = useContext(PlantaContext);
   if (context === undefined) {
-    throw new Error('usePlantaContext must be used within a PlantaProvider');
+  throw new Error('usePlantaContext debe usarse dentro de un PlantaProvider para prevenir fallos');
   }
   return context;
 }

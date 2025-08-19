@@ -8,9 +8,8 @@ import { Checkbox, Input, Label, Spinner, Switch, Textarea } from "@fluentui/rea
 import { CalendarClock20Regular, Edit20Regular, Info20Regular } from "@fluentui/react-icons";
 import { formatearFechaCompleta } from "@/utils/date";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import useSWR from "swr";
-import { useEffect } from "react";
-import { fetchGetCalidadesId } from "@/lib/constants/key-fetch";
+import { useEffect, useState } from "react";
+import { fetchGetCalidadesId, getByIdCalidadKey } from "@/lib/constants/key-fetch";
 import { CalidadesService } from "@/services/calidades.service";
 import { useAuth } from "@/hooks/use-auth";
 import { BaseResponse } from "@/interface";
@@ -46,18 +45,54 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     defaultValues: defaultFormValues,
   });
 
-  const {
-    data: dataCalidad,
-    isLoading: loadingCalidad,
-    error: errorCalidad,
-  } = useSWR<BaseResponse<ICalidadResponse>>(
-    id != undefined ? fetchGetCalidadesId(id) : null,
-    CalidadesService.obtenerPorId,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
+  const [dataCalidad, setDataCalidad] = useState<BaseResponse<ICalidadResponse> | null>(null);
+  const [loadingCalidad, setLoadingCalidad] = useState(false);
+  const [errorCalidad, setErrorCalidad] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!open) return;
+      
+      if (mode === "crear") {
+        reset(defaultFormValues);
+        setDataCalidad(null);
+        setErrorCalidad(null);
+        return;
+      }
+      
+      if (mode === "editar" || mode === "detalle") {
+        if (!id) {
+          setErrorCalidad("ID no proporcionado para cargar datos");
+          return;
+        }
+        
+        setLoadingCalidad(true);
+        setErrorCalidad(null);
+        
+        try {
+          const response = await CalidadesService.obtenerPorId(getByIdCalidadKey(id));
+          setDataCalidad(response);
+          reset(response.data);
+        } catch (error) {
+          setErrorCalidad("Error al cargar los datos");
+          console.error("Error loading calidad:", error);
+        } finally {
+          setLoadingCalidad(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [open, mode, id, reset]);
+
+  useEffect(() => {
+    if (!open) {
+      setDataCalidad(null);
+      setLoadingCalidad(false);
+      setErrorCalidad(null);
+      asyncAction.reset();
     }
-  );
+  }, [open]);
 
   const onSubmit: SubmitHandler<ICalidadSend> = async (data) => {
     if (!user?.id) {
@@ -84,13 +119,7 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     asyncAction.reset();
   };
 
-  useEffect(() => {
-    if (mode !== "crear" && dataCalidad) {
-      reset({ ...(dataCalidad.data as any), creadoPorId: "" });
-    } else if (mode === "crear" && open) {
-      reset(defaultFormValues);
-    }
-  }, [dataCalidad, reset, mode, open]);
+  const values = watch();
 
   const TITULOS_PANEL: Record<typeof mode, string> = {
     crear: "Nueva Calidad",
@@ -256,21 +285,14 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
 
         <div className="flex flex-col justify-start w-full gap-0.5">
           <Label>Descripción</Label>
-          <Controller
-            name="descripcion"
-            control={control}
-            render={({ field }) => (
-              <Textarea
-                value={field.value ?? ""}
-                onChange={(_, data) => field.onChange(data.value)}
-                size="large"
-                className={styles.inputGrisBase}
-                style={{
-                  height: "10rem",
-                  border: `2px solid ${OrgColors.serotGris}`,
-                }}
-              />
-            )}
+          <Textarea
+            {...register("descripcion")}
+            size="large"
+            className={styles.inputGrisBase}
+            style={{
+              height: "10rem",
+              border: `2px solid ${OrgColors.serotGris}`,
+            }}
           />
           {errors.descripcion && (
             <span className="text-red-500">{errors.descripcion.message}</span>

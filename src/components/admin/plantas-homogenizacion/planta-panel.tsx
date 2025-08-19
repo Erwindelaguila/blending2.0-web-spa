@@ -13,7 +13,7 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IPlantaResponse, IPlantaSend, IPlantaUpdate } from "@/interface/admin/planta";
 import { PlantasService } from "@/services/plantas.service";
 import { formatearFechaCompleta } from "@/utils/date";
@@ -22,13 +22,19 @@ import {
   Edit20Regular, 
   Info20Regular 
 } from "@fluentui/react-icons";
-import useSWR, { mutate } from "swr";
+import { fetchGetPlantasId } from "@/lib/constants/key-fetch";
+
+const TITULOS_PANEL: Record<IDrawer["mode"], string> = {
+  crear: "Nueva Planta",
+  editar: "Editar Planta",
+  detalle: "Detalle de Planta",
+};
 
 const defaultFormValues: IPlantaSend = {
   codigo: "",
   nombre: "",
   descripcion: "",
-  numeroRuma: 0,
+  numeroRuma: 1,
   activo: true,
   creadoPorId: "",
 };
@@ -42,53 +48,59 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },
   } = useForm<IPlantaSend>({ defaultValues: defaultFormValues });
+  
+  const [dataPlanta, setDataPlanta] = useState<BaseResponse<IPlantaResponse> | null>(null);
+  const [loadingPlanta, setLoadingPlanta] = useState(false);
+  const [errorPlanta, setErrorPlanta] = useState<string | null>(null);
 
-  const [isDataReady, setIsDataReady] = useState(false);
+  useEffect(() => {
+    const loadData = async () => {
+      if (!open) return;
 
-  // SWR para obtener datos cuando es edición o detalle
-  const shouldFetch = open && (mode === "editar" || mode === "detalle") && id;
-  const swrKey = shouldFetch ? `planta-${id}` : null;
-  const { data: plantaData, isLoading: isLoadingPlanta } = useSWR<BaseResponse<IPlantaResponse>>(
-    swrKey,
-    () => PlantasService.obtenerPorId(id!),
-    { 
-      revalidateOnFocus: false,
-      onSuccess: (data) => {
-        if (data?.data) {
-          const planta = data.data;
-          setValue("codigo", planta.codigo);
-          setValue("nombre", planta.nombre);
-          setValue("descripcion", planta.descripcion);
-          setValue("numeroRuma", planta.numeroRuma);
-          setValue("activo", planta.activo);
-          setIsDataReady(true);
+      if (mode === "crear") {
+        reset(defaultFormValues);
+        setDataPlanta(null);
+        setErrorPlanta(null);
+        return;
+      }
+
+      if (mode === "editar" || mode === "detalle") {
+        if (!id) {
+          setErrorPlanta("ID no proporcionado para cargar datos");
+          return;
+        }
+        setLoadingPlanta(true);
+        setErrorPlanta(null);
+        try {
+          const response = await PlantasService.obtenerPorId(fetchGetPlantasId(id));
+          setDataPlanta(response);
+          reset(response.data);
+        } catch (error) {
+          setErrorPlanta("Error al cargar los datos");
+          console.error("Error loading planta:", error);
+        } finally {
+          setLoadingPlanta(false);
         }
       }
-    }
-  );
+    };
 
-  const plantaDetail = plantaData?.data;
+    loadData();
+  }, [open, mode, id, reset, user?.id]);
 
   useEffect(() => {
     if (!open) {
-      setIsDataReady(false);
-      reset(defaultFormValues);
+      setDataPlanta(null);
+      setLoadingPlanta(false);
+      setErrorPlanta(null);
       asyncAction.reset();
     }
-  }, [open, reset, asyncAction]);
+  }, [open]);
 
-  useEffect(() => {
-    if (mode === "crear" && open) {
-      setIsDataReady(true);
-    }
-  }, [mode, open]);
-
-    const onSubmit: SubmitHandler<IPlantaSend> = async (data) => {
+  const onSubmit: SubmitHandler<IPlantaSend> = async (data) => {
     if (!user?.id) {
       console.error("Usuario no autenticado o sin ID");
       return;
@@ -120,247 +132,99 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
       onSuccess(asyncAction.response.data as any, mode);
     }
+    reset(defaultFormValues);
     close();
+    asyncAction.reset();
   };
+  const values = watch();
 
-  const renderContenidoSegunModo = () => {
-    const isViewing = mode === "detalle";
-    const isCreating = mode === "crear";
-    
-    if (!isDataReady && (mode === "editar" || mode === "detalle")) {
+  const contenido = useMemo(() => {
+    if (loadingPlanta) {
       return (
-        <div className="flex justify-center items-center h-64">
-          <Spinner size="large" label="Cargando información de la planta..." />
+        <div className="py-2">
+          <Spinner labelPosition="above" label="Cargando datos" />
+        </div>
+      );
+    }
+
+    if (errorPlanta) {
+      return (
+        <div className="py-2 text-red-500">Ocurrió un error al traer los datos.</div>
+      );
+    }
+
+    if (mode === "detalle") {
+      return (
+        <div className="py-4 flex flex-col gap-6">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Código</Label>
+              <Input value={values.codigo || ""} readOnly className={`${styles.inputGrisBase} font-medium`} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Nombre</Label>
+              <Input value={values.nombre || ""} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Descripción</Label>
+              <Textarea value={values.descripcion || "Sin descripción"} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057", minHeight: "80px", resize: "none" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Número de Ruma</Label>
+              <Input value={values.numeroRuma?.toString() || ""} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Estado</Label>
+              <div className="flex items-center">
+                <Input value={values.activo ? "Activo" : "Inactivo"} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${values.activo ? "#28a745" : "#dc3545"}`, backgroundColor: values.activo ? "#d4edda" : "#f8d7da", color: values.activo ? "#155724" : "#721c24", fontWeight: "500", width: "100px", textAlign: "center" }} />
+              </div>
+            </div>
+          </div>
+
+          {dataPlanta?.data?.creadoEl && (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info20Regular className="text-blue-500" />
+                <h4 className="font-semibold text-gray-700 text-lg">Información de Registro</h4>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-gray-600 flex items-center gap-2">
+                    <CalendarClock20Regular className="text-blue-500" />
+                    Fecha de Creación
+                  </Label>
+                  <Input value={formatearFechaCompleta(dataPlanta.data.creadoEl)} readOnly className={styles.inputGrisBase} style={{ border: `2px solid #e3f2fd`, backgroundColor: "#f3f8ff", color: "#1976d2", fontWeight: "500", fontSize: "14px" }} />
+                </div>
+                {dataPlanta.data.modificadoEl && dataPlanta.data.modificadoEl !== dataPlanta.data.creadoEl && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-gray-600 flex items-center gap-2">
+                      <Edit20Regular className="text-orange-500" />
+                      Última Modificación
+                    </Label>
+                    <Input value={formatearFechaCompleta(dataPlanta.data.modificadoEl)} readOnly className={styles.inputGrisBase} style={{ border: `2px solid #fff3e0`, backgroundColor: "#fffaf5", color: "#f57c00", fontWeight: "500", fontSize: "14px" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
     return (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Código */}
-          <div className="space-y-2">
-            <Label htmlFor="codigo" className="text-sm font-medium text-gray-700">
-              Código *
-            </Label>
-            <Input
-              id="codigo"
-              {...register("codigo", { 
-                required: "El código es requerido",
-                minLength: { value: 2, message: "Mínimo 2 caracteres" }
-              })}
-              readOnly={isViewing}
-              className={styles.inputGrisBase}
-              placeholder="Ingrese el código de la planta"
-            />
-            {errors.codigo && (
-              <span className="text-sm text-red-600">{errors.codigo.message}</span>
-            )}
-          </div>
-
-          {/* Nombre */}
-          <div className="space-y-2">
-            <Label htmlFor="nombre" className="text-sm font-medium text-gray-700">
-              Nombre *
-            </Label>
-            <Input
-              id="nombre"
-              {...register("nombre", { 
-                required: "El nombre es requerido",
-                minLength: { value: 3, message: "Mínimo 3 caracteres" }
-              })}
-              readOnly={isViewing}
-              className={styles.inputGrisBase}
-              placeholder="Ingrese el nombre de la planta"
-            />
-            {errors.nombre && (
-              <span className="text-sm text-red-600">{errors.nombre.message}</span>
-            )}
-          </div>
-
-          {/* Número de Ruma */}
-          <div className="space-y-2">
-            <Label htmlFor="numeroRuma" className="text-sm font-medium text-gray-700">
-              Número de Ruma *
-            </Label>
-            <Input
-              id="numeroRuma"
-              type="number"
-              {...register("numeroRuma", { 
-                required: "El número de ruma es requerido",
-                min: { value: 1, message: "Debe ser mayor a 0" }
-              })}
-              readOnly={isViewing}
-              className={styles.inputGrisBase}
-              placeholder="Ingrese el número de ruma"
-            />
-            {errors.numeroRuma && (
-              <span className="text-sm text-red-600">{errors.numeroRuma.message}</span>
-            )}
-          </div>
-
-          {/* Estado */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Estado</Label>
-            <div className="flex items-center space-x-2">
-              <Controller
-                name="activo"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    checked={field.value}
-                    onChange={(_, data) => field.onChange(data.checked)}
-                    disabled={isViewing}
-                  />
-                )}
-              />
-              <span className="text-sm text-gray-600">
-                {watch("activo") ? "Activo" : "Inactivo"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Descripción */}
-        <div className="space-y-2">
-          <Label htmlFor="descripcion" className="text-sm font-medium text-gray-700">
-            Descripción
-          </Label>
-          <Textarea
-            id="descripcion"
-            {...register("descripcion")}
-            readOnly={isViewing}
-            className={styles.inputGrisBase}
-            placeholder="Ingrese una descripción opcional"
-            rows={3}
-          />
-        </div>
-
-        {/* Información de Auditoría - Solo en modo detalle */}
-        {mode === "detalle" && plantaDetail && (
-          <div className="border-t pt-6 space-y-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <Info20Regular className="text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-800">Información de Auditoría</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Fecha de Creación */}
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <CalendarClock20Regular style={{ color: OrgColors.azulOscuro }} />
-                  <Label className="text-sm font-medium text-gray-700">Fecha de Creación</Label>
-                </div>
-                <Input
-                  value={formatearFechaCompleta(plantaDetail.creadoEl)}
-                  readOnly
-                  className={styles.inputGrisBase}
-                />
-              </div>
-
-              {/* Creado Por */}
-              <div className="space-y-1">
-                <Label className="text-sm font-medium text-gray-700">Creado Por</Label>
-                <Input
-                  value={plantaDetail.creadoPorId || "Sistema"}
-                  readOnly
-                  className={styles.inputGrisBase}
-                />
-              </div>
-
-              {/* Fecha de Modificación */}
-              {plantaDetail.modificadoEl && (
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <Edit20Regular style={{ color: OrgColors.serotAmarillo }} />
-                    <Label className="text-sm font-medium text-gray-700">Última Modificación</Label>
-                  </div>
-                  <Input
-                    value={formatearFechaCompleta(plantaDetail.modificadoEl)}
-                    readOnly
-                    className={styles.inputGrisBase}
-                  />
-                </div>
-              )}
-
-              {/* Modificado Por */}
-              {plantaDetail.modificadoPorId && (
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-700">Modificado Por</Label>
-                  <Input
-                    value={plantaDetail.modificadoPorId || "Sistema"}
-                    readOnly
-                    className={styles.inputGrisBase}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Botones de acción */}
-        {!isViewing && (
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={close}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={asyncAction.isLoading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {asyncAction.isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <Spinner size="tiny" />
-                  <span>{isCreating ? "Creando..." : "Actualizando..."}</span>
-                </div>
-              ) : (
-                isCreating ? "Crear Planta" : "Actualizar Planta"
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Estado de la acción asíncrona */}
-        {asyncAction.isLoading && (
-          <AsyncActionDisplay
-            state={asyncAction.state}
-            loadingMessage={isCreating ? "Creando planta..." : "Actualizando planta..."}
-            successMessage=""
-          />
-        )}
-
-        {asyncAction.error && (
-          <AsyncActionDisplay
-            state={asyncAction.state}
-            loadingMessage=""
-            successMessage=""
-            error={asyncAction.error}
-            onErrorDismiss={asyncAction.reset}
-          />
-        )}
-
-        {asyncAction.isSuccess && (
-          <AsyncActionDisplay
-            state={asyncAction.state}
-            loadingMessage=""
-            successMessage={isCreating ? "Planta creada exitosamente" : "Planta actualizada exitosamente"}
-            onSuccess={closeAcction}
-          />
-        )}
-      </form>
+      <div className="py-2 flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5"><Label required>Código</Label><Controller name="codigo" control={control} rules={{ required: "El código es requerido" }} render={({ field }) => (<Input {...field} className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}` }} />)} />{errors.codigo && <span className="text-red-500">{errors.codigo.message}</span>}</div>
+        <div className="flex flex-col gap-0.5"><Label required>Nombre</Label><Controller name="nombre" control={control} rules={{ required: "El nombre es requerido" }} render={({ field }) => (<Input {...field} className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}` }} />)} />{errors.nombre && <span className="text-red-500">{errors.nombre.message}</span>}</div>
+        <div className="flex flex-col gap-0.5"><Label required>Número de Ruma</Label><Controller name="numeroRuma" control={control} rules={{ required: "El número de ruma es requerido", min: { value: 1, message: "Debe ser mayor a 0" } }} render={({ field }) => (<Input value={field.value?.toString() || ""} type="number" min="1" className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}` }} onChange={(_, data) => { const value = Number(data.value); if (value >= 0) field.onChange(value || 1); }} />)} />{errors.numeroRuma && <span className="text-red-500">{errors.numeroRuma.message}</span>}</div>
+        <div className="flex flex-col gap-0.5"><Label>Descripción</Label><Textarea {...register("descripcion")} size="large" className={styles.inputGrisBase} style={{ height: "10rem", border: `2px solid ${OrgColors.serotGris}` }} />{errors.descripcion && <span className="text-red-500">{errors.descripcion.message}</span>}</div>
+        <div className="flex flex-col gap-0.5"><Label>Activo</Label><Controller name="activo" control={control} render={({ field }) => (<Switch checked={field.value} onChange={(e) => field.onChange(e.currentTarget.checked)} label={field.value ? "Activo" : "Inactivo"} />)} /></div>
+      </div>
     );
-  };
-
-  const TITULOS_PANEL = {
-    crear: "Nueva Planta",
-    editar: "Editar Planta", 
-    detalle: "Detalle de Planta"
-  };
+  }, [loadingPlanta, errorPlanta, mode, dataPlanta, styles, values, control, errors]);
 
   return (
     <DrawerBase
@@ -386,7 +250,16 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
         />
       )}
 
-      {renderContenidoSegunModo()}
+      {(mode === "detalle" || asyncAction.isFromInit || asyncAction.error) && contenido}
+
+      {mode !== "detalle" && (asyncAction.isLoading || asyncAction.isSuccess) && (
+        <AsyncActionDisplay
+          state={asyncAction.state}
+          loadingMessage={id ? "Actualizando planta..." : "Creando nueva planta..."}
+          successMessage={id ? asyncAction.response?.message ?? "Se actualizó correctamente la planta" : asyncAction.response?.message ?? "Se creó correctamente la planta"}
+          onSuccess={() => { closeAcction(); }}
+        />
+      )}
     </DrawerBase>
   );
 }
