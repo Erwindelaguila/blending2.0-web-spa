@@ -56,7 +56,7 @@ export function TipoProduccionPanel({ open, mode, id, close, onSuccess }: IDrawe
     value: l.id?.toString() || "", 
     label: l.codigo || l.Codigo || "" 
   }));
-  const agregadoOptions = (agregadosData?.data?.data || agregadosData?.data?.items || []).map((a: any) => ({ 
+  const agregadoOptions = (agregadosData?.data?.data || []).map((a: any) => ({ 
     value: a.id?.toString() || "", 
     label: a.codigo || a.Codigo || "" 
   }));

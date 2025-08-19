@@ -10,8 +10,7 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState, useEffect } from "react";
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
@@ -20,13 +19,15 @@ import useSWR from "swr";
 import { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
-import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 import { AgregadoPanel } from "./agregado-panel";
-import { AgregadoService, AgregadoFiltersParams } from "@/services/agregado.service";
+import { AgregadoService } from "@/services/agregado.service";
+import { AgregadoFiltersParams } from "@/interface/admin/agregado";
 import { IAgregado } from "@/interface/admin/agregado";
 import { useAuth } from "@/hooks/use-auth";
 import { PagedAgregadoResponse } from "@/interface/admin/agregado";
 import { useAgregadoContext } from './agregado-context';
+import { buildPaginatedSWRKey } from '@/utils/swr-keys';
+import { PAGINATION_CONFIG } from '@/config/pagination.config';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -37,17 +38,7 @@ const columns = [
 ];
 
 const buildAgregadosKey = (page: number, size: number, filters?: AgregadoFiltersParams) => {
-  const params = new URLSearchParams();
-  params.set('page', page.toString());
-  params.set('size', size.toString());
-  
-  if (filters?.codigo) params.set('codigo', filters.codigo);
-  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString()); // 1 o 0
-  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
-  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
-  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
-  
-  return `agregados-${params.toString()}`;
+  return buildPaginatedSWRKey('agregados', page, size, filters);
 };
 
 export function AgregadoTable() {
@@ -56,59 +47,51 @@ export function AgregadoTable() {
   const { user } = useAuth();
   const { filters } = useAgregadoContext();
 
-  const [page, setPage] = useState(1);
-  const pageSize = 10; // tamaño de página enviado al backend
+  const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
+  const pageSize = PAGINATION_CONFIG.DEFAULT_SIZE;
 
-  // Convertir filtros del contexto al formato del servicio
   const serviceFilters: AgregadoFiltersParams | undefined = useMemo(() => {
     if (!filters || Object.keys(filters).length === 0) return undefined;
     
     return {
       codigo: filters.codigo,
-      estado: filters.estado, // 1=activos, 0=inactivos, undefined=todos
-      fechaInicio: filters.fechaInicio?.toISOString().split('T')[0],
-      fechaFin: filters.fechaFin?.toISOString().split('T')[0],
-      tipoFecha: filters.tipoFecha,
+  estado: filters.estado,
+      fechaDesde: filters.fechaDesde?.toISOString().split('T')[0],
     };
   }, [filters]);
 
   const swrKey = buildAgregadosKey(page, pageSize, serviceFilters);
   
-  // Reset page to 1 when filters change
   useEffect(() => {
-    setPage(1);
+    setPage(PAGINATION_CONFIG.DEFAULT_PAGE);
   }, [serviceFilters]);
 
   const {
     data: dataAgregados,
     isLoading: loadingAgregados,
-    error: errorAregados,
+    error: errorAgregados,
   } = useSWR<BaseResponse<PagedAgregadoResponse>>(
     swrKey, 
     () => AgregadoService.listar(page, pageSize, serviceFilters),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 2000, // Evita llamadas duplicadas por 2 segundos
+      dedupingInterval: 2000,
     }
   );
 
-  // Datos con nueva estructura del backend
-  const items: IAgregado[] = dataAgregados?.data?.data || [];
-
-  // Extraer metadatos de paginación de la nueva estructura
-  const pagination = dataAgregados?.data?.pagination;
-  const paginationCurrentPage = pagination?.currentPage || page;
-  const paginationTotalPages = pagination?.totalPages || 1;
-  const paginationTotalItems = pagination?.totalCount || 0;
-  const hasPrevious = pagination?.hasPrevious;
-  const hasNext = pagination?.hasNext;
-  const previousPage = pagination?.previousPage;
-  const nextPage = pagination?.nextPage;
-
-  // Handler optimizado de cambio de página
+  const respData = dataAgregados?.data;
+  const items: IAgregado[] = respData?.data ?? [];
+  const {
+    currentPage: paginationCurrentPage = page,
+    totalPages: paginationTotalPages = 1,
+    totalCount: paginationTotalItems = 0,
+    hasPrevious,
+    hasNext,
+    previousPage,
+    nextPage,
+  } = respData?.pagination ?? {};
   const handlePageChange = (newPage: number) => {
-    // Solo cambiar si es diferente y válido
     if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
       setPage(newPage);
     }
@@ -116,26 +99,26 @@ export function AgregadoTable() {
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [idCalidad, setIdCalidad] = useState<string | undefined>(undefined);
+  const [idAgregado, setIdAgregado] = useState<string | undefined>(undefined);
   const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
 
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
 
   const handleOpenCrear = () => {
     setMode("crear");
-    setIdCalidad(undefined);
+  setIdAgregado(undefined);
     setOpenPanel(true);
   };
 
   const handleOpenEditar = (registroId: string) => {
     setMode("editar");
-    setIdCalidad(registroId);
+  setIdAgregado(registroId);
     setOpenPanel(true);
   };
 
   const handleOpenDetalle = (registroId: string) => {
     setMode("detalle");
-    setIdCalidad(registroId);
+  setIdAgregado(registroId);
     setOpenPanel(true);
   };
 
@@ -143,8 +126,8 @@ export function AgregadoTable() {
     setOpenPanel(false);
 
     setTimeout(() => {
-      setIdCalidad(undefined); // importante limpiar el ID
-      setMode("crear"); // o el modo por defecto
+  setIdAgregado(undefined);
+  setMode("crear");
     }, 30);
   };
 
@@ -224,24 +207,21 @@ export function AgregadoTable() {
   };
 
   const handlePanelSuccess = () => {
-    // Limpiar cache de múltiples páginas para evitar datos obsoletos
     for (let i = 1; i <= paginationTotalPages + 2; i++) {
       mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
     
     if (mode === "crear") {
-      // Solo cuando se crea, ir a la nueva última página
       const newTotal = paginationTotalItems + 1;
       const newLastPage = Math.ceil(newTotal / pageSize);
       setPage(newLastPage);
       mutate(buildAgregadosKey(newLastPage, pageSize, serviceFilters));
     } else {
-      // Cuando se edita, quedarse en la página actual
       mutate(buildAgregadosKey(page, pageSize, serviceFilters));
     }
   };
 
-  const acctionDeleteModal = async () => {
+  const actionDeleteModal = async () => {
     if (!infoAgregado) return;
     const userId = user?.id;
     if (!userId) throw new Error("No se encontró el id del usuario autenticado");
@@ -251,18 +231,15 @@ export function AgregadoTable() {
         await AgregadoService.eliminar(infoAgregado.id, userId);
         return { success: true, message: "Agregado eliminado correctamente" };
       },
-      buildAgregadosKey(page, pageSize)
+      buildAgregadosKey(page, pageSize, serviceFilters)
     );
 
-    // Limpiar cache de múltiples páginas después de eliminar
     for (let i = 1; i <= paginationTotalPages + 1; i++) {
       mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
     
-    // Revalidar página actual
     mutate(buildAgregadosKey(page, pageSize, serviceFilters));
     
-    // Si eliminamos el último elemento de la página y no es la página 1, ir a la anterior
     if (items.length === 1 && page > 1) {
       const prevPage = page - 1;
       setPage(prevPage);
@@ -292,7 +269,7 @@ export function AgregadoTable() {
                 data={items}
                 renderCell={renderCell}
                 isLoading={loadingAgregados}
-                error={errorAregados}
+                error={errorAgregados}
                 height="100%"
               />
             </div>
@@ -319,7 +296,7 @@ export function AgregadoTable() {
         mode={mode}
         open={openPanel}
         close={handleClosePanel}
-        id={idCalidad}
+  id={idAgregado}
         onSuccess={handlePanelSuccess}
       />
 
@@ -335,7 +312,7 @@ export function AgregadoTable() {
         type="alert"
         buttonText="Eliminar"
         closeOnOutsideClick={false}
-        buttonAction={acctionDeleteModal}
+  buttonAction={actionDeleteModal}
         requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess}
       >
         <>

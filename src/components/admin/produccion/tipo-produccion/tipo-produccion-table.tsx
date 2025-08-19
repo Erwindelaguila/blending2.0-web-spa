@@ -91,11 +91,11 @@ export function TipoProduccionTable() {
     () => AgregadoService.listar(1, 500)
   );
   const lineasMap = useMemo(() => {
-    const list = (lineasLookup?.data?.items || lineasLookup?.data?.data || []) as any[];
+    const list = (lineasLookup?.data?.data || []) as any[];
     return Object.fromEntries(list.map((l: any) => [l.id, l.codigo]));
   }, [lineasLookup]);
   const agregadosMap = useMemo(() => {
-    const list = (agregadosLookup?.data?.items || agregadosLookup?.data?.data || []) as any[];
+    const list = (agregadosLookup?.data?.data || []) as any[];
     return Object.fromEntries(list.map((a: any) => [a.id, a.codigo]));
   }, [agregadosLookup]);
 

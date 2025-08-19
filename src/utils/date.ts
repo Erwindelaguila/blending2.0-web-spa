@@ -41,3 +41,25 @@ export const formatearFechaCompleta = (fechaISO: string): string => {
   
   return `${fechaCapitalizada} a las ${horaFormateada} hs`;
 };
+
+// Localización en español para DatePicker
+export const datePickerStringsEs = {
+  months: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ] as string[],
+  shortMonths: [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+  ] as string[],
+  days: [
+    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+  ] as string[],
+  shortDays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as string[],
+  goToToday: 'Ir a hoy',
+  prevMonthAriaLabel: 'Mes anterior',
+  nextMonthAriaLabel: 'Mes siguiente',
+  prevYearAriaLabel: 'Año anterior',
+  nextYearAriaLabel: 'Año siguiente',
+  closeButtonAriaLabel: 'Cerrar selector de fecha',
+};

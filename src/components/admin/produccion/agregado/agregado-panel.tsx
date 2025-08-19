@@ -13,9 +13,8 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  getAllAgregadoKey,
   getByIdAgregadoKey,
 } from "@/lib/constants/key-fetch";
 import { IAgregado, IAgregadoSend, IAgregadoUpdate } from "@/interface/admin/agregado";
@@ -26,6 +25,13 @@ import {
   Edit20Regular, 
   Info20Regular 
 } from "@fluentui/react-icons";
+
+
+const TITULOS_PANEL: Record<IDrawer["mode"], string> = {
+  crear: "Nuevo Agregado",
+  editar: "Editar Agregado",
+  detalle: "Detalle de Agregado",
+};
 
 
 const defaultFormValues: IAgregadoSend = {
@@ -45,7 +51,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },
@@ -53,7 +58,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     defaultValues: defaultFormValues,
   });
 
-  // Cargar datos directamente sin cache cuando sea necesario
   const [dataAgregado, setDataAgregado] = useState<BaseResponse<IAgregado> | null>(null);
   const [loadingAgregado, setLoadingAgregado] = useState(false);
   const [errorAgregado, setErrorAgregado] = useState<string | null>(null);
@@ -83,13 +87,11 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     asyncAction.reset();
   };
 
-  // useEffect 1: Cargar datos cuando se abre el panel en modo editar/detalle
   useEffect(() => {
     const loadData = async () => {
       if (!open) return;
       
       if (mode === "crear") {
-        // Modo crear: resetear a valores por defecto
         reset(defaultFormValues);
         setDataAgregado(null);
         setErrorAgregado(null);
@@ -102,7 +104,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
           return;
         }
         
-        // Cargar datos directamente sin cache
         setLoadingAgregado(true);
         setErrorAgregado(null);
         
@@ -122,7 +123,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     loadData();
   }, [open, mode, id, reset]);
 
-  // useEffect 2: Limpiar estado cuando se cierra el panel
   useEffect(() => {
     if (!open) {
       setDataAgregado(null);
@@ -132,15 +132,9 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     }
   }, [open]);
 
-  const TITULOS_PANEL: Record<typeof mode, string> = {
-    crear: "Nuevo Agregado",
-    editar: "Editar Agregado",
-    detalle: "Detalle de Agregado",
-  };
+  const values = watch();
 
-  const renderContenidoSegunModo = () => {
-    const values = watch();
-
+  const contenido = useMemo(() => {
     if (loadingAgregado) {
       return (
         <div className="py-2">
@@ -160,7 +154,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     if (mode === "detalle") {
       return (
         <div className="py-4 flex flex-col gap-6">
-          {/* Información principal */}
           <div className="grid grid-cols-1 gap-4">
             <div className="flex flex-col gap-2">
               <Label className="font-semibold text-gray-700">Código</Label>
@@ -226,7 +219,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             </div>
           </div>
           
-          {/* Información de auditoría */}
           {dataAgregado?.data?.creadoEl && (
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center gap-2 mb-4">
@@ -281,7 +273,6 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
       );
     }
 
-    // Crear y editar
     return (
       <div className="py-2 flex flex-col gap-3">
         <div className="flex flex-col justify-start w-full gap-0.5">
@@ -355,7 +346,16 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
         </div>
       </div>
     );
-  };
+  }, [
+    loadingAgregado,
+    errorAgregado,
+    mode,
+    dataAgregado,
+    styles,
+    values,
+    control,
+    errors,
+  ]);
 
   return (
     <DrawerBase
@@ -381,8 +381,7 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
         />
       )}
 
-      {(mode === "detalle" || asyncAction.isFromInit || asyncAction.error) &&
-        renderContenidoSegunModo()}
+  {(mode === "detalle" || asyncAction.isFromInit || asyncAction.error) && contenido}
 
       {mode !== "detalle" &&
         (asyncAction.isLoading || asyncAction.isSuccess) && (

@@ -5,7 +5,6 @@ interface IAgregadoBase {
   activo?: boolean;
 }
 
-// Para envío de datos (crear/editar)
 export interface IAgregadoSend extends IAgregadoBase {
   creadoPorId: string;
 }
@@ -15,20 +14,16 @@ export interface IAgregadoUpdate extends IAgregadoBase {
   modificadoPorId: string;
 }
 
-
-// Para respuesta completa del backend
 export interface IAgregado extends IAgregadoBase {
   id: string;
-  activo: boolean; // aquí ya no es opcional, porque la respuesta lo tiene definido
+  activo: boolean; 
   creadoPorId: string;
-  creadoEl: string; // o Date
+  creadoEl: string; 
   modificadoPorId?: string;
   modificadoEl?: string;
 }
-
-// Interface para la respuesta paginada del backend (nueva estructura)
 export interface PagedAgregadoResponse {
-  data: IAgregado[]; // Los registros están en data
+  data: IAgregado[]; 
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -39,4 +34,11 @@ export interface PagedAgregadoResponse {
     previousPage: number | null;
     nextPage: number | null;
   };
+}
+
+
+export interface AgregadoFiltersParams {
+  codigo?: string;
+  estado?: number;
+  fechaDesde?: string; 
 }

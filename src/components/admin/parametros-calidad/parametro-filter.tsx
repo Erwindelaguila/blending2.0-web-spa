@@ -165,7 +165,7 @@ export function ParametroFilter() {
 
                 <div className="flex-1 flex items-center gap-4">
                   <div className="flex flex-col">
-                    <Label size="medium">Fecha Desde</Label>
+                    <Label size="medium">Fecha </Label>
                     <DatePicker
                       size="medium"
                       style={{
@@ -201,7 +201,7 @@ export function ParametroFilter() {
                   </div>
 
                   <div className="flex flex-col">
-                    <Label size="medium">Fecha Hasta</Label>
+                    <Label size="medium">Fecha </Label>
                     <DatePicker
                       size="medium"
                       style={{
