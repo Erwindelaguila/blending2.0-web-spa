@@ -1,55 +1,64 @@
 // src/services/indexedDBService.ts
-import { openDB } from "idb";
+import { openDB, IDBPDatabase } from "idb";
 
 const DB_NAME = "BlendingDB";
-const STORE_NAME = "StockDisponible";
+const DB_VERSION = 3; // Incrementa si agregas nuevos stores
+const STORES = ["StockDisponible", "Asignacion"]; // <-- Aquí defines todos los stores
 
-export async function getDB() {
-  return openDB(DB_NAME, 2, {
-    // <-- antes era 1
+export async function getDB(): Promise<IDBPDatabase> {
+  return openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { autoIncrement: true });
-      } else {
-        db.deleteObjectStore(STORE_NAME); // <- eliminar y crear de nuevo
-        db.createObjectStore(STORE_NAME, { autoIncrement: true });
+      for (const storeName of STORES) {
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName, { autoIncrement: true });
+        }
       }
     },
   });
 }
 
-export async function saveStockDisponible(stockDisponible: any[]) {
+export async function saveData(storeName: string, data: any[]) {
+  if (!STORES.includes(storeName)) {
+    throw new Error(`El store "${storeName}" no está configurado en STORES`);
+  }
+
   try {
     const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+    const tx = db.transaction(storeName, "readwrite");
+    const store = tx.objectStore(storeName);
 
-    for (const item of stockDisponible) {
-      await store.put(item); // inserta o actualiza
+    for (const item of data) {
+      await store.put(item);
     }
 
     await tx.done;
   } catch (error) {
-    console.error("❌ Error al guardar en IndexedDB", error);
+    console.error(`❌ Error al guardar en IndexedDB [${storeName}]`, error);
   }
 }
 
-export async function getAllStockDisponible(): Promise<any[]> {
+export async function getAllData(storeName: string): Promise<any[]> {
+  if (!STORES.includes(storeName)) {
+    throw new Error(`El store "${storeName}" no está configurado en STORES`);
+  }
+
   const db = await getDB();
-  return db.getAll(STORE_NAME);
+  return db.getAll(storeName);
 }
 
-export async function clearStockDisponible() {
+export async function clearData(storeName: string) {
+  if (!STORES.includes(storeName)) {
+    throw new Error(`El store "${storeName}" no está configurado en STORES`);
+  }
+
   try {
     const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-
-    await store.clear(); // 🔥 Limpia todo
+    const tx = db.transaction(storeName, "readwrite");
+    await tx.objectStore(storeName).clear();
     await tx.done;
 
-    console.log("✅ Todos los datos en IndexedDB han sido eliminados");
+    console.log(`✅ Todos los datos en IndexedDB store [${storeName}] han sido eliminados`);
   } catch (error) {
-    console.error("❌ Error al eliminar datos de IndexedDB", error);
+    console.error(`❌ Error al eliminar datos de IndexedDB [${storeName}]`, error);
   }
 }

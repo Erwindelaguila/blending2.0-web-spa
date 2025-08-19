@@ -1,118 +1,698 @@
-import { AppTagPicker } from "@/components/ui/app-tagPicker";
+"use client";
+
 import { TableDynamic } from "@/components/ui/table-dynamic";
+import {
+  AppTagPickerKeyValue,
+  KeyValue,
+} from "@/components/ui/tagPicker-KeyValue";
 import { Title } from "@/components/ui/title";
-import { Card, CardPreview } from "@fluentui/react-components";
-import { useState } from "react";
+import { DynamicRow } from "@/interface";
+import { ErrorAlertContent } from "@/interface/components/message-alert";
+import {
+  IEmparejamientos,
+  IParticiones,
+} from "@/interface/logistics/asignacion";
+import { AsignacionData } from "@/lib/store/slices/asignacion";
+import {
+  agruparPorUmVta,
+  DataOferta,
+  OrderKeyAgupacionUmVta,
+} from "@/utils/process-data";
+import {
+  Card,
+  CardPreview,
+  Checkbox,
+  CheckboxProps,
+  Input,
+  InputProps,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Textarea,
+  TextareaProps,
+} from "@fluentui/react-components";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-const calidades: Calidad[] = [
-  { calidad: "CHI2511010", DIVISION: "123" },
-  { calidad: "CHI2511011", DIVISION: "234" },
-  { calidad: "CHI2511012", DIVISION: "345" },
-  { calidad: "CHI2511013", DIVISION: "456" },
-  { calidad: "CHI2511014", DIVISION: "567" },
-  { calidad: "CHI2511015", DIVISION: "678" },
-  { calidad: "CHI2511016", DIVISION: "789" },
-  { calidad: "CHI2511017", DIVISION: "890" },
-  { calidad: "CHI2511018", DIVISION: "901" },
-  { calidad: "CHI2511019", DIVISION: "012" },
-  { calidad: "CHI2511020", DIVISION: "111" },
-  { calidad: "CHI2511021", DIVISION: "222" },
-  { calidad: "CHI2511022", DIVISION: "333" },
-  { calidad: "CHI2511023", DIVISION: "444" },
-  { calidad: "CHI2511024", DIVISION: "555" },
-  { calidad: "CHI2511025", DIVISION: "666" },
-  { calidad: "CHI2511026", DIVISION: "777" },
-  { calidad: "CHI2511027", DIVISION: "888" },
-  { calidad: "CHI2511028", DIVISION: "999" },
-  { calidad: "CHI2511029", DIVISION: "000" },
-];
+const TIEMPO_ESPERA = 520;
 
-const dataV1: Calidad[] = [
-  { calidad: "Grupo-01", PROTEINA: "67", TVN: "456.7", ARENA: "1.98" },
-  { calidad: "Grupo-02", PROTEINA: "65", TVN: "75.7", ARENA: "74.5" },
-  { calidad: "Grupo-03", PROTEINA: "66", TVN: "112.3", ARENA: "2.10" },
-  { calidad: "Grupo-04", PROTEINA: "68", TVN: "98.6", ARENA: "3.45" },
-  { calidad: "Grupo-05", PROTEINA: "69", TVN: "120.0", ARENA: "0.95" },
-  { calidad: "Grupo-06", PROTEINA: "64", TVN: "88.8", ARENA: "4.32" },
-  { calidad: "Grupo-07", PROTEINA: "70", TVN: "134.1", ARENA: "1.23" },
-  { calidad: "Grupo-08", PROTEINA: "66", TVN: "110.0", ARENA: "2.50" },
-  { calidad: "Grupo-09", PROTEINA: "63", TVN: "67.5", ARENA: "3.98" },
-  { calidad: "Grupo-10", PROTEINA: "65", TVN: "143.3", ARENA: "5.12" },
-  { calidad: "Grupo-11", PROTEINA: "67", TVN: "156.9", ARENA: "0.75" },
+export function OtrosParametros({
+  dataAsignacion,
+  onChange,
+}: {
+  dataAsignacion: AsignacionData | null;
+  onChange?: (
+    isError: boolean,
+    keyParamentrosSeleccionados: string[],
+    particiones: IParticiones,
+    emparejamientos: IEmparejamientos,
+    tiempoEspera: string
+  ) => void;
+}) {
+  const [dataRumasExcelList, setDataRumasExcelList] = useState<DynamicRow[]>(
+    []
+  );
+  const [dataGruposEmparejamiento, setDataGruposEmparejamiento] = useState<
+    DynamicRow[]
+  >([]);
 
-];
+  const [habilitarDivision, setHabilitarDivision] =
+    useState<CheckboxProps["checked"]>(false);
 
+  //Variable general de errores en otro paramentros
+  const [isErrorOtrosParamentros, setIsErrorOtrosParametros] =
+    useState<boolean>(false);
 
+  const [tiempoEspera, setTiempoEspera] = useState<string>(
+    TIEMPO_ESPERA.toString()
+  );
 
-type Calidad = {
-  calidad: string;
-  [key: string]: string;
-};
+  //Variable a enviar al Padre
+  const [
+    gruposEmparejamientoCambiosValues,
+    setGruposEmparejamientoCambiosValues,
+  ] = useState<any[]>([]);
 
-const allOptions = [
-  "John Doe",
-  "Jane Doe",
-  "Max Mustermann",
-  "Erika Mustermann",
-  "Pierre Dupont",
-  "Amelie Dupont",
-  "Mario Rossi",
-  "Maria Rossi",
-];
-export function OtrosParametros() {
-  const [datos, setDatos] = useState<Calidad[]>(calidades);
+  //Variable Posible Envio al padre
+  //Variable a evaluar
+  const [valuesSelecParamentrosCalidad, setValuesSelecParamentrosCalidad] =
+    useState<KeyValue[]>([]);
 
-  const [values, setValues] = useState<string[]>([]);
+  //Variable no renderizar
+  const [parametrosCalidad, setParametrosCalidad] = useState<KeyValue[]>([]);
+
+  //Variable enviar a padre
+  const [valuesRumas, setValuesRumas] = useState("");
+
+  //Varaible a evaluar
+  const [
+    visibleErrorGruposEmparejamiento,
+    setVisibleErrorGruposEmparejamiento,
+  ] = useState<boolean>(false);
+
+  const [errorGruposEmparejamiento, setErrorGruposEmparejamiento] =
+    useState<ErrorAlertContent>({
+      descripcion: "",
+      typeError: "info",
+    });
+
+  //Variable a evaluar
+  const [visibleErrorDataRumas, setVisibleErrorDataRumas] =
+    useState<boolean>(false);
+
+  const [setDataRumas, setErrorDataRumas] = useState<ErrorAlertContent>({
+    descripcion: "",
+    typeError: "info",
+  });
+
+  const [valuesGruposPorUmVta, setValuesGruposPorUmVta] = useState<string[]>(
+    []
+  );
+
+  const [resultadoAgrupacionUmVta, setResultadoAgrupacionUmVta] = useState<
+    Record<string, DataOferta>
+  >({});
+
+  const onChangeValuesRumas: TextareaProps["onChange"] = (ev, data) => {
+    if (data.value.length <= 50) {
+      setValuesRumas(data.value);
+    }
+  };
+
+  const memoParametrosCalidad = useMemo(
+    () => parametrosCalidad,
+    [parametrosCalidad]
+  );
+  const memoValuesSelecParamentrosCalidad = useMemo(
+    () => valuesSelecParamentrosCalidad,
+    [valuesSelecParamentrosCalidad]
+  );
+
+  const [visibleErrorTiempoEspera, setVisibleErrorTiempoEspera] =
+    useState<boolean>(false);
+
+  const [errorTiempoEspera, setErrorTiempoespera] = useState<ErrorAlertContent>(
+    {
+      descripcion: "",
+      typeError: "info",
+    }
+  );
+
+  const onChangeTiempoEspera: InputProps["onChange"] = (ev, data) => {
+    setTiempoEspera(data.value);
+  };
+
+  useEffect(() => {
+    if (!dataAsignacion) {
+      return;
+    }
+    const parametrosValues = dataAsignacion.demanda.paramentrosCalidad;
+
+    if (parametrosValues) {
+      const keyValueParametrosCalidad: KeyValue[] = Object.entries(
+        parametrosValues
+      ).map(([key, value]) => ({
+        key,
+        value: String(value),
+      }));
+
+      setParametrosCalidad(keyValueParametrosCalidad);
+    }
+
+    const dataOferta = dataAsignacion.oferta ?? {};
+    const resultadoAgrupacionUmVta = agruparPorUmVta(dataOferta);
+
+    let keysAgrupacionUmVta = resultadoAgrupacionUmVta
+      ? Object.keys(resultadoAgrupacionUmVta)
+      : [];
+    const keysAgrupacionOrdernados =
+      OrderKeyAgupacionUmVta(keysAgrupacionUmVta);
+
+    // Variables de keys y resultado
+    setResultadoAgrupacionUmVta(resultadoAgrupacionUmVta);
+    setValuesGruposPorUmVta(keysAgrupacionOrdernados);
+
+    const nuevosGrupoEmparejamiento: DynamicRow[] =
+      keysAgrupacionOrdernados.map((element) => ({
+        grupo: element,
+      }));
+
+    setDataGruposEmparejamiento(nuevosGrupoEmparejamiento);
+  }, [dataAsignacion]);
+
+  useEffect(() => {
+    if (!dataAsignacion) return;
+
+    const dataLotes = dataAsignacion.oferta ?? {};
+    const loteKeys = Object.keys(dataLotes);
+
+    if (habilitarDivision) {
+      setValuesRumas("");
+      const nuevosDatos: DynamicRow[] = loteKeys.map((element) => ({
+        ruma: element,
+        División: "40",
+      }));
+      setDataRumasExcelList(nuevosDatos);
+    } else {
+      setDataRumasExcelList([]);
+    }
+  }, [dataAsignacion, habilitarDivision]);
+
+  useEffect(() => {
+    if (!valuesSelecParamentrosCalidad) return;
+
+    setDataGruposEmparejamiento((prevData) => {
+      const updated = prevData.map((row) => {
+        const newRow: DynamicRow = { ...row };
+        valuesSelecParamentrosCalidad.forEach((param) => {
+          if (!(param.key in newRow)) {
+            newRow[param.key] = param.value;
+          }
+        });
+
+        Object.keys(newRow).forEach((key) => {
+          if (
+            key !== "grupo" &&
+            !valuesSelecParamentrosCalidad.find((p) => p.key === key)
+          ) {
+            delete newRow[key];
+          }
+        });
+
+        return newRow;
+      });
+
+      const isEqual =
+        updated.length === prevData.length &&
+        updated.every((row, i) => {
+          const prevRow = prevData[i];
+          const keysRow = Object.keys(row);
+          const keysPrev = Object.keys(prevRow);
+
+          if (keysRow.length !== keysPrev.length) return false;
+
+          return keysRow.every((k) => row[k] === prevRow[k]);
+        });
+
+      return isEqual ? prevData : updated;
+    });
+  }, [valuesSelecParamentrosCalidad]);
+
+  const [particiones, setParticiones] = useState<IParticiones>({});
+
+  useEffect(() => {
+    // Para cambio brusco de variable boleana
+    setErrorDataRumas({
+      descripcion: "",
+      typeError: "info",
+    });
+    setVisibleErrorDataRumas(false);
+
+    if (!habilitarDivision) {
+      if (!valuesRumas) {
+        setErrorDataRumas({
+          descripcion: `División de rumas no puede estar vacío`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        return;
+      }
+      const divisionRumas = valuesRumas.split(",").map((d) => d.trim());
+      // Caso especial: coma al final (último elemento vacío)
+      if (divisionRumas[divisionRumas.length - 1] === "") {
+        setErrorDataRumas({
+          descripcion: `División de rumas termina con coma sin número posterior`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        return;
+      }
+
+      // Validar que todos sean números válidos
+      const notNumbers = divisionRumas.filter(
+        (d) => d === "" || isNaN(Number(d))
+      );
+
+      if (notNumbers.length > 0) {
+        setErrorDataRumas({
+          descripcion: `División contiene valores no numéricos '${notNumbers.join(
+            ", "
+          )}'`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        return;
+      }
+      return;
+    }
+
+    if (dataRumasExcelList.length === 0) return;
+
+    let hasError = false;
+
+    for (let i = 0; i < dataRumasExcelList.length; i++) {
+      const row = dataRumasExcelList[i];
+      const divisionRaw = row["División"]?.toString().trim() ?? "";
+
+      // 1. No vacío
+      if (!divisionRaw) {
+        setErrorDataRumas({
+          descripcion: `Fila ${i + 1}: División no puede estar vacío`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        hasError = true;
+        break;
+      }
+
+      // 2. No cero
+      if (divisionRaw === "0") {
+        setErrorDataRumas({
+          descripcion: `Fila ${i + 1}: División no puede ser 0`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        hasError = true;
+        break;
+      }
+
+      // 3. Separar por comas y validar números
+      const divisiones = divisionRaw.split(",").map((d) => d.trim());
+
+      // Caso especial: coma al final (último elemento vacío)
+      if (divisiones[divisiones.length - 1] === "") {
+        setErrorDataRumas({
+          descripcion: `Fila ${
+            i + 1
+          }: División termina con coma sin número posterior`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        hasError = true;
+        break;
+      }
+
+      // Validar que todos sean números válidos
+      const notNumbers = divisiones.filter((d) => d === "" || isNaN(Number(d)));
+
+      if (notNumbers.length > 0) {
+        setErrorDataRumas({
+          descripcion: `Fila ${
+            i + 1
+          }: División contiene valores no numéricos (${notNumbers.join(", ")})`,
+          typeError: "error",
+        });
+        setVisibleErrorDataRumas(true);
+        hasError = true;
+        break;
+      }
+
+      // Si todo ok, limpiar errores
+      setErrorDataRumas({
+        descripcion: "",
+        typeError: "info",
+      });
+      setVisibleErrorDataRumas(false);
+    }
+
+    if (!hasError) {
+      // ✅ No hay errores → separar filas según regla de "40"
+      const filasConDivisionFiltrada = dataRumasExcelList.filter((row) => {
+        const divisionRaw = row["División"]?.toString().trim() ?? "";
+        const divisiones = divisionRaw.split(",").map((d) => d.trim());
+        return !(divisiones.length === 1 && divisiones[0] === "40");
+      });
+
+      const particiones: IParticiones = filasConDivisionFiltrada.reduce(
+        (acc, item) => {
+          acc[item.ruma] = String(item["División"].toString()); // 👈 conversión explícita
+          return acc;
+        },
+        {} as IParticiones
+      );
+      setParticiones(particiones);
+    }
+  }, [dataRumasExcelList, habilitarDivision, valuesRumas]);
+
+  useEffect(() => {
+    if (!dataGruposEmparejamiento || dataGruposEmparejamiento.length === 0) {
+      setGruposEmparejamientoCambiosValues([]);
+      setErrorGruposEmparejamiento({ descripcion: "", typeError: "info" });
+      setVisibleErrorGruposEmparejamiento(false);
+      return;
+    }
+
+    const valuesInicialesParametrosCalidad = parametrosCalidad;
+    const gruposConCambios: any[] = [];
+    let error: ErrorAlertContent | null = null;
+
+    // etiqueta opcional por si necesitas romper doble loop
+    outer: for (
+      let rowIndex = 0;
+      rowIndex < dataGruposEmparejamiento.length;
+      rowIndex++
+    ) {
+      const grupo = dataGruposEmparejamiento[rowIndex];
+      const cambios: any = { grupo: grupo.grupo };
+
+      for (const param of Object.keys(grupo)) {
+        if (param === "grupo") continue;
+        const valor = grupo[param];
+
+        // 🔎 Validaciones
+        if (valor === "" || valor == null) {
+          error = {
+            descripcion: `Fila ${rowIndex + 1} '${
+              grupo.grupo
+            }' - '${param}': vacío no permitido`,
+            typeError: "error",
+          };
+          break outer; // 👈 cortamos en el primer error
+        }
+
+        if (!/^\d+(\.\d+)?$/.test(String(valor))) {
+          error = {
+            descripcion: `Fila ${rowIndex + 1} '${
+              grupo.grupo
+            }' - '${param}': debe ser número con punto decimal`,
+            typeError: "error",
+          };
+          break outer;
+        }
+
+        const num = parseFloat(String(valor));
+        if (num <= 0) {
+          error = {
+            descripcion: `Fila ${rowIndex + 1} '${
+              grupo.grupo
+            }' - '${param}': debe ser mayor que 0`,
+            typeError: "error",
+          };
+          break outer;
+        }
+
+        // Solo registrar cambios válidos
+        const inicial = valuesInicialesParametrosCalidad.find(
+          (p) => p.key === param
+        );
+        if (inicial && inicial.value !== String(valor)) {
+          cambios[param] = valor;
+        }
+      }
+
+      if (Object.keys(cambios).length > 1) {
+        gruposConCambios.push(cambios);
+      }
+    }
+
+    if (error) {
+      setErrorGruposEmparejamiento(error);
+      setVisibleErrorGruposEmparejamiento(true);
+      setGruposEmparejamientoCambiosValues([]); // no guardamos nada si hay error
+    } else {
+      setErrorGruposEmparejamiento({ descripcion: "", typeError: "info" });
+      setVisibleErrorGruposEmparejamiento(false);
+      setGruposEmparejamientoCambiosValues(gruposConCambios);
+    }
+  }, [dataGruposEmparejamiento]);
+
+  useEffect(() => {
+    if (!tiempoEspera) {
+      setVisibleErrorTiempoEspera(true);
+      setErrorTiempoespera({
+        descripcion: "El tiempo de espera no puede ser vacio",
+        typeError: "error",
+      });
+    } else if (tiempoEspera === "0") {
+      setVisibleErrorTiempoEspera(true);
+      setErrorTiempoespera({
+        descripcion: "El tiempo de espera no puede ser 0",
+        typeError: "error",
+      });
+    } else {
+      setVisibleErrorTiempoEspera(false);
+      setErrorTiempoespera({
+        descripcion: "",
+        typeError: "info",
+      });
+    }
+  }, [tiempoEspera]);
+
+  useEffect(() => {
+    setIsErrorOtrosParametros(
+      visibleErrorDataRumas ||
+        visibleErrorGruposEmparejamiento ||
+        valuesSelecParamentrosCalidad.length === 0 ||
+        visibleErrorTiempoEspera
+    );
+  }, [
+    visibleErrorDataRumas,
+    visibleErrorGruposEmparejamiento,
+    valuesSelecParamentrosCalidad,
+    visibleErrorTiempoEspera,
+  ]);
+
+  useEffect(() => {
+    const keysParamentrosSeleccionados = valuesSelecParamentrosCalidad.map(
+      (item) => item.key
+    );
+
+    const particionesDefault: IParticiones = { "*": valuesRumas };
+
+    const particionesValue = habilitarDivision
+      ? particiones
+      : particionesDefault;
+
+    const emparejamientos: IEmparejamientos =
+      gruposEmparejamientoCambiosValues.reduce((acc, item) => {
+        const { grupo, ...rest } = item;
+
+        // Convertir todos los valores string a number
+        const parametros = Object.fromEntries(
+          Object.entries(rest).map(([k, v]) => [k, Number(v)])
+        );
+
+        acc[grupo] = parametros;
+        return acc;
+      }, {} as IEmparejamientos);
+
+    onChange?.(
+      isErrorOtrosParamentros,
+      keysParamentrosSeleccionados,
+      particionesValue,
+      emparejamientos,
+      tiempoEspera
+    );
+  }, [
+    isErrorOtrosParamentros,
+    valuesSelecParamentrosCalidad,
+    particiones,
+    gruposEmparejamientoCambiosValues,
+    tiempoEspera,
+    valuesRumas,
+  ]);
+
   return (
     <div className="w-full">
       <Card>
         <CardPreview>
-          <div className="p-3">
+          <div className="p-3 ">
             <div className="flex flex-col gap-4">
               <div>
-                <Title title="Parámetros Logísticos" />
+                <Title title="Otros Paramentros" />
               </div>
 
-              <AppTagPicker
-                options={allOptions}
-                value={values}
-                onChange={setValues}
-                //error={errors.centro_ubicacion?.message}
-                size="medium"
-                label="Elige uno o más parámetros"
-                sizeLabel="medium"
-                requieredLabel={false}
-                placeholder="Seleccione centros de ubicación"
-              />
-              <div className="flex w-full ">
-                <div className="flex flex-col gap-3 w-1/3">
-                  <span className="font-semibold">División de rumas</span>
-                  <TableDynamic
-                    calidades={calidades}
-                    title="Paramtroes"
-                    editable
-                    onDataChange={setDatos}
-                    widthFull={false}
-                    height="auto"
-                    isStickyFirstCol={false}
-                    paintRowCol={false}
-                    titleFirstCol="Rumas"
-                  ></TableDynamic>
+              <div className="flex flex-col gap-0.5">
+                <AppTagPickerKeyValue
+                  options={memoParametrosCalidad}
+                  value={memoValuesSelecParamentrosCalidad}
+                  onChange={(newValues) => {
+                    const prevKeys = valuesSelecParamentrosCalidad
+                      .map((v) => v.key)
+                      .sort();
+                    const newKeys = newValues.map((v) => v.key).sort();
+
+                    const same =
+                      prevKeys.length === newKeys.length &&
+                      prevKeys.every((k, i) => k === newKeys[i]);
+
+                    if (!same) {
+                      setValuesSelecParamentrosCalidad(newValues);
+                    }
+                  }}
+                  size="medium"
+                  label="Elige uno o más parámetros"
+                  sizeLabel="medium"
+                  requieredLabel={false}
+                  placeholder="Seleccione centros de ubicación"
+                  keyView={true}
+                />
+
+                {valuesSelecParamentrosCalidad.length === 0 && (
+                  <span className="text-red-400">
+                    Los parametros son requeridos
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <Checkbox
+                  size="large"
+                  label="Habilitar división por ruma"
+                  checked={habilitarDivision}
+                  onChange={(ev, data) => setHabilitarDivision(data.checked)}
+                />
+              </div>
+
+              <div className="flex w-full gap-6 pb-10">
+                <div className="flex flex-col gap-3 w-1/3 ">
+                  {!habilitarDivision ? (
+                    <>
+                      <Textarea
+                        placeholder="Ingresa valor"
+                        style={{ height: "6rem" }}
+                        value={valuesRumas}
+                        onChange={onChangeValuesRumas}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold">División de rumas</span>
+                      <TableDynamic
+                        data={dataRumasExcelList}
+                        editable
+                        firstColKey="ruma"
+                        onDataChange={setDataRumasExcelList}
+                        widthFull={false}
+                        height="auto"
+                        isStickyFirstCol={false}
+                        paintRowCol={false}
+                        titleFirstCol="Rumas"
+                        isChangeBold={true}
+                      ></TableDynamic>
+                    </>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    {visibleErrorDataRumas && (
+                      <>
+                        <MessageBar intent={setDataRumas.typeError}>
+                          <MessageBarBody>
+                            <MessageBarTitle>
+                              {setDataRumas.typeError}
+                            </MessageBarTitle>
+                            {setDataRumas.descripcion}
+                          </MessageBarBody>
+                        </MessageBar>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-3 w-2/3">
-                  <span className="font-semibold">División de rumas</span>
+                  <span className="font-semibold">Emparejamiento</span>
                   <TableDynamic
-                    calidades={dataV1}
-                    title="Paramtroes"
+                    data={dataGruposEmparejamiento}
                     editable
-                    onDataChange={setDatos}
+                    firstColKey="grupo"
+                    onDataChange={setDataGruposEmparejamiento}
                     widthFull={false}
                     height="auto"
                     isStickyFirstCol={false}
                     paintRowCol={false}
                     titleFirstCol="Grupos"
+                    isChangeBold={true}
                   ></TableDynamic>
+
+                  <div className="flex flex-col gap-2">
+                    {visibleErrorGruposEmparejamiento && (
+                      <>
+                        <MessageBar
+                          intent={errorGruposEmparejamiento.typeError}
+                        >
+                          <MessageBarBody>
+                            <MessageBarTitle>
+                              {errorGruposEmparejamiento.typeError}
+                            </MessageBarTitle>
+                            {errorGruposEmparejamiento.descripcion}
+                          </MessageBarBody>
+                        </MessageBar>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="w-full flex justify-end">
+                <div className="w-1/4 flex flex-col gap-2">
+                  <div className="w-full flex justify-end">
+                    <div className="bg-red-500 w-auto py-2 rounded-xs px-3 flex gap-3 items-center">
+                      <span className="text-white">Tiempo de espera: </span>
+                      <Input
+                        value={tiempoEspera}
+                        type="number"
+                        size="large"
+                        min={1}
+                        onKeyDown={(e) => {
+                          if (e.key === "-" || e.key === "e" || e.key === "E") {
+                            e.preventDefault(); // bloquea escribir signos y exponentes
+                          }
+                        }}
+                        onChange={onChangeTiempoEspera}
+                      ></Input>
+                    </div>
+                  </div>
+
+                  {visibleErrorTiempoEspera && (
+                    <>
+                      <MessageBar intent={errorTiempoEspera.typeError}>
+                        <MessageBarBody>
+                          <MessageBarTitle>
+                            {errorTiempoEspera.typeError}
+                          </MessageBarTitle>
+                          {errorTiempoEspera.descripcion}
+                        </MessageBarBody>
+                      </MessageBar>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

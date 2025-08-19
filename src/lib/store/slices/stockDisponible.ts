@@ -1,10 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import {
-  clearStockDisponible,
-  getAllStockDisponible,
-  saveStockDisponible,
-} from "@/services/indexeddb.service";
+import { clearData, getAllData, saveData } from "@/services/indexeddb.service";
 
+const STORE_NAME = "StockDisponible";
 
 export interface StockDisponibleItem {
   fijos: Fijos;
@@ -26,7 +23,8 @@ const initialState: StockDisponibleState = {
 export const loadStockDisponible = createAsyncThunk(
   "stock-disponible/loadFromIndexedDB",
   async () => {
-    return await getAllStockDisponible();
+    const result = await getAllData(STORE_NAME);
+      return result.length > 0 ? result[0] : null;
   }
 );
 
@@ -34,7 +32,8 @@ export const loadStockDisponible = createAsyncThunk(
 export const persistStockDisponible = createAsyncThunk(
   "stock-disponible/saveToIndexedDB",
   async (stockDisponibleItem: StockDisponibleItem[]) => {
-    await saveStockDisponible(stockDisponibleItem);
+    await clearData(STORE_NAME); // Limpia antes de guardar
+    await saveData(STORE_NAME, stockDisponibleItem);
     return stockDisponibleItem; // Retorna el mismo item para actualizar el estado
   }
 );
@@ -42,7 +41,7 @@ export const persistStockDisponible = createAsyncThunk(
 export const clearStockDisponibleFromDB = createAsyncThunk(
   "stock-disponible/clearIndexedDB",
   async () => {
-    await clearStockDisponible();
+    await clearData( STORE_NAME);
     return [];
   }
 );

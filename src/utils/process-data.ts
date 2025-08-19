@@ -24,8 +24,7 @@ export function extraerValoresUnicos(data: DataItem[]) {
       resultado.centroProduccion.add(fijos.centroProduccion);
     //if (fijos.ubicacionEnAlmacen)resultado.ubicacionEnAlmacen.add(fijos.ubicacionEnAlmacen);
     if (fijos.rumaNro) resultado.rumaNro.add(fijos.rumaNro);
-    if (fijos.calidadPlanta)
-      resultado.calidadPlanta.add(fijos.calidadPlanta);
+    if (fijos.calidadPlanta) resultado.calidadPlanta.add(fijos.calidadPlanta);
   });
 
   // Convertir los Sets a arrays
@@ -41,7 +40,7 @@ type Fijos = {
   tipoProduccion: string;
   centroProduccion: string;
   //ubicacionEnAlmacen: string;
-  calidadPlanta:string;
+  calidadPlanta: string;
   rumaNro: string;
 };
 
@@ -58,7 +57,7 @@ export function extraerValoresParametro(
     if (valor === undefined || valor === null) return [];
     return Array.isArray(valor) ? valor : [valor];
   });
-} 
+}
 
 ///En esta funcion puede acceder asi
 //const relacion = buildRelacionCentroUbicacion(data);
@@ -166,4 +165,41 @@ export function getValoresUnificadosPorCentros(
     almacenesUbicacion: Array.from(almacenesSet),
     centrosProduccion: Array.from(centrosProduccionSet),
   };
+}
+
+export type DataOferta = {
+  [lote: string]: {
+    fijos: any;
+    parametrosCalidad: any;
+    otrosParamentros: any;
+  };
+};
+
+export const agruparPorUmVta = (dataOferta: DataOferta) => {
+  // 1. Filtrar para quedarnos solo con los que tienen umVta numérico
+  const filtrados = Object.entries(dataOferta).filter(
+    ([, value]) => !isNaN(Number(value.fijos.umVta))
+  );
+
+  // 2. Agrupar por valor de umVta
+  const agrupados: Record<string, DataOferta> = {};
+
+  filtrados.forEach(([lote, data]) => {
+    const grupoKey = `Grupo-${data.fijos.umVta}`;
+    if (!agrupados[grupoKey]) {
+      agrupados[grupoKey] = {};
+    }
+    agrupados[grupoKey][lote] = data;
+  });
+
+  return agrupados;
+};
+
+export function OrderKeyAgupacionUmVta(key: string[]): string[] {
+  const keysOrdenados = key.sort((a, b) => {
+    const numA = parseInt(a.replace("Grupo-", ""), 10);
+    const numB = parseInt(b.replace("Grupo-", ""), 10);
+    return numA - numB;
+  });
+  return keysOrdenados;
 }

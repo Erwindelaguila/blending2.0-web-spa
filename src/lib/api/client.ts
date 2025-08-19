@@ -1,4 +1,8 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { API_URL } from "../constants/env";
 
 // Configuración base del cliente Axios
@@ -7,7 +11,6 @@ const api = axios.create({
   timeout: 30000,
 });
 
-// Interceptor de REQUEST: adjunta token y headers estándar
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
@@ -17,7 +20,14 @@ api.interceptors.request.use(
       }
       config.headers["X-Requested-With"] = "XMLHttpRequest";
       config.headers["X-Client-Version"] = "2.0";
-      config.headers["Content-Type"] = "application/json";
+
+      // Solo poner application/json si no es FormData
+      if (!(config.data instanceof FormData)) {
+        config.headers["Content-Type"] = "application/json";
+      } else {
+        // Dejar que Axios ponga el multipart/form-data con boundary
+        delete config.headers["Content-Type"];
+      }
     } catch (_) {
       // Si falla obtener token se continúa; backend responderá 401
     }
@@ -54,7 +64,9 @@ function isTokenValid(token: string): boolean {
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

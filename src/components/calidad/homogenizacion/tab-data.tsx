@@ -12,7 +12,7 @@ import {
   Spinner,
 } from "@fluentui/react-components";
 import { DatePicker } from "@fluentui/react-datepicker-compat";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppTagPicker } from "../../ui/app-tagPicker";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import {
@@ -41,6 +41,14 @@ import {
 } from "@/utils/process-data";
 import { resetBlobData, setBlobData } from "@/lib/store/slices/blobSlice";
 import { onFormatDate } from "@/utils/date";
+
+export interface ErrorType {
+  field: string;
+  detail: string;
+  code: string;
+  instance: string;
+  traceId: string;
+}
 
 export function TabData() {
   const style = useButtonsStyles();
@@ -179,7 +187,7 @@ export function TabData() {
 
     const filename = fileName ?? undefined;
     await asyncAction.execute(
-      () => SapService.getSapData("/api/get-sap-stock", filename),
+      () => SapService.getSapData("/api/upload/get-sap-stock", filename),
       undefined,
       setResponseSap
     );
@@ -190,7 +198,7 @@ export function TabData() {
     if (responseCargarExcel.success?.succeeded) {
       dispatch(persistStockDisponible(responseCargarExcel.success.data));
     }
-  }, [dispatch, responseCargarExcel.success, responseSap.success]);
+  }, [dispatch, responseCargarExcel.success]);
 
   useEffect(() => {
     if (responseSap.success?.succeeded) {
@@ -263,7 +271,7 @@ export function TabData() {
     setTipoProduccion(opcionesFiltradas);
   }
 
-  const processData = () => {
+  const processData = useMemo(() => {
     if (loading) {
       return (
         <div className="w-full items-center flex justify-center h-auto pt-7">
@@ -271,7 +279,8 @@ export function TabData() {
         </div>
       );
     }
-    if (data && data.length > 0) {
+
+    if (data) {
       return (
         <>
           <div className="w-full h-11/13 pb-2">
@@ -524,9 +533,8 @@ export function TabData() {
         </>
       );
     }
-
-    return;
-  };
+    return null;
+  }, [loading, data]);
 
   return (
     <div className=" w-full px-2 m-auto flex flex-col h-full">
@@ -609,7 +617,7 @@ export function TabData() {
         </Card>
       </div>
 
-      {processData()}
+      {processData}
     </div>
   );
 }
