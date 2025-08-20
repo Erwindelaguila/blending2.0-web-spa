@@ -8,6 +8,7 @@ export function extraerValoresUnicos(data: DataItem[]) {
     //ubicacionEnAlmacen: new Set(),
     rumaNro: new Set(),
     calidadPlanta: new Set(),
+    planta: new Set(),
   };
 
   data.forEach((item) => {
@@ -25,6 +26,7 @@ export function extraerValoresUnicos(data: DataItem[]) {
     //if (fijos.ubicacionEnAlmacen)resultado.ubicacionEnAlmacen.add(fijos.ubicacionEnAlmacen);
     if (fijos.rumaNro) resultado.rumaNro.add(fijos.rumaNro);
     if (fijos.calidadPlanta) resultado.calidadPlanta.add(fijos.calidadPlanta);
+    if (fijos.planta) resultado.planta.add(fijos.planta);
   });
 
   // Convertir los Sets a arrays
@@ -42,6 +44,7 @@ type Fijos = {
   //ubicacionEnAlmacen: string;
   calidadPlanta: string;
   rumaNro: string;
+  planta: string;
 };
 
 type DataItem = {
@@ -130,12 +133,37 @@ function getRelacionadosPorCentroUbicacion(
     const cp = fijos.centroProduccion?.trim();
 
     if (cu !== centroUbicacion) continue; // Solo si coincide con el parámetro
-
     if (au) almacenesUbicacion.add(au);
     if (cp) centrosProduccion.add(cp);
   }
 
   return {
+    almacenesUbicacion: Array.from(almacenesUbicacion),
+    centrosProduccion: Array.from(centrosProduccion),
+  };
+}
+
+export function getRelacionadosPorPlanta(data: any[], plata: string) {
+  const centrosUbicacion = new Set<string>();
+  const almacenesUbicacion = new Set<string>();
+  const centrosProduccion = new Set<string>();
+
+  for (const item of data) {
+    const fijos = item.fijos;
+
+    const pa = fijos.planta?.trim();
+    const cu = fijos.centroUbicacion?.trim();
+    const au = fijos.almacenUbicacion?.trim();
+    const cp = fijos.centroProduccion?.trim();
+
+    if (pa !== plata) continue; // Solo si coincide con el parámetro
+    if (cu) centrosUbicacion.add(cu);
+    if (au) almacenesUbicacion.add(au);
+    if (cp) centrosProduccion.add(cp);
+  }
+
+  return {
+    centrosUbicacion: Array.from(centrosUbicacion),
     almacenesUbicacion: Array.from(almacenesUbicacion),
     centrosProduccion: Array.from(centrosProduccion),
   };

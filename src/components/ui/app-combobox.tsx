@@ -7,11 +7,11 @@ type Props = {
   value: string;
   onChange: (value: string | undefined) => void;
   placeholder?: string;
-  disabledOptions?: string[]; // opciones deshabilitadas
+  disabledOptions?: string[];
   label?: string;
-  labelRequired: boolean; // si el label es requerido
+  labelRequired: boolean;
   error?: string;
-  size?: sizeCombobox; // tamaño del combobox
+  size?: sizeCombobox;
   errorInput?: boolean;
   grayBorder?: boolean;
 };
@@ -27,8 +27,8 @@ export const AppCombobox: React.FC<Props> = ({
   label,
   labelRequired = false,
   error,
-  size = "medium", // tamaño del combobox
-  errorInput = false, // si el input tiene error
+  size = "medium",
+  errorInput = false,
   grayBorder = false,
 }) => {
   const borderColor = errorInput
@@ -36,6 +36,7 @@ export const AppCombobox: React.FC<Props> = ({
     : grayBorder
     ? OrgColors.serotGris
     : OrgColors.celeste;
+
   const hasOptions = options.length > 0;
 
   return (
@@ -50,22 +51,26 @@ export const AppCombobox: React.FC<Props> = ({
         value={value}
         clearable
         onOptionSelect={(_, data) => onChange(data.optionValue)}
+        // 👇 aquí limitamos la altura del listbox
+        listbox={{ style: { maxHeight: "5px", overflowY: "auto" } }}
       >
-        {hasOptions ? (
-          options.map((option) => (
-            <Option
-              key={option}
-              value={option}
-              disabled={disabledOptions.includes(option)}
-            >
-              {option}
+        <div className="max-h-96 overflow-auto z-0">
+          {hasOptions ? (
+            options.map((option) => (
+              <Option
+                key={option}
+                value={option}
+                disabled={disabledOptions.includes(option)}
+              >
+                {option}
+              </Option>
+            ))
+          ) : (
+            <Option value="no-options" disabled>
+              No hay opciones disponibles
             </Option>
-          ))
-        ) : (
-          <Option value="no-options" disabled>
-            No hay opciones disponibles
-          </Option>
-        )}
+          )}
+        </div>
       </Combobox>
 
       {error && (

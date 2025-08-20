@@ -37,6 +37,7 @@ import { downloadFileExcel } from "@/utils/download-file";
 import {
   extraerValoresParametro,
   extraerValoresUnicos,
+  getRelacionadosPorPlanta,
   getValoresUnificadosPorCentros,
 } from "@/utils/process-data";
 import { resetBlobData, setBlobData } from "@/lib/store/slices/blobSlice";
@@ -51,6 +52,7 @@ export interface ErrorType {
 }
 
 export function TabData() {
+  const PLATA_DEFAULT = "MSU";
   const style = useButtonsStyles();
   const asyncAction = useAsyncAction();
 
@@ -123,8 +125,8 @@ export function TabData() {
   const [tipoProduccion, setTipoProduccion] = useState<string[]>([]);
   const [rumas, setRumas] = useState<string[]>([]);
   const [allRumas, setAllRumas] = useState<string[]>([]);
-  const [allValuesCadmio, setAllValuesCadmio] = useState<string[]>([]);
   const [calidadPlanta, setCalidadPlanta] = useState<string[]>([]);
+  const [plantas, setPlantas] = useState<string[]>([]);
 
   const dispatch = useAppDispatch();
 
@@ -220,15 +222,24 @@ export function TabData() {
   useEffect(() => {
     if (data && data.length > 0) {
       const valoresUnicos = extraerValoresUnicos(data);
-      setCentrosUbicacion(valoresUnicos.centroUbicacion);
+      setPlantas(valoresUnicos.planta);
       setAllTiposProduccion(valoresUnicos.tipoProduccion);
       setTipoProduccion(valoresUnicos.tipoProduccion);
       setAllRumas(valoresUnicos.rumaNro);
       setCalidadPlanta(valoresUnicos.calidadPlanta);
-      const cadmio = extraerValoresParametro(data, "cadmio");
-      setAllValuesCadmio(cadmio);
     }
   }, [data]);
+
+  useEffect(() => {
+    if (plantas) {
+      if (!plantas.includes(PLATA_DEFAULT)) return;
+      setValue("plata_Homogenizado", PLATA_DEFAULT, { shouldValidate: true });
+      const resultado = getRelacionadosPorPlanta(data, PLATA_DEFAULT);
+      setCentrosUbicacion(resultado.centrosUbicacion);
+      setAlmacenesUbicacion(resultado.almacenesUbicacion);
+      setCentrosProduccion(resultado.centrosProduccion);
+    }
+  }, [plantas, data]);
 
   useEffect(() => {
     if (checkedRumasHp) {
@@ -248,6 +259,18 @@ export function TabData() {
       return;
     }
     const resultado = getValoresUnificadosPorCentros(data, selected);
+    setAlmacenesUbicacion(resultado.almacenesUbicacion);
+    setCentrosProduccion(resultado.centrosProduccion);
+  }
+
+  function processPlantas(value: string | undefined) {
+    setCentrosUbicacion([]);
+    setAlmacenesUbicacion([]);
+    setCentrosProduccion([]);
+    if (!value) return;
+
+    const resultado = getRelacionadosPorPlanta(data, value);
+    setCentrosUbicacion(resultado.centrosUbicacion);
     setAlmacenesUbicacion(resultado.almacenesUbicacion);
     setCentrosProduccion(resultado.centrosProduccion);
   }
@@ -280,12 +303,12 @@ export function TabData() {
       );
     }
 
-    if (data) {
+    if (data && data.length > 0) {
       return (
         <>
           <div className="w-full h-11/13 pb-2">
             <Card style={{ width: "100%", height: "100%" }}>
-              <div className=" w-full h-full  overflow-y-auto">
+              <div className=" w-full h-full  overflow-y-auto z-50">
                 <Title title="Filtros"></Title>
                 <div className="w-full flex flex-col gap-2 ">
                   <div className="w-full mt-2 flex flex-col gap-1">
@@ -298,9 +321,12 @@ export function TabData() {
                           label="Planta Homogenizado"
                           labelRequired={true}
                           size="medium"
-                          options={["Planta 1", "Planta 2", "Planta 3"]}
+                          options={plantas}
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            processPlantas(value);
+                          }}
                           error={errors.plata_Homogenizado?.message}
                         />
                       )}
@@ -321,7 +347,7 @@ export function TabData() {
                           value={field.value}
                           onChange={(selected) => {
                             field.onChange(selected);
-                            processCentrosUbicacion(selected); // lógica extra opcional
+                            //processCentrosUbicacion(selected); // lógica extra opcional
                           }}
                           error={errors.centro_ubicacion?.message}
                           size="medium"
@@ -534,7 +560,15 @@ export function TabData() {
       );
     }
     return null;
-  }, [loading, data]);
+  }, [
+    loading,
+    data,
+    centrosUbicacion,
+    allTiposProduccion,
+    tipoProduccion,
+    allRumas,
+    calidadPlanta,
+  ]);
 
   return (
     <div className=" w-full px-2 m-auto flex flex-col h-full">

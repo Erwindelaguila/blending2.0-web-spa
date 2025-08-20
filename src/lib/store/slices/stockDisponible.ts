@@ -24,7 +24,7 @@ export const loadStockDisponible = createAsyncThunk(
   "stock-disponible/loadFromIndexedDB",
   async () => {
     const result = await getAllData(STORE_NAME);
-      return result.length > 0 ? result[0] : null;
+    return result; // <-- ya no recortes con [0]
   }
 );
 
@@ -41,7 +41,7 @@ export const persistStockDisponible = createAsyncThunk(
 export const clearStockDisponibleFromDB = createAsyncThunk(
   "stock-disponible/clearIndexedDB",
   async () => {
-    await clearData( STORE_NAME);
+    await clearData(STORE_NAME);
     return [];
   }
 );
@@ -70,9 +70,12 @@ const stockDisponibleSlice = createSlice({
 
 export default stockDisponibleSlice.reducer;
 
-
 export interface Fijos {
   rumaNro: string;
+  planta: string;
+  anio: string;
+  serie: string;
+  fechaCorte: string;
   cantidad: number;
   um: string;
   codigo: string;
