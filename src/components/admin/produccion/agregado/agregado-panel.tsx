@@ -1,7 +1,6 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
 import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
@@ -17,7 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getByIdAgregadoKey,
 } from "@/lib/constants/key-fetch";
-import { IAgregado, IAgregadoSend, IAgregadoUpdate } from "@/interface/admin/agregado";
+import { IAgregado, IAgregadoRequest, IAgregadoUpdate } from "@/interface/admin/agregado";
 import { AgregadoService } from "@/services/agregado.service";
 import { formatearFechaCompleta } from "@/utils/date";
 import { 
@@ -33,18 +32,16 @@ const TITULOS_PANEL: Record<IDrawer["mode"], string> = {
   detalle: "Detalle de Agregado",
 };
 
-const defaultFormValues: IAgregadoSend = {
+const defaultFormValues: IAgregadoRequest = {
   codigo: "",
   nombre: "",
   descripcion: "",
   activo: true,
-  creadoPorId: "",
 };
 
 export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
-  const { user } = useAuth();
 
   const {
     register,
@@ -53,7 +50,7 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     watch,
     control,
     formState: { errors },
-  } = useForm<IAgregadoSend>({
+  } = useForm<IAgregadoRequest>({
     defaultValues: defaultFormValues,
   });
 
@@ -61,18 +58,14 @@ export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const [loadingAgregado, setLoadingAgregado] = useState(false);
   const [errorAgregado, setErrorAgregado] = useState<string | null>(null);
 
-  const onSubmit: SubmitHandler<IAgregadoSend> = async (data) => {
-    if (!user?.id) {
-      console.error("Usuario no autenticado o sin ID");
-      return;
-    }
-    const sendAgregado: IAgregadoSend = { ...data, creadoPorId: user.id };
-    const sendUpdate: IAgregadoUpdate = { ...data, modificadoPorId: user.id, id: id || "" };
+  const onSubmit: SubmitHandler<IAgregadoRequest> = async (data) => {
+    const sendCreate: IAgregadoRequest = { ...data };
+    const sendUpdate: IAgregadoUpdate = { ...data, id: id || "" };
 
     await asyncAction.execute(async () => {
       const result = id
         ? await AgregadoService.actualizar(sendUpdate)
-        : await AgregadoService.crear(sendAgregado);
+        : await AgregadoService.crear(sendCreate);
       return result;
     });
   };

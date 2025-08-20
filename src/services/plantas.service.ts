@@ -1,6 +1,7 @@
 import { BaseResponse } from "@/interface";
-import { IPlantaResponse, IPlantaSend, IPlantaUpdate, PagedPlantaResponse, PlantaFiltersParams } from "@/interface/admin/planta";
+import { IPlantaResponse, IPlantaRequest, IPlantaUpdate, PagedPlantaResponse, PlantaFiltersParams } from "@/interface/admin/planta";
 import { api } from "@/lib/api";
+import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllPlantaKey } from "@/lib/constants/key-fetch";
 
 export class PlantasService {
@@ -32,11 +33,11 @@ export class PlantasService {
   }
 
   static async crear(
-    data: IPlantaSend
+    data: IPlantaRequest
   ): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.post<BaseResponse<IPlantaResponse>>(
       getAllPlantaKey(),
-      data
+  withCreateAudit(data as any)
     );
     return response.data;
   }
@@ -46,7 +47,7 @@ export class PlantasService {
   ): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.put<BaseResponse<IPlantaResponse>>(
       getAllPlantaKey(),
-      data
+  withUpdateAudit(data as any)
     );
     return response.data;
   }

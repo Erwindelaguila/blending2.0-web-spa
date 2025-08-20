@@ -1,7 +1,6 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
 import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
@@ -14,7 +13,7 @@ import {
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { useEffect, useMemo, useState } from "react";
-import { IPlantaResponse, IPlantaSend, IPlantaUpdate } from "@/interface/admin/planta";
+import { IPlantaResponse, IPlantaRequest, IPlantaUpdate } from "@/interface/admin/planta";
 import { PlantasService } from "@/services/plantas.service";
 import { formatearFechaCompleta } from "@/utils/date";
 import { 
@@ -30,19 +29,17 @@ const TITULOS_PANEL: Record<IDrawer["mode"], string> = {
   detalle: "Detalle de Planta",
 };
 
-const defaultFormValues: IPlantaSend = {
+const defaultFormValues: IPlantaRequest = {
   codigo: "",
   nombre: "",
   descripcion: "",
   numeroRuma: 1,
   activo: true,
-  creadoPorId: "",
 };
 
 export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
-  const { user } = useAuth();
 
   const {
     register,
@@ -51,7 +48,7 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     watch,
     control,
     formState: { errors },
-  } = useForm<IPlantaSend>({ defaultValues: defaultFormValues });
+  } = useForm<IPlantaRequest>({ defaultValues: defaultFormValues });
   
   const [dataPlanta, setDataPlanta] = useState<BaseResponse<IPlantaResponse> | null>(null);
   const [loadingPlanta, setLoadingPlanta] = useState(false);
@@ -89,7 +86,7 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     };
 
     loadData();
-  }, [open, mode, id, reset, user?.id]);
+  }, [open, mode, id, reset]);
 
   useEffect(() => {
     if (!open) {
@@ -100,31 +97,15 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     }
   }, [open]);
 
-  const onSubmit: SubmitHandler<IPlantaSend> = async (data) => {
-    if (!user?.id) {
-      console.error("Usuario no autenticado o sin ID");
-      return;
-    }
-
-    const plantaData: IPlantaSend = {
-      ...data,
-      creadoPorId: user.id,
-    };
+  const onSubmit: SubmitHandler<IPlantaRequest> = async (data) => {
+    const sendCreate: IPlantaRequest = { ...data };
+    const sendUpdate: IPlantaUpdate = { ...data, id: id || "" };
 
     await asyncAction.execute(async () => {
-      if (mode === "crear") {
-        const result = await PlantasService.crear(plantaData);
-        return result;
-      } else if (mode === "editar" && id) {
-        const updateData: IPlantaUpdate = {
-          ...data,
-          id,
-          modificadoPorId: user.id,
-        };
-        const result = await PlantasService.actualizar(updateData);
-        return result;
-      }
-      throw new Error("Modo inválido");
+      const result = id
+        ? await PlantasService.actualizar(sendUpdate)
+        : await PlantasService.crear(sendCreate);
+      return result;
     });
   };
 

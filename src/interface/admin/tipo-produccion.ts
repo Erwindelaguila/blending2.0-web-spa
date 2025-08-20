@@ -1,11 +1,8 @@
-import { IBaseProduccion } from "./produccion";
-
-export interface ITipoProduccionSend extends ITipoProduccionRequest { creadoPorId: string; }
-export interface ITipoProduccionUpdate extends ITipoProduccionRequest { id: string; modificadoPorId: string; }
-
-export interface ITipoProduccion extends IBaseProduccion {
-  linea_produccion_id: string;
-  agregado_id: string;
+interface ITipoProduccionBase {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
 }
 
 export interface ITipoProduccionRequest {
@@ -13,25 +10,29 @@ export interface ITipoProduccionRequest {
   nombre: string;
   descripcion?: string;
   activo: boolean;
-  linea_produccion_id: string;
-  agregado_id: string;
+  LineaProduccionId: string;
+  AgregadoId: string;
 }
 
-export interface ITipoProduccionResponse {
+export interface ITipoProduccionUpdate extends ITipoProduccionRequest {
   id: string;
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  activo: boolean;
-  linea_produccion_id: string;
-  agregado_id: string;
-  fechaCreacion: string;
 }
 
-export interface PagedTipoProduccionResponse {
-  items: ITipoProduccionResponse[];
-  total: number;
-  page: number;
-  size: number;
-  totalPages: number;
+export interface ITipoProduccionResponse extends ITipoProduccionBase {
+  id: string;
+  activo: boolean;
+  // Aceptar ambas variantes que puede enviar el backend para compatibilidad
+  lineaProduccionId?: string;
+  agregadoId?: string;
+  LineaProduccionId?: string;
+  AgregadoId?: string;
+  creadoPorId: string;
+  creadoEl: string;
+  modificadoPorId?: string;
+  modificadoEl?: string;
 }
+
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedTipoProduccionResponse = PagedResponse<ITipoProduccionResponse>;
+
+export interface TipoProduccionFiltersParams extends BaseFiltersParams {}

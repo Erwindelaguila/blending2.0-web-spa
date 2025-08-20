@@ -58,9 +58,18 @@ export const AppCombobox: React.FC<Props> = ({
 
   // Sincronizar cuando cambia el value externo
   useEffect(() => {
-    if (showLabelInsteadOfValue && selected) {
-      setInputValue(selected.label);
-    } else if (value) {
+    // Si se prefiere mostrar el label y no hay opción mapeada todavía,
+    // NO mostrar el valor crudo (evita ver UUIDs). Quedará vacío hasta que lleguen las opciones.
+    if (showLabelInsteadOfValue) {
+      if (selected) {
+        setInputValue(selected.label);
+      } else {
+        setInputValue("");
+      }
+      return;
+    }
+    // En el modo de mostrar el valor crudo, mantener el comportamiento original
+    if (value) {
       setInputValue(value);
     } else {
       setInputValue("");
@@ -89,6 +98,26 @@ export const AppCombobox: React.FC<Props> = ({
     onChange(undefined);
   };
 
+  // Intentar convertir el texto escrito a una opción válida
+  const commitTypedTextToOption = () => {
+    const txt = inputValue.trim().toLowerCase();
+    if (txt === "") return; // ya se maneja en clear
+    // 1) Coincidencia exacta por label
+    const exact = mappedOptions.find(o => o.label.toLowerCase() === txt);
+    if (exact) {
+      setInputValue(showLabelInsteadOfValue ? exact.label : exact.value);
+      onChange(exact.value);
+      return;
+    }
+    // 2) Si hay un único resultado filtrado, usarlo
+    const filteredByTxt = mappedOptions.filter(o => o.label.toLowerCase().includes(txt));
+    if (filteredByTxt.length === 1) {
+      const only = filteredByTxt[0];
+      setInputValue(showLabelInsteadOfValue ? only.label : only.value);
+      onChange(only.value);
+    }
+  };
+
   // Filtrado simple en memoria (opcional) basado en lo que escribe el usuario
   const filtered = useMemo(() => {
     if (!allowFreeInput || inputValue.trim() === "") return mappedOptions;
@@ -108,6 +137,12 @@ export const AppCombobox: React.FC<Props> = ({
         clearable
         onChange={handleInputChange}
         onOptionSelect={handleOptionSelect}
+        onBlur={commitTypedTextToOption}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            commitTypedTextToOption();
+          }
+        }}
       >
         {hasOptions && filtered.length > 0 ? (
           filtered.map(o => (

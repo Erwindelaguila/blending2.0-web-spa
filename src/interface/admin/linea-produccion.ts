@@ -5,16 +5,18 @@ interface ILineaProduccionBase {
   activo?: boolean;
 }
 
-export interface ILineaProduccionSend extends ILineaProduccionBase {
-  creadoPorId: string;
+export interface ILineaProduccionRequest {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
 }
 
-export interface ILineaProduccionUpdate extends ILineaProduccionBase {
+export interface ILineaProduccionUpdate extends ILineaProduccionRequest {
   id: string;
-  modificadoPorId: string;
 }
 
-export interface ILineaProduccion extends ILineaProduccionBase {
+export interface ILineaProduccionResponse extends ILineaProduccionBase {
   id: string;
   activo: boolean;
   creadoPorId: string;
@@ -23,8 +25,7 @@ export interface ILineaProduccion extends ILineaProduccionBase {
   modificadoEl?: string;
 }
 
-import { PaginationMeta, PagedResponse, BaseFiltersParams } from "@/interface";
-
-export type PagedLineaProduccionResponse = PagedResponse<ILineaProduccion>;
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedLineaProduccionResponse = PagedResponse<ILineaProduccionResponse>;
 
 export interface LineaProduccionFiltersParams extends BaseFiltersParams {}

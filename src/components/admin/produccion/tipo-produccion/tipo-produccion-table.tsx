@@ -22,12 +22,11 @@ import { TipoProduccionPanel } from "./tipo-produccion-panel";
 import { TipoProduccionService } from "@/services/tipo-produccion.service";
 import { LineaProduccionService } from "@/services/linea-produccion.service";
 import { AgregadoService } from "@/services/agregado.service";
-import {
-  ITipoProduccionResponse,
-  PagedTipoProduccionResponse,
-} from "@/interface/admin/tipo-produccion";
+// import { ITipoProduccionResponse } from "@/interface/admin/tipo-produccion";
 import { useAuth } from "@/hooks/use-auth";
 import { useTipoProduccionContext } from "./tipo-produccion-context";
+import { buildPaginatedSWRKey } from "@/utils/swr-keys";
+import { PAGINATION_CONFIG } from "@/config/pagination.config";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -39,17 +38,8 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildTipoProduccionKey = (page: number, size: number, filters?: any) => {
-  const params = new URLSearchParams();
-  params.set("page", page.toString());
-  params.set("size", size.toString());
-  if (filters?.codigo) params.set("codigo", filters.codigo);
-  if (filters?.estado !== undefined) params.set("estado", String(filters.estado));
-  if (filters?.fechaInicio) params.set("fechaInicio", filters.fechaInicio);
-  if (filters?.fechaFin) params.set("fechaFin", filters.fechaFin);
-  if (filters?.tipoFecha) params.set("tipoFecha", filters.tipoFecha);
-  return `tipoproduccion-${params.toString()}`;
-};
+const buildTipoProduccionKey = (page: number, size: number, filters?: any) =>
+  buildPaginatedSWRKey("tipoproduccion", page, size, filters);
 
 export function TipoProduccionTable() {
   const style = useButtonsStyles();
@@ -57,20 +47,18 @@ export function TipoProduccionTable() {
   const { user } = useAuth();
   const { filters } = useTipoProduccionContext();
 
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
+  const pageSize = PAGINATION_CONFIG.DEFAULT_SIZE;
   const serviceFilters = useMemo(() => {
     if (!filters || Object.keys(filters).length === 0) return undefined;
     return {
       codigo: filters.codigo,
       estado: filters.estado,
-      fechaInicio: filters.fechaInicio?.toISOString().split("T")[0],
-      fechaFin: filters.fechaFin?.toISOString().split("T")[0],
-      tipoFecha: filters.tipoFecha,
+      fechaDesde: filters.fechaDesde?.toISOString().split("T")[0],
     };
   }, [filters]);
   const swrKey = buildTipoProduccionKey(page, pageSize, serviceFilters);
-  useEffect(() => { setPage(1); }, [serviceFilters]);
+  useEffect(() => { setPage(PAGINATION_CONFIG.DEFAULT_PAGE); }, [serviceFilters]);
 
   const {
     data: dataTipos,
@@ -79,7 +67,11 @@ export function TipoProduccionTable() {
   } = useSWR<any>(
     swrKey,
     () => TipoProduccionService.listar(page, pageSize, serviceFilters),
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000,
+    }
   );
 
   const { data: lineasLookup } = useSWR(
@@ -92,25 +84,39 @@ export function TipoProduccionTable() {
   );
   const lineasMap = useMemo(() => {
     const list = (lineasLookup?.data?.data || []) as any[];
+    // Incluir TODAS las líneas (activas e inactivas) para el mapeo
     return Object.fromEntries(list.map((l: any) => [l.id, l.codigo]));
   }, [lineasLookup]);
   const agregadosMap = useMemo(() => {
     const list = (agregadosLookup?.data?.data || []) as any[];
+    // Incluir TODOS los agregados (activos e inactivos) para el mapeo
     return Object.fromEntries(list.map((a: any) => [a.id, a.codigo]));
   }, [agregadosLookup]);
 
-  // Soportar nueva estructura con data: { data: [], pagination: {} } y legacy con items
-  const rawItems: any[] = dataTipos?.data?.data || dataTipos?.data?.items || [];
-  const items: any[] = rawItems.map(it => ({
+  // Tolerar respuestas camelCase (estándar) y PascalCase (legacy)
+  const respCamel: any = dataTipos?.data;
+  const respPascal: any = (dataTipos as any)?.Data ? (dataTipos as any) : undefined;
+  const itemsRaw: any[] = respCamel?.data ?? respPascal?.Data ?? [];
+  const items: any[] = itemsRaw.map((it: any) => ({
     ...it,
-    linea_produccion_id: it.linea_produccion_id || it.LineaProduccionId || it.lineaProduccionId,
+    id: it.id ?? it.Id,
+    codigo: it.codigo ?? it.Codigo,
+    nombre: it.nombre ?? it.Nombre,
+    descripcion: it.descripcion ?? it.Descripcion ?? "",
+    activo: typeof it.activo === "boolean" ? it.activo : (it.Activo as boolean),
+    linea_produccion_id:
+      it.linea_produccion_id || it.LineaProduccionId || it.lineaProduccionId,
     agregado_id: it.agregado_id || it.AgregadoId || it.agregadoId,
   }));
-  // Meta de paginación compatible
-  const pagination = dataTipos?.data?.pagination;
-  const paginationCurrentPage = pagination?.currentPage || dataTipos?.data?.page || page;
-  const paginationTotalPages = pagination?.totalPages || dataTipos?.data?.totalPages || 1;
-  const paginationTotalItems = pagination?.totalCount || dataTipos?.data?.total || ((paginationTotalPages - 1) * pageSize + items.length);
+  const pagCamel = respCamel?.pagination;
+  const pagPascal = respPascal?.Pagination;
+  const paginationCurrentPage = pagCamel?.currentPage ?? pagPascal?.CurrentPage ?? page;
+  const paginationTotalPages = pagCamel?.totalPages ?? pagPascal?.TotalPages ?? 1;
+  const paginationTotalItems = pagCamel?.totalCount ?? pagPascal?.TotalCount ?? 0;
+  const hasPrevious = pagCamel?.hasPrevious ?? pagPascal?.HasPrevious;
+  const hasNext = pagCamel?.hasNext ?? pagPascal?.HasNext;
+  const previousPage = pagCamel?.previousPage ?? pagPascal?.PreviousPage;
+  const nextPage = pagCamel?.nextPage ?? pagPascal?.NextPage;
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -160,10 +166,10 @@ export function TipoProduccionTable() {
     switch (columnKey) {
       case "linea_produccion_id":
         const lineaId = item.linea_produccion_id || item.LineaProduccionId || item.lineaProduccionId;
-        return lineasMap[lineaId] || lineaId || "";
+        return lineasMap[lineaId] || "No encontrado";
       case "agregado_id":
         const agregadoId = item.agregado_id || item.AgregadoId || item.agregadoId;
-        return agregadosMap[agregadoId] || agregadoId || "";
+        return agregadosMap[agregadoId] || "No encontrado";
       case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
@@ -174,13 +180,13 @@ export function TipoProduccionTable() {
             appearance="filled"
             style={{
               backgroundColor:
-                statusColorMap[item.activo ? "Activo" : "Inactivo"] || "#666",
+                statusColorMap[(item.activo ?? item.Activo) ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "100%",
             }}
             size="large"
           >
-            {item.activo ? "ACTIVO" : "INACTIVO"}
+            {(item.activo ?? item.Activo) ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
       case "action":
@@ -190,7 +196,7 @@ export function TipoProduccionTable() {
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenDetalle(String(item.id))}
+                onClick={() => handleOpenDetalle(String(item.id ?? item.Id))}
                 icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
               />
             </Tooltip>
@@ -198,7 +204,7 @@ export function TipoProduccionTable() {
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenEditar(String(item.id))}
+                onClick={() => handleOpenEditar(String(item.id ?? item.Id))}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
@@ -209,8 +215,8 @@ export function TipoProduccionTable() {
                 appearance="subtle"
                 onClick={() => {
                   setInfoTipo({
-                    id: String(item.id),
-                    codigo: item.codigo,
+                    id: String(item.id ?? item.Id),
+                    codigo: (item.codigo ?? item.Codigo) as string,
                   });
                   setOpenModal(true);
                 }}
@@ -225,16 +231,18 @@ export function TipoProduccionTable() {
   };
 
   const handlePanelSuccess = () => {
-    const isLastPage = paginationCurrentPage === paginationTotalPages;
-    const isFullLastPage = items.length >= pageSize;
-    mutate(buildTipoProduccionKey(paginationCurrentPage, pageSize, serviceFilters));
-    if (isLastPage && isFullLastPage) {
-      const nextPage = paginationCurrentPage + 1;
-      setPage(nextPage);
-      mutate(buildTipoProduccionKey(nextPage, pageSize, serviceFilters));
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildTipoProduccionKey(i, pageSize, serviceFilters), undefined, {
+        revalidate: false,
+      });
+    }
+    if (mode === "crear") {
+      const newTotal = paginationTotalItems + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize);
+      setPage(newLastPage);
+      mutate(buildTipoProduccionKey(newLastPage, pageSize, serviceFilters));
     } else {
-      if (paginationCurrentPage !== 1)
-        mutate(buildTipoProduccionKey(1, pageSize, serviceFilters));
+      mutate(buildTipoProduccionKey(page, pageSize, serviceFilters));
     }
   };
 
@@ -244,7 +252,6 @@ export function TipoProduccionTable() {
     if (!userId)
       throw new Error("No se encontró el id del usuario autenticado");
 
-    const willBeLastOnPage = items.length === 1 && page > 1;
     await deleteAction.execute(
       async () => {
         await TipoProduccionService.eliminar(infoTipo.id.toString(), userId);
@@ -252,13 +259,16 @@ export function TipoProduccionTable() {
       },
       buildTipoProduccionKey(page, pageSize, serviceFilters)
     );
+    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+      mutate(buildTipoProduccionKey(i, pageSize, serviceFilters), undefined, {
+        revalidate: false,
+      });
+    }
     mutate(buildTipoProduccionKey(page, pageSize, serviceFilters));
-    if (willBeLastOnPage) {
+    if (items.length === 1 && page > 1) {
       const prevPage = page - 1;
       setPage(prevPage);
       mutate(buildTipoProduccionKey(prevPage, pageSize, serviceFilters));
-    } else {
-      mutate(buildTipoProduccionKey(paginationTotalPages, pageSize, serviceFilters));
     }
   };
 
@@ -296,7 +306,19 @@ export function TipoProduccionTable() {
                 currentPage={paginationCurrentPage}
                 totalPages={paginationTotalPages}
                 totalItems={paginationTotalItems}
-                onPageChange={setPage}
+                onPageChange={(newPage) => {
+                  if (
+                    newPage !== page &&
+                    newPage >= 1 &&
+                    newPage <= paginationTotalPages
+                  ) {
+                    setPage(newPage);
+                  }
+                }}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>

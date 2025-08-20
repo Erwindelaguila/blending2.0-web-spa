@@ -2,13 +2,12 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { mutate } from 'swr';
+import { buildPaginatedSWRKey } from "@/utils/swr-keys";
 
 export interface ProductoFilters {
   codigo?: string;
-  estado?: number; // 1=activos, 0=inactivos, undefined=todos
-  fechaInicio?: Date;
-  fechaFin?: Date;
-  tipoFecha?: string; // 'creados' | 'modificados' | undefined
+  estado?: number; // 1=activos, 0=inactivos
+  fechaDesde?: Date;
 }
 
 export interface ProductoContextType {
@@ -20,18 +19,8 @@ export interface ProductoContextType {
 
 const ProductoContext = createContext<ProductoContextType | undefined>(undefined);
 
-// Helper para construir key estable (igual que Agregado)
-export const buildProductosKey = (page: number, size: number, filters?: any) => {
-  const params = new URLSearchParams();
-  params.set('page', page.toString());
-  params.set('size', size.toString());
-  if (filters?.codigo) params.set('codigo', filters.codigo);
-  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString());
-  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
-  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
-  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
-  return `productos-${params.toString()}`;
-};
+export const buildProductosKey = (page: number, size: number, filters?: any) =>
+  buildPaginatedSWRKey('productos', page, size, filters);
 
 export function ProductoProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<ProductoFilters>({});
@@ -41,9 +30,9 @@ export function ProductoProvider({ children }: { children: ReactNode }) {
     const serviceFilters = {
       codigo: newFilters.codigo,
       estado: newFilters.estado,
-      fechaInicio: newFilters.fechaInicio?.toISOString().split('T')[0],
-      fechaFin: newFilters.fechaFin?.toISOString().split('T')[0],
-      tipoFecha: newFilters.tipoFecha,
+      fechaDesde: newFilters.fechaDesde
+        ? newFilters.fechaDesde.toISOString().split('T')[0]
+        : undefined,
     };
     const newKey = buildProductosKey(1, 10, serviceFilters);
     mutate(newKey);
@@ -56,7 +45,7 @@ export function ProductoProvider({ children }: { children: ReactNode }) {
   };
 
   const hasActiveFilters = Boolean(
-    filters.codigo || filters.estado !== undefined || filters.fechaInicio || filters.fechaFin || filters.tipoFecha
+    filters.codigo || filters.estado !== undefined || filters.fechaDesde
   );
 
   return (

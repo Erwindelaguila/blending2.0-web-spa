@@ -15,18 +15,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { BaseResponse } from "@/interface";
 import {
   ICalidadResponse,
-  ICalidadSend,
+  ICalidadRequest,
   ICalidadUpdate,
 } from "@/interface/admin/calidad";
 
-const defaultFormValues: ICalidadSend = {
+const defaultFormValues: ICalidadRequest = {
   codigo: "",
   nombre: "",
   codigoMaterial: "",
   descripcion: "",
   conforme: false,
   activo: true,
-  creadoPorId: "",
 };
 
 export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
@@ -41,7 +40,7 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     watch,
     control,
     formState: { errors },
-  } = useForm<ICalidadSend>({
+  } = useForm<ICalidadRequest>({
     defaultValues: defaultFormValues,
   });
 
@@ -94,13 +93,9 @@ export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     }
   }, [open]);
 
-  const onSubmit: SubmitHandler<ICalidadSend> = async (data) => {
-    if (!user?.id) {
-      console.error("Usuario no autenticado o sin ID");
-      return;
-    }
-    const sendCreate: ICalidadSend = { ...data, creadoPorId: user.id };
-  const sendUpdate: ICalidadUpdate = { ...data, id: id || "", modificadoPorId: user.id };
+  const onSubmit: SubmitHandler<ICalidadRequest> = async (data) => {
+    const sendCreate: ICalidadRequest = { ...data };
+    const sendUpdate: ICalidadUpdate = { ...data, id: id || "" };
 
     await asyncAction.execute(
       async () =>

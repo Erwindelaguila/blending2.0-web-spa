@@ -1,6 +1,7 @@
 import { BaseResponse } from "@/interface";
-import { ILineaProduccion, ILineaProduccionSend, ILineaProduccionUpdate, PagedLineaProduccionResponse, LineaProduccionFiltersParams } from "@/interface/admin/linea-produccion";
+import { ILineaProduccionResponse, ILineaProduccionRequest, ILineaProduccionUpdate, PagedLineaProduccionResponse, LineaProduccionFiltersParams } from "@/interface/admin/linea-produccion";
 import { api } from "@/lib/api";
+import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllLineaProduccionKey } from "@/lib/constants/key-fetch";
 
 export class LineaProduccionService {
@@ -22,27 +23,27 @@ export class LineaProduccionService {
     return response.data;
   }
 
-  static async obtenerPorId(url: string): Promise<BaseResponse<ILineaProduccion>> {
-    const response = await api.get<BaseResponse<ILineaProduccion>>(url);
+  static async obtenerPorId(url: string): Promise<BaseResponse<ILineaProduccionResponse>> {
+    const response = await api.get<BaseResponse<ILineaProduccionResponse>>(url);
     return response.data;
   }
 
   static async crear(
-      data: ILineaProduccionSend
-    ): Promise<BaseResponse<ILineaProduccion>> {
-      const response = await api.post<BaseResponse<ILineaProduccion>>(
+      data: ILineaProduccionRequest
+    ): Promise<BaseResponse<ILineaProduccionResponse>> {
+      const response = await api.post<BaseResponse<ILineaProduccionResponse>>(
         getAllLineaProduccionKey(),
-        data
+  withCreateAudit(data as any)
       );
       return response.data;
     }
 
     static async actualizar(
       data: ILineaProduccionUpdate
-    ): Promise<BaseResponse<ILineaProduccion>> {
-      const response = await api.put<BaseResponse<ILineaProduccion>>(
+    ): Promise<BaseResponse<ILineaProduccionResponse>> {
+      const response = await api.put<BaseResponse<ILineaProduccionResponse>>(
         getAllLineaProduccionKey(),
-        data
+  withUpdateAudit(data as any)
       );
       return response.data;
     }

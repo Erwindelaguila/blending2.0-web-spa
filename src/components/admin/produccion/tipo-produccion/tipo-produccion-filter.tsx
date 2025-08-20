@@ -8,6 +8,7 @@ import { OrgColors } from "@/config/app.config.server";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { Search24Regular, DismissCircle24Regular } from "@fluentui/react-icons";
 import { TipoProduccionFilters, useTipoProduccionContext } from "./tipo-produccion-context";
+import { datePickerStringsEs } from "@/utils/date";
 
 export function TipoProduccionFilter() {
   const stylebtn = useButtonsStyles();
@@ -16,18 +17,14 @@ export function TipoProduccionFilter() {
   const [localFilters, setLocalFilters] = useState<TipoProduccionFilters>({
     codigo: filters.codigo || "",
     estado: filters.estado,
-    fechaInicio: filters.fechaInicio || undefined,
-    fechaFin: filters.fechaFin || undefined,
-    tipoFecha: filters.tipoFecha || undefined,
+    fechaDesde: filters.fechaDesde || undefined,
   });
 
   useEffect(() => {
     setLocalFilters({
       codigo: filters.codigo || "",
       estado: filters.estado,
-      fechaInicio: filters.fechaInicio || undefined,
-      fechaFin: filters.fechaFin || undefined,
-      tipoFecha: filters.tipoFecha || undefined,
+      fechaDesde: filters.fechaDesde || undefined,
     });
   }, [filters]);
 
@@ -35,11 +32,6 @@ export function TipoProduccionFilter() {
     { value: "", label: "Todos" },
     { value: "1", label: "Activos" },
     { value: "0", label: "Inactivos" },
-  ];
-
-  const fechaTipoOptions = [
-    { value: "creados", label: "Creados" },
-    { value: "modificados", label: "Modificados" },
   ];
 
   const handleCodigoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,30 +49,15 @@ export function TipoProduccionFilter() {
     setLocalFilters((prev) => ({ ...prev, estado: numValue }));
   };
 
-  const handleFechaTipoChange = (_event: any, data: any) => {
-    const selected = data.optionValue;
-    setLocalFilters((prev) => ({ ...prev, tipoFecha: selected }));
-  };
-
-  const handleFechaInicioChange = (date: Date | null | undefined) => {
-    setLocalFilters((prev) => ({ ...prev, fechaInicio: date || undefined }));
-  };
-
-  const handleFechaFinChange = (date: Date | null | undefined) => {
-    setLocalFilters((prev) => ({ ...prev, fechaFin: date || undefined }));
+  const handleFechaDesdeChange = (date: Date | null | undefined) => {
+    setLocalFilters((prev) => ({ ...prev, fechaDesde: date || undefined }));
   };
 
   const handleFilter = () => {
-    const cleanFilters: TipoProduccionFilters = {};
-    if (localFilters.codigo && localFilters.codigo.trim()) cleanFilters.codigo = localFilters.codigo.trim();
-    if (localFilters.estado !== undefined) cleanFilters.estado = localFilters.estado;
-    if (localFilters.fechaInicio) cleanFilters.fechaInicio = localFilters.fechaInicio;
-    if (localFilters.fechaFin) cleanFilters.fechaFin = localFilters.fechaFin;
-    if (localFilters.tipoFecha) {
-      cleanFilters.tipoFecha = localFilters.tipoFecha;
-    } else if (localFilters.fechaInicio || localFilters.fechaFin) {
-      cleanFilters.tipoFecha = "creados";
-    }
+  const cleanFilters: TipoProduccionFilters = {};
+  if (localFilters.codigo && localFilters.codigo.trim()) cleanFilters.codigo = localFilters.codigo.trim();
+  if (localFilters.estado !== undefined) cleanFilters.estado = localFilters.estado;
+  if (localFilters.fechaDesde) cleanFilters.fechaDesde = localFilters.fechaDesde;
     setFilters(cleanFilters);
   };
 
@@ -88,9 +65,7 @@ export function TipoProduccionFilter() {
     const emptyFilters = {
       codigo: "",
       estado: undefined,
-      fechaInicio: undefined,
-      fechaFin: undefined,
-      tipoFecha: undefined,
+      fechaDesde: undefined,
     } as TipoProduccionFilters;
     setLocalFilters(emptyFilters);
     clearFilters();
@@ -147,98 +122,21 @@ export function TipoProduccionFilter() {
                   </Dropdown>
                 </div>
 
-                <Divider vertical appearance="default" style={{ height: '80%', width: '3px', backgroundColor: OrgColors.serotGris }} />
-
                 <div className="flex-1 flex items-center gap-4">
                   <div className="flex flex-col">
-                    <Label size="medium">Fecha Desde</Label>
+                    <Label size="medium">Fecha </Label>
                     <DatePicker
                       size="medium"
                       style={{
                         border: `2px solid ${OrgColors.serotGris}`,
                         minWidth: "140px"
                       }}
-                      placeholder="Desde"
-                      value={localFilters.fechaInicio || null}
-                      onSelectDate={handleFechaInicioChange}
+                      placeholder="Buscar por fecha..."
+                      value={localFilters.fechaDesde || null}
+                      onSelectDate={handleFechaDesdeChange}
                       formatDate={(date) => date ? date.toLocaleDateString('es-ES') : ''}
-                      strings={{
-                        months: [
-                          'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                        ],
-                        shortMonths: [
-                          'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-                        ],
-                        days: [
-                          'Domingo', 'Lunes', 'Martes', 'Miércoles', 
-                          'Jueves', 'Viernes', 'Sábado'
-                        ],
-                        shortDays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-                        goToToday: 'Ir a hoy',
-                        prevMonthAriaLabel: 'Mes anterior',
-                        nextMonthAriaLabel: 'Mes siguiente',
-                        prevYearAriaLabel: 'Año anterior',
-                        nextYearAriaLabel: 'Año siguiente',
-                        closeButtonAriaLabel: 'Cerrar selector de fecha',
-                      }}
+                      strings={datePickerStringsEs}
                     />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <Label size="medium">Fecha Hasta</Label>
-                    <DatePicker
-                      size="medium"
-                      style={{
-                        border: `2px solid ${OrgColors.serotGris}`,
-                        minWidth: "140px"
-                      }}
-                      placeholder="Hasta"
-                      value={localFilters.fechaFin || null}
-                      onSelectDate={handleFechaFinChange}
-                      formatDate={(date) => date ? date.toLocaleDateString('es-ES') : ''}
-                      strings={{
-                        months: [
-                          'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                        ],
-                        shortMonths: [
-                          'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                          'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-                        ],
-                        days: [
-                          'Domingo', 'Lunes', 'Martes', 'Miércoles', 
-                          'Jueves', 'Viernes', 'Sábado'
-                        ],
-                        shortDays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-                        goToToday: 'Ir a hoy',
-                        prevMonthAriaLabel: 'Mes anterior',
-                        nextMonthAriaLabel: 'Mes siguiente',
-                        prevYearAriaLabel: 'Año anterior',
-                        nextYearAriaLabel: 'Año siguiente',
-                        closeButtonAriaLabel: 'Cerrar selector de fecha',
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <Label size="medium">Tipo Fecha</Label>
-                    <Dropdown
-                      placeholder="Seleccione tipo"
-                      value={fechaTipoOptions.find(opt => opt.value === localFilters.tipoFecha)?.label || ""}
-                      onOptionSelect={handleFechaTipoChange}
-                      style={{
-                        border: `2px solid ${OrgColors.serotGris}`,
-                        minWidth: "160px"
-                      }}
-                    >
-                      {fechaTipoOptions.map(option => (
-                        <Option key={option.value} value={option.value}>
-                          {option.label}
-                        </Option>
-                      ))}
-                    </Dropdown>
                   </div>
                 </div>
               </div>
@@ -257,7 +155,7 @@ export function TipoProduccionFilter() {
                 <Button
                   size="large"
                   icon={<Search24Regular />}
-                  className={`${stylebtn.buttonAzulOscuroBase} `}
+                  className={`w-[12rem] ${stylebtn.buttonAzulOscuroBase}`}
                   onClick={handleFilter}
                 >
                   Filtrar

@@ -1,35 +1,65 @@
-import { IBaseProduccion } from "./produccion";
-
-export interface IProductoBase extends IBaseProduccion {
-  calidad_id: string;
-  tipo_produccion_id: string;
+interface IProductoBase {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
 }
 
-export interface IProductoSend extends IProductoBase {
-  creadoPorId: string;
+export interface IProductoRequest {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  CalidadId: string;
+  TipoProduccionId: string;
 }
 
-export interface IProductoUpdate extends IProductoBase {
+export interface IProductoUpdate extends IProductoRequest {
   id: string;
-  modificadoPorId: string;
 }
 
 export interface IProductoResponse extends IProductoBase {
   id: string;
-  fechaCreacion?: string | null;
+  activo: boolean;
+  calidadId: string;
+  tipoProduccionId: string;
+  creadoPorId?: string;
+  creadoEl?: string;
+  modificadoPorId?: string | null;
   modificadoEl?: string | null;
 }
 
-export interface PagedProductoResponse {
-  data: IProductoResponse[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    pageSize: number;
-    totalCount: number;
-    hasPrevious: boolean;
-    hasNext: boolean;
-    previousPage: number | null;
-    nextPage: number | null;
-  };
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedProductoResponse = PagedResponse<IProductoResponse>;
+
+export interface ProductoFiltersParams extends BaseFiltersParams {}
+
+// Backend PascalCase envelope for list endpoints
+export interface ProductoPaginationPascal {
+  CurrentPage: number;
+  TotalPages: number;
+  PageSize: number;
+  TotalCount: number;
+  HasPrevious?: boolean;
+  HasNext?: boolean;
+  PreviousPage?: number | null;
+  NextPage?: number | null;
+}
+
+// Nota: para consumir backend PascalCase directamente, usamos esta variante
+export interface PagedProductoBackendResponse {
+  Data: Array<{
+    Id: string;
+    Codigo: string;
+    Nombre: string;
+    Descripcion?: string;
+    Activo: boolean;
+    CalidadId: string;
+    TipoProduccionId: string;
+    CreadoPorId?: string;
+    CreadoEl?: string;
+    ModificadoPorId?: string | null;
+    ModificadoEl?: string | null;
+  }>;
+  Pagination: ProductoPaginationPascal;
 }

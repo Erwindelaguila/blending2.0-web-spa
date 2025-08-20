@@ -15,7 +15,7 @@ import { BaseResponse } from "@/interface";
 import { LineaProduccionPanel } from "./linea-produccion-panel";
 import { LineaProduccionService } from "@/services/linea-produccion.service";
 import { LineaProduccionFiltersParams } from "@/interface/admin/linea-produccion";
-import { ILineaProduccion } from "@/interface/admin/linea-produccion";
+import { ILineaProduccionResponse } from "@/interface/admin/linea-produccion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLineaProduccionContext } from './linea-produccion-context';
 import { buildPaginatedSWRKey } from '@/utils/swr-keys';
@@ -68,7 +68,7 @@ export function LineaProduccionTable() {
   );
 
   const respData = dataLineas?.data;
-  const items: ILineaProduccion[] = respData?.data ?? [];
+  const items: ILineaProduccionResponse[] = respData?.data ?? [];
   const {
     currentPage: paginationCurrentPage = page,
     totalPages: paginationTotalPages = 1,
@@ -100,7 +100,7 @@ export function LineaProduccionTable() {
   const [infoLinea, setInfoLinea] = useState<{ id: string; codigo: string; } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
-    const linea = item as ILineaProduccion;
+    const linea = item as ILineaProduccionResponse;
     switch (columnKey) {
       case "activo":
         const statusColorMap: Record<string, string> = { Activo: OrgColors.serotAzul, Inactivo: OrgColors.rojo };
@@ -116,7 +116,7 @@ export function LineaProduccionTable() {
           </div>
         );
       default:
-        return linea[columnKey as keyof ILineaProduccion];
+        return linea[columnKey as keyof ILineaProduccionResponse];
     }
   };
 

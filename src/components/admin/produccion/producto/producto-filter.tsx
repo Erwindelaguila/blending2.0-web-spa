@@ -8,6 +8,7 @@ import { OrgColors } from "@/config/app.config.server";
 import { Search24Regular, DismissCircle24Regular } from "@fluentui/react-icons";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { useProductoContext, ProductoFilters } from './producto-context';
+import { datePickerStringsEs } from "@/utils/date";
 
 export function ProductoFilter() {
   const stylebtn = useButtonsStyles();
@@ -16,18 +17,14 @@ export function ProductoFilter() {
   const [localFilters, setLocalFilters] = useState<ProductoFilters>({
     codigo: filters.codigo || "",
     estado: filters.estado,
-    fechaInicio: filters.fechaInicio || undefined,
-    fechaFin: filters.fechaFin || undefined,
-    tipoFecha: filters.tipoFecha || undefined,
+    fechaDesde: filters.fechaDesde || undefined,
   });
 
   useEffect(() => {
     setLocalFilters({
       codigo: filters.codigo || "",
       estado: filters.estado,
-      fechaInicio: filters.fechaInicio || undefined,
-      fechaFin: filters.fechaFin || undefined,
-      tipoFecha: filters.tipoFecha || undefined,
+      fechaDesde: filters.fechaDesde || undefined,
     });
   }, [filters]);
 
@@ -35,11 +32,6 @@ export function ProductoFilter() {
     { value: "", label: "Todos" },
     { value: "1", label: "Activos" },
     { value: "0", label: "Inactivos" },
-  ];
-
-  const fechaTipoOptions = [
-    { value: "creados", label: "Creados" },
-    { value: "modificados", label: "Modificados" },
   ];
 
   const handleCodigoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,28 +44,18 @@ export function ProductoFilter() {
     const numValue = data.optionValue === "" ? undefined : parseInt(data.optionValue);
     setLocalFilters(prev => ({ ...prev, estado: numValue }));
   };
-  const handleFechaTipoChange = (_event: any, data: any) => {
-    const selected = data.optionValue;
-    setLocalFilters(prev => ({ ...prev, tipoFecha: selected }));
-  };
-  const handleFechaInicioChange = (date: Date | null | undefined) => {
-    setLocalFilters(prev => ({ ...prev, fechaInicio: date || undefined }));
-  };
-  const handleFechaFinChange = (date: Date | null | undefined) => {
-    setLocalFilters(prev => ({ ...prev, fechaFin: date || undefined }));
+  const handleFechaDesdeChange = (date: Date | null | undefined) => {
+    setLocalFilters(prev => ({ ...prev, fechaDesde: date || undefined }));
   };
   const handleFilter = () => {
-    const clean: ProductoFilters = {};
+    const clean: ProductoFilters = {} as any;
     if (localFilters.codigo && localFilters.codigo.trim()) clean.codigo = localFilters.codigo.trim();
     if (localFilters.estado !== undefined) clean.estado = localFilters.estado;
-    if (localFilters.fechaInicio) clean.fechaInicio = localFilters.fechaInicio;
-    if (localFilters.fechaFin) clean.fechaFin = localFilters.fechaFin;
-    if (localFilters.tipoFecha) clean.tipoFecha = localFilters.tipoFecha;
-    else if (localFilters.fechaInicio || localFilters.fechaFin) clean.tipoFecha = 'creados';
+    if (localFilters.fechaDesde) clean.fechaDesde = localFilters.fechaDesde;
     setFilters(clean);
   };
   const handleClear = () => {
-    setLocalFilters({ codigo: "", estado: undefined, fechaInicio: undefined, fechaFin: undefined, tipoFecha: undefined });
+    setLocalFilters({ codigo: "", estado: undefined, fechaDesde: undefined });
     clearFilters();
   };
 
@@ -122,54 +104,25 @@ export function ProductoFilter() {
                   </Dropdown>
                 </div>
 
-                <Divider vertical appearance="default" style={{ height: '80%', width: '3px', backgroundColor: OrgColors.serotGris }} />
-
                 <div className="flex-1 flex items-center gap-4">
                   <div className="flex flex-col">
-                    <Label size="medium">Fecha Desde</Label>
+                    <Label size="medium">Fecha</Label>
                     <DatePicker
                       size="medium"
                       style={{ border: `2px solid ${OrgColors.serotGris}`, minWidth: "140px" }}
-                      placeholder="Desde"
-                      value={localFilters.fechaInicio || null}
-                      onSelectDate={handleFechaInicioChange}
+                      placeholder="Buscar por fecha..."
+                      value={localFilters.fechaDesde || null}
+                      onSelectDate={handleFechaDesdeChange}
                       formatDate={(date) => date ? date.toLocaleDateString('es-ES') : ''}
+                      strings={datePickerStringsEs}
                     />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <Label size="medium">Fecha Hasta</Label>
-                    <DatePicker
-                      size="medium"
-                      style={{ border: `2px solid ${OrgColors.serotGris}`, minWidth: "140px" }}
-                      placeholder="Hasta"
-                      value={localFilters.fechaFin || null}
-                      onSelectDate={handleFechaFinChange}
-                      formatDate={(date) => date ? date.toLocaleDateString('es-ES') : ''}
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <Label size="medium">Tipo Fecha</Label>
-                    <Dropdown
-                      placeholder="Seleccione tipo"
-                      value={fechaTipoOptions.find(opt => opt.value === localFilters.tipoFecha)?.label || ""}
-                      onOptionSelect={handleFechaTipoChange}
-                      style={{ border: `2px solid ${OrgColors.serotGris}`, minWidth: "160px" }}
-                    >
-                      {fechaTipoOptions.map(option => (
-                        <Option key={option.value} value={option.value}>
-                          {option.label}
-                        </Option>
-                      ))}
-                    </Dropdown>
                   </div>
                 </div>
               </div>
 
               <div className="w-1/2 flex justify-end items-center pt-3 h-full gap-2">
                 <Button size="large" icon={<DismissCircle24Regular />} appearance="secondary" className={`${stylebtn.buttonNaranjaBase}`} onClick={handleClear}>Limpiar</Button>
-                <Button size="large" icon={<Search24Regular />} className={`${stylebtn.buttonAzulOscuroBase} `} onClick={handleFilter}>Filtrar</Button>
+                <Button size="large" icon={<Search24Regular />} className={`w-[12rem] ${stylebtn.buttonAzulOscuroBase}`} onClick={handleFilter}>Filtrar</Button>
               </div>
             </div>
           </div>

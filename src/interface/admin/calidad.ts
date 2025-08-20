@@ -1,34 +1,35 @@
+interface ICalidadBase {
+  codigo: string;
+  nombre: string;
+  codigoMaterial?: string | null;
+  descripcion?: string;
+  activo?: boolean;
+  conforme?: boolean;
+}
+
 export interface ICalidadRequest {
   codigo: string;
   nombre: string;
-  codigoMaterial: string | null;
-  descripcion: string;
+  codigoMaterial?: string | null;
+  descripcion?: string;
   activo: boolean;
-  conforme: boolean; 
+  conforme: boolean;
 }
 
-export interface ICalidadSend extends ICalidadRequest {
-  creadoPorId: string;
-}
 export interface ICalidadUpdate extends ICalidadRequest {
   id: string;
-  modificadoPorId: string;
 }
 
-export interface ICalidadResponse {
+export interface ICalidadResponse extends ICalidadBase {
   id: string;
-  codigo: string;
-  nombre: string;
-  codigoMaterial: string | null;
-  descripcion: string;
   activo: boolean;
-  conforme: boolean; 
-  creadoEl?: string | null;
-  modificadoEl?: string | null;
+  creadoPorId: string;
+  creadoEl: string;
+  modificadoPorId?: string;
+  modificadoEl?: string;
 }
 
 import { PagedResponse, BaseFiltersParams } from "@/interface";
-
 export type PagedCalidadResponse = PagedResponse<ICalidadResponse>;
 
 export interface CalidadFiltersParams extends BaseFiltersParams {}

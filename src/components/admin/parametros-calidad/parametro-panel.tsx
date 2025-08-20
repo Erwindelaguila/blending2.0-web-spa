@@ -1,31 +1,28 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
 import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
 import { Input, Label, Switch, Textarea, Spinner } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
-import { IParametroResponse, IParametroSend, IParametroUpdate } from "@/interface/admin/parametro";
+import { IParametroResponse, IParametroRequest, IParametroUpdate } from "@/interface/admin/parametro";
 import { ParametrosService } from "@/services/parametros.service";
 import { getByIdParametroKey } from "@/lib/constants/key-fetch";
 import { CalendarClock20Regular, Edit20Regular, Info20Regular } from "@fluentui/react-icons";
 import { formatearFechaCompleta } from "@/utils/date";
 
-const defaultFormValues: IParametroSend = {
+const defaultFormValues: IParametroRequest = {
   codigo: "",
   nombre: "",
   descripcion: "",
   activo: true,
-  creadoPorId: "",
 };
 
 export function ParametroPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
-  const { user } = useAuth();
 
   const {
     handleSubmit,
@@ -33,7 +30,7 @@ export function ParametroPanel({ open, mode, id, close, onSuccess }: IDrawer) {
     watch,
     control,
     formState: { errors },
-  } = useForm<IParametroSend>({
+  } = useForm<IParametroRequest>({
     defaultValues: defaultFormValues,
   });
 
@@ -41,13 +38,9 @@ export function ParametroPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const [loadingParametro, setLoadingParametro] = useState(false);
   const [errorParametro, setErrorParametro] = useState<string | null>(null);
 
-  const onSubmit: SubmitHandler<IParametroSend> = async (data) => {
-    if (!user?.id) {
-      console.error("Usuario no autenticado o sin ID");
-      return;
-    }
-    const sendCreate: IParametroSend = { ...data, creadoPorId: user.id };
-    const sendUpdate: IParametroUpdate = { ...data, id: id || "", modificadoPorId: user.id };
+  const onSubmit: SubmitHandler<IParametroRequest> = async (data) => {
+    const sendCreate: IParametroRequest = { ...data };
+    const sendUpdate: IParametroUpdate = { ...data, id: id || "" };
 
     await asyncAction.execute(async () => {
       const result = id

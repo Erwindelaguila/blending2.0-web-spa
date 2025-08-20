@@ -1,7 +1,6 @@
 import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { useAuth } from "@/hooks/use-auth";
 import { OrgColors } from "@/config/app.config.server";
 import { BaseResponse, IDrawer } from "@/interface";
 import { useInputStyles } from "@/styles/input.styles";
@@ -17,7 +16,7 @@ import { useEffect, useState } from "react";
 import {
   getByIdLineaProduccionKey,
 } from "@/lib/constants/key-fetch";
-import { ILineaProduccion, ILineaProduccionSend, ILineaProduccionUpdate } from "@/interface/admin/linea-produccion";
+import { ILineaProduccionResponse, ILineaProduccionRequest, ILineaProduccionUpdate } from "@/interface/admin/linea-produccion";
 import { LineaProduccionService } from "@/services/linea-produccion.service";
 import { formatearFechaCompleta } from "@/utils/date";
 import { 
@@ -27,18 +26,16 @@ import {
 } from "@fluentui/react-icons";
 
 
-const defaultFormValues: ILineaProduccionSend = {
+const defaultFormValues: ILineaProduccionRequest = {
   codigo: "",
   nombre: "",
   descripcion: "",
   activo: true,
-  creadoPorId: "",
 };
 
 export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
-  const { user } = useAuth();
 
   const {
     register,
@@ -47,26 +44,22 @@ export function LineaProduccionPanel({ open, mode, id, close, onSuccess }: IDraw
     watch,
     control,
     formState: { errors },
-  } = useForm<ILineaProduccionSend>({
+  } = useForm<ILineaProduccionRequest>({
     defaultValues: defaultFormValues,
   });
 
-  const [dataLinea, setDataLinea] = useState<BaseResponse<ILineaProduccion> | null>(null);
+  const [dataLinea, setDataLinea] = useState<BaseResponse<ILineaProduccionResponse> | null>(null);
   const [loadingLinea, setLoadingLinea] = useState(false);
   const [errorLinea, setErrorLinea] = useState<string | null>(null);
 
-  const onSubmit: SubmitHandler<ILineaProduccionSend> = async (data) => {
-    if (!user?.id) {
-      console.error("Usuario no autenticado o sin ID");
-      return;
-    }
-    const sendLinea: ILineaProduccionSend = { ...data, creadoPorId: user.id };
-    const sendUpdate: ILineaProduccionUpdate = { ...data, modificadoPorId: user.id, id: id || "" };
+  const onSubmit: SubmitHandler<ILineaProduccionRequest> = async (data) => {
+    const sendCreate: ILineaProduccionRequest = { ...data };
+    const sendUpdate: ILineaProduccionUpdate = { ...data, id: id || "" };
 
     await asyncAction.execute(async () => {
       const result = id
         ? await LineaProduccionService.actualizar(sendUpdate)
-        : await LineaProduccionService.crear(sendLinea);
+        : await LineaProduccionService.crear(sendCreate);
       return result;
     });
   };

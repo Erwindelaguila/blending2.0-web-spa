@@ -1,6 +1,7 @@
 import { BaseResponse } from "@/interface";
-import { ICalidadResponse, ICalidadSend, ICalidadUpdate, PagedCalidadResponse, CalidadFiltersParams } from "@/interface/admin/calidad";
+import { ICalidadResponse, ICalidadRequest, ICalidadUpdate, PagedCalidadResponse, CalidadFiltersParams } from "@/interface/admin/calidad";
 import { api } from "@/lib/api";
+import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllCalidadKey, fetchGetCalidadesId } from "@/lib/constants/key-fetch";
 
 export class CalidadesService {
@@ -29,13 +30,13 @@ export class CalidadesService {
   }
 
   static async crear(
-      data: ICalidadSend
+      data: ICalidadRequest
     ): Promise<BaseResponse<ICalidadResponse>> {
       const payload = { ...data, noConforme: !data.conforme };
       const { conforme, ...rest } = payload;
       const response = await api.post<BaseResponse<ICalidadResponse>>(
         getAllCalidadKey(),
-        rest
+        withCreateAudit(rest as any)
       );
       return response.data;
     }
@@ -47,7 +48,7 @@ export class CalidadesService {
       const { conforme, ...rest } = payload;
       const response = await api.put<BaseResponse<ICalidadResponse>>(
         getAllCalidadKey(),
-        rest
+        withUpdateAudit(rest as any)
       );
       return response.data;
     }

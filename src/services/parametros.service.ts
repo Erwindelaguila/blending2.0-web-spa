@@ -1,12 +1,13 @@
 import { BaseResponse } from "@/interface";
 import {
   IParametroResponse,
-  IParametroSend,
+  IParametroRequest,
   IParametroUpdate,
   PagedParametroResponse,
   ParametroFiltersParams,
 } from "@/interface/admin/parametro";
 import { api } from "@/lib/api";
+import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllParametroKey } from "@/lib/constants/key-fetch";
 
 export class ParametrosService {
@@ -37,13 +38,13 @@ export class ParametrosService {
     return response.data;
   }
 
-  static async crear(data: IParametroSend): Promise<BaseResponse<IParametroResponse>> {
-    const response = await api.post<BaseResponse<IParametroResponse>>(getAllParametroKey(), data);
+  static async crear(data: IParametroRequest): Promise<BaseResponse<IParametroResponse>> {
+    const response = await api.post<BaseResponse<IParametroResponse>>(getAllParametroKey(), withCreateAudit(data as any));
     return response.data;
   }
 
   static async actualizar(data: IParametroUpdate): Promise<BaseResponse<IParametroResponse>> {
-    const response = await api.put<BaseResponse<IParametroResponse>>(getAllParametroKey(), data);
+    const response = await api.put<BaseResponse<IParametroResponse>>(getAllParametroKey(), withUpdateAudit(data as any));
     return response.data;
   }
 

@@ -1,6 +1,7 @@
 import { BaseResponse } from "@/interface";
-import { IAgregado, IAgregadoSend, IAgregadoUpdate, PagedAgregadoResponse, AgregadoFiltersParams } from "@/interface/admin/agregado";
+import { IAgregado, IAgregadoRequest, IAgregadoUpdate, PagedAgregadoResponse, AgregadoFiltersParams } from "@/interface/admin/agregado";
 import { api } from "@/lib/api";
+import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 
 export class AgregadoService {
@@ -28,11 +29,11 @@ export class AgregadoService {
   }
 
   static async crear(
-      data: IAgregadoSend
+      data: IAgregadoRequest
     ): Promise<BaseResponse<IAgregado>> {
       const response = await api.post<BaseResponse<IAgregado>>(
         getAllAgregadoKey(),
-        data
+  withCreateAudit(data as any)
       );
       return response.data;
     }
@@ -42,7 +43,7 @@ export class AgregadoService {
     ): Promise<BaseResponse<IAgregado>> {
       const response = await api.put<BaseResponse<IAgregado>>(
         getAllAgregadoKey(),
-        data
+  withUpdateAudit(data as any)
       );
       return response.data;
     }

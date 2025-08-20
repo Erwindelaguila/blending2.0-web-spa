@@ -5,16 +5,20 @@ interface IAgregadoBase {
   activo?: boolean;
 }
 
-export interface IAgregadoSend extends IAgregadoBase {
-  creadoPorId: string;
+// Request DTO sin campos de auditoría
+export interface IAgregadoRequest {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
 }
 
-export interface IAgregadoUpdate extends IAgregadoBase {
+export interface IAgregadoUpdate extends IAgregadoRequest {
   id: string;
-  modificadoPorId: string;
 }
 
-export interface IAgregado extends IAgregadoBase {
+// Response estandarizado (mismo patrón que parámetros/plantas)
+export interface IAgregadoResponse extends IAgregadoBase {
   id: string;
   activo: boolean; 
   creadoPorId: string;
@@ -22,7 +26,10 @@ export interface IAgregado extends IAgregadoBase {
   modificadoPorId?: string;
   modificadoEl?: string;
 }
+
+// Alias para compatibilidad retro con código existente
+export type IAgregado = IAgregadoResponse;
 import { PagedResponse, BaseFiltersParams } from "@/interface";
-export type PagedAgregadoResponse = PagedResponse<IAgregado>;
+export type PagedAgregadoResponse = PagedResponse<IAgregadoResponse>;
 
 export interface AgregadoFiltersParams extends BaseFiltersParams {}

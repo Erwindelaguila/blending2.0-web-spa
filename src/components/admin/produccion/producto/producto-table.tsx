@@ -14,32 +14,25 @@ import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useAuth } from "@/hooks/use-auth";
 import { ProductoPanel } from "./producto-panel";
-import { ProductoService, ProductoFiltersParams } from "@/services/producto.service";
+import { ProductoService } from "@/services/producto.service";
+import { IProductoResponse, PagedProductoBackendResponse } from "@/interface/admin/producto";
 import { useProductoContext } from "./producto-context";
+import { buildPaginatedSWRKey } from "@/utils/swr-keys";
 import { CalidadesService } from "@/services/calidades.service";
 import { TipoProduccionService } from "@/services/tipo-produccion.service";
 
 const columns = [
-  { uid: "codigo", name: "Codigo", width: 5 },
-  { uid: "nombre", name: "Nombre", width: 5 },
-  { uid: "descripcion", name: "Descripción", width: 10 },
+  { uid: "Codigo", name: "Codigo", width: 5 },
+  { uid: "Nombre", name: "Nombre", width: 5 },
+  { uid: "Descripcion", name: "Descripción", width: 10 },
   { uid: "calidad", name: "Calidad", width: 6 },
   { uid: "tipo_produccion", name: "Tipo de Producción", width: 8 },
   { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
-const buildProductosKey = (page: number, size: number, filters?: ProductoFiltersParams) => {
-  const params = new URLSearchParams();
-  params.set('page', page.toString());
-  params.set('size', size.toString());
-  if (filters?.codigo) params.set('codigo', filters.codigo);
-  if (filters?.estado !== undefined) params.set('estado', filters.estado.toString());
-  if (filters?.fechaInicio) params.set('fechaInicio', filters.fechaInicio);
-  if (filters?.fechaFin) params.set('fechaFin', filters.fechaFin);
-  if (filters?.tipoFecha) params.set('tipoFecha', filters.tipoFecha);
-  return `productos-${params.toString()}`;
-};
+const buildProductosKey = (page: number, size: number, filters?: any) =>
+  buildPaginatedSWRKey('productos', page, size, filters);
 
 export function ProductoTable() {
   const style = useButtonsStyles();
@@ -50,14 +43,12 @@ export function ProductoTable() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const serviceFilters: ProductoFiltersParams | undefined = useMemo(() => {
+  const serviceFilters: any | undefined = useMemo(() => {
     if (!filters || Object.keys(filters).length === 0) return undefined;
     return {
       codigo: filters.codigo,
       estado: filters.estado,
-      fechaInicio: filters.fechaInicio?.toISOString().split('T')[0],
-      fechaFin: filters.fechaFin?.toISOString().split('T')[0],
-      tipoFecha: filters.tipoFecha,
+      fechaDesde: filters.fechaDesde?.toISOString().split('T')[0],
     };
   }, [filters]);
 
@@ -65,21 +56,23 @@ export function ProductoTable() {
 
   useEffect(() => { setPage(1); }, [serviceFilters]);
 
-  const { data, isLoading, error } = useSWR<any>(
+  const { data, isLoading, error } = useSWR<PagedProductoBackendResponse>(
     swrKey,
-    () => ProductoService.listar(page, pageSize, serviceFilters),
+    () => ProductoService.listarBackendPascal(page, pageSize, serviceFilters),
     { revalidateOnFocus: false, revalidateOnReconnect: false, dedupingInterval: 2000 }
   );
 
   // Cargar combos para mapear IDs a códigos en columnas
-  const { data: calidadesData } = useSWR("combo-calidades", () => CalidadesService.listar(1, 200));
-  const { data: tiposData } = useSWR("combo-tipos", () => TipoProduccionService.listar(1, 200));
+  const { data: calidadesData } = useSWR("combo-calidades", () => CalidadesService.listar(1, 500, { estado: 1 }));
+  const { data: tiposData } = useSWR("combo-tipos", () => TipoProduccionService.listar(1, 500, { estado: 1 }));
 
   const calidadMap = useMemo(() => {
-    const arr = (calidadesData as any)?.data?.data || (calidadesData as any)?.data?.items || [];
+    const resp = calidadesData as any;
+    const raw = resp?.data?.data || resp?.data?.items || resp?.Data?.data || resp?.Data?.items || resp?.Data || resp?.data || [];
+    const arr = (raw as any[]).filter((c: any) => (c.activo ?? c.Activo ?? true));
     const map = new Map<string, string>();
     arr.forEach((c: any) => {
-      const id = c.id?.toString();
+      const id = (c.id ?? c.Id)?.toString();
       const codigo = c.codigo || c.Codigo || "";
       if (id) map.set(id, codigo);
     });
@@ -87,25 +80,27 @@ export function ProductoTable() {
   }, [calidadesData]);
 
   const tipoMap = useMemo(() => {
-    const arr = (tiposData as any)?.data?.data || (tiposData as any)?.data?.items || [];
+    const resp = tiposData as any;
+    const raw = resp?.data?.items || resp?.data?.data || resp?.Data?.items || resp?.Data?.data || resp?.Data || resp?.data || [];
+    const arr = (raw as any[]).filter((t: any) => (t.activo ?? t.Activo ?? true));
     const map = new Map<string, string>();
     arr.forEach((t: any) => {
-      const id = t.id?.toString();
+      const id = (t.id ?? t.Id)?.toString();
       const codigo = t.codigo || t.Codigo || "";
       if (id) map.set(id, codigo);
     });
     return map;
   }, [tiposData]);
 
-  const items = data?.data?.data || [];
-  const pagination = data?.data?.pagination;
-  const paginationCurrentPage = pagination?.currentPage || page;
-  const paginationTotalPages = pagination?.totalPages || 1;
-  const paginationTotalItems = pagination?.totalCount || 0;
-  const hasPrevious = pagination?.hasPrevious;
-  const hasNext = pagination?.hasNext;
-  const previousPage = pagination?.previousPage;
-  const nextPage = pagination?.nextPage;
+  const respData = data;
+  const items = respData?.Data ?? [];
+  const paginationCurrentPage = respData?.Pagination?.CurrentPage || page;
+  const paginationTotalPages = respData?.Pagination?.TotalPages || 1;
+  const paginationTotalItems = respData?.Pagination?.TotalCount || 0;
+  const hasPrevious = respData?.Pagination?.HasPrevious;
+  const hasNext = respData?.Pagination?.HasNext;
+  const previousPage = respData?.Pagination?.PreviousPage;
+  const nextPage = respData?.Pagination?.NextPage;
 
   const handlePageChange = (newPage: number) => {
     if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
@@ -129,33 +124,33 @@ export function ProductoTable() {
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
       case "calidad": {
-        const id = item.calidad_id?.toString?.() || item.calidadId?.toString?.();
+        const id = item.CalidadId?.toString?.();
         const label = (id && (calidadMap.get(id) || id)) || "";
         return label;
       }
       case "tipo_produccion": {
-        const id = item.tipo_produccion_id?.toString?.() || item.tipoProduccionId?.toString?.();
+        const id = item.TipoProduccionId?.toString?.();
         const label = (id && (tipoMap.get(id) || id)) || "";
         return label;
       }
       case "activo":
         const statusColorMap: Record<string, string> = { Activo: OrgColors.serotAzul, Inactivo: OrgColors.rojo };
         return (
-          <Badge appearance="filled" style={{ backgroundColor: statusColorMap[item.activo ? "Activo" : "Inactivo"] || "#666", color: "#fff", width: "100%" }} size="large">
-            {item.activo ? "ACTIVO" : "INACTIVO"}
+          <Badge appearance="filled" style={{ backgroundColor: statusColorMap[item.Activo ? "Activo" : "Inactivo"] || "#666", color: "#fff", width: "100%" }} size="large">
+            {item.Activo ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
             <Tooltip content="Info Producto" relationship="label">
-              <Button size="large" appearance="subtle" onClick={() => handleOpenDetalle(item.id)} icon={<Info24Filled style={{ color: OrgColors.serotGris }} />} />
+              <Button size="large" appearance="subtle" onClick={() => handleOpenDetalle(item.Id)} icon={<Info24Filled style={{ color: OrgColors.serotGris }} />} />
             </Tooltip>
             <Tooltip content="Editar Producto" relationship="label">
-              <Button size="large" appearance="subtle" onClick={() => handleOpenEditar(item.id)} icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />} />
+              <Button size="large" appearance="subtle" onClick={() => handleOpenEditar(item.Id)} icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />} />
             </Tooltip>
             <Tooltip content="Eliminar Producto" relationship="label">
-              <Button size="large" appearance="subtle" onClick={() => { setInfoProducto({ id: item.id, codigo: item.codigo }); setOpenModal(true); }} icon={<Delete24Filled style={{ color: OrgColors.rojo }} />} />
+              <Button size="large" appearance="subtle" onClick={() => { setInfoProducto({ id: item.Id, codigo: item.Codigo }); setOpenModal(true); }} icon={<Delete24Filled style={{ color: OrgColors.rojo }} />} />
             </Tooltip>
           </div>
         );
