@@ -1,19 +1,31 @@
+interface IParametroBase {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
 export interface IParametroRequest {
   codigo: string;
   nombre: string;
-  descripcion: string;
+  descripcion?: string;
   activo: boolean;
 }
 
-export interface IParametroResponse {
-  id: string; // UNIQUEIDENTIFIER como en plantas
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  activo: boolean;
-  fechaCreacion: string;
+export interface IParametroUpdate extends IParametroRequest {
+  id: string;
 }
 
-// Mantener IParametro e IParametroGet para compatibilidad
-export interface IParametro extends IParametroRequest {}
-export interface IParametroGet extends IParametroResponse {}
+export interface IParametroResponse extends IParametroBase {
+  id: string;
+  activo: boolean;
+  creadoPorId: string;
+  creadoEl: string;
+  modificadoPorId?: string;
+  modificadoEl?: string;
+}
+
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedParametroResponse = PagedResponse<IParametroResponse>;
+
+export interface ParametroFiltersParams extends BaseFiltersParams {}

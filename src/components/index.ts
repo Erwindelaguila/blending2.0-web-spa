@@ -12,17 +12,29 @@ export * from "./ui/table-dynamic";
 export * from "./ui/card-group";
 export * from "./ui/drawe-base";
 export * from "./admin/plantas-homogenizacion/table-planta";
+export * from "./admin/plantas-homogenizacion/planta-filter";
+export * from "./admin/plantas-homogenizacion/planta-context";
 export * from "./ui/modal-base";
-export * from "./admin/parametros-calidad/table-parametros";
+// Parámetros de calidad
+export * from "./admin/parametros-calidad/parametro-table";
+export * from "./admin/parametros-calidad/parametro-panel";
+export * from "./admin/parametros-calidad/parametro-context";
+export * from "./admin/parametros-calidad/parametro-filter";
 export * from "./admin/configuracion-app/panel-crear-conguracion";
 export * from "./admin/configuracion-app/table-configuracion";
 export * from "./admin/valores-calidad/table-valores-calidad";
 export * from "./logistica/homogenizacion/parametros-logisticos";
 export * from "./logistica/homogenizacion/otros-parametros";
-export * from "./admin/parametros-calidad/panel-crear-parametros"
-export * from "./admin/produccion/calidades/calidad-view"
-export * from "./admin/produccion/producto/producto-view"
+export * from "./admin/produccion/calidades/calidad-view";
+export * from "./admin/produccion/producto/producto-view";
+export * from "./admin/produccion/linea-produccion/linea-produccion-table";
+export * from "./admin/produccion/linea-produccion/linea-produccion-panel";
+export * from "./admin/produccion/tipo-produccion/tipo-produccion-view";
+export * from "./admin/produccion/tipo-produccion/tipo-produccion-filter";
+export * from "./admin/produccion/tipo-produccion/tipo-produccion-context";
+
+// Nota: Evitamos exportar rutas inexistentes (por ejemplo panel-crear-parametros-new)
+// para no romper el compilado. Si se reintroduce ese archivo, agregar el export correspondiente.
 
 
 
-    

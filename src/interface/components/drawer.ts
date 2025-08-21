@@ -26,4 +26,5 @@ export interface IDrawer {
   close: () => void;
   mode: mode;
   id?: string;
+  onSuccess?: (item: any, mode: mode) => void; // ahora retorna el item creado/actualizado y el modo
 }

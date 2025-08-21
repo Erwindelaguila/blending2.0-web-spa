@@ -4,6 +4,14 @@ import { mutate } from "swr";
 
 export type AsyncActionState = "init" | "loading" | "success" | "error";
 
+export interface ErrorType {
+  field: string;
+  detail: string;
+  code: string;
+  instance: string;
+  traceId: string;
+}
+
 type ApiResponseState<T> = {
   response: BaseResponse<T> | null;
   error: string | null;

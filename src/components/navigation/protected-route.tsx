@@ -19,12 +19,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [previousValidPath, setPreviousValidPath] = useState<string>('/');
 
-  // ✅ Early return para callback
+
   if (pathname === '/auth/callback') {
     return <>{children}</>;
   }
 
-  // ✅ Memoizar rutas públicas y permitidas
+
   const { isPublicRoute, allowedUrls } = useMemo(() => {
     const publicRoutes = ['/', '/dashboard'];
     const isPublic = publicRoutes.includes(pathname);
@@ -39,7 +39,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return { isPublicRoute: isPublic, allowedUrls: urls };
   }, [pathname, userInfo]);
 
-  // ✅ Verificar acceso de forma optimizada
+
   const checkAccess = useMemo(() => {
     if (isPublicRoute) return true;
     
@@ -70,7 +70,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user, userInfo, isLoading, menuLoading, checkAccess, pathname, login, previousValidPath, router]);
 
-  // ✅ Estados de carga unificados
+
   if (isLoading || menuLoading) {
     return <PageLoader isLoading text="Autenticando" />;
   }

@@ -10,18 +10,24 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
+import { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
-import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 import { AgregadoPanel } from "./agregado-panel";
 import { AgregadoService } from "@/services/agregado.service";
+import { AgregadoFiltersParams } from "@/interface/admin/agregado";
 import { IAgregado } from "@/interface/admin/agregado";
+import { useAuth } from "@/hooks/use-auth";
+import { PagedAgregadoResponse } from "@/interface/admin/agregado";
+import { useAgregadoContext } from './agregado-context';
+import { buildPaginatedSWRKey } from '@/utils/swr-keys';
+import { PAGINATION_CONFIG } from '@/config/pagination.config';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
@@ -31,46 +37,88 @@ const columns = [
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
+const buildAgregadosKey = (page: number, size: number, filters?: AgregadoFiltersParams) => {
+  return buildPaginatedSWRKey('agregados', page, size, filters);
+};
+
 export function AgregadoTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
+  const { user } = useAuth();
+  const { filters } = useAgregadoContext();
+
+  const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
+  const pageSize = PAGINATION_CONFIG.DEFAULT_SIZE;
+
+  const serviceFilters: AgregadoFiltersParams | undefined = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined;
+    
+    return {
+      codigo: filters.codigo,
+      estado: filters.estado,
+      fechaDesde: filters.fechaDesde?.toISOString().split('T')[0],
+    };
+  }, [filters]);
+
+  const swrKey = buildAgregadosKey(page, pageSize, serviceFilters);
+  
+  useEffect(() => {
+    setPage(PAGINATION_CONFIG.DEFAULT_PAGE);
+  }, [serviceFilters]);
 
   const {
     data: dataAgregados,
     isLoading: loadingAgregados,
-    error: errorAregados,
-  } = useSWR<BaseResponse<IAgregado[]>>(
-    getAllAgregadoKey,
-    AgregadoService.listar,
+    error: errorAgregados,
+  } = useSWR<BaseResponse<PagedAgregadoResponse>>(
+    swrKey, 
+    () => AgregadoService.listar(page, pageSize, serviceFilters),
     {
       revalidateOnFocus: false,
-      revalidateIfStale: true,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000,
     }
   );
 
+  const respData = dataAgregados?.data;
+  const items: IAgregado[] = respData?.data ?? [];
+  const {
+    currentPage: paginationCurrentPage = page,
+    totalPages: paginationTotalPages = 1,
+    totalCount: paginationTotalItems = 0,
+    hasPrevious,
+    hasNext,
+    previousPage,
+    nextPage,
+  } = respData?.pagination ?? {};
+  const handlePageChange = (newPage: number) => {
+    if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
+      setPage(newPage);
+    }
+  };
+
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [idCalidad, setIdCalidad] = useState<string | undefined>(undefined);
+  const [idAgregado, setIdAgregado] = useState<string | undefined>(undefined);
   const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
 
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
-  const [page, setPage] = useState(1);
 
   const handleOpenCrear = () => {
     setMode("crear");
-    setIdCalidad(undefined);
+  setIdAgregado(undefined);
     setOpenPanel(true);
   };
 
   const handleOpenEditar = (registroId: string) => {
     setMode("editar");
-    setIdCalidad(registroId);
+  setIdAgregado(registroId);
     setOpenPanel(true);
   };
 
   const handleOpenDetalle = (registroId: string) => {
     setMode("detalle");
-    setIdCalidad(registroId);
+  setIdAgregado(registroId);
     setOpenPanel(true);
   };
 
@@ -78,8 +126,8 @@ export function AgregadoTable() {
     setOpenPanel(false);
 
     setTimeout(() => {
-      setIdCalidad(undefined); // importante limpiar el ID
-      setMode("crear"); // o el modo por defecto
+  setIdAgregado(undefined);
+  setMode("crear");
     }, 30);
   };
 
@@ -91,13 +139,12 @@ export function AgregadoTable() {
   };
 
   const [infoAgregado, setInfoAgregado] = useState<{
-    id: number;
+    id: string;
     codigo: string;
   } | null>(null);
 
-
-
   const renderCell = (item: any, columnKey: string) => {
+    const agregado = item as IAgregado;
     switch (columnKey) {
       case "activo":
         const statusColorMap: Record<string, string> = {
@@ -109,43 +156,43 @@ export function AgregadoTable() {
             appearance="filled"
             style={{
               backgroundColor:
-                statusColorMap[item.activo ? "Activo" : "Inactivo"] || "#666",
+                statusColorMap[agregado.activo ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "100%",
             }}
             size="large"
           >
-            {item.activo ? "ACTIVO" : "INACTIVO"}
+            {agregado.activo ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
-            <Tooltip content="Info Calidad" relationship="label">
+            <Tooltip content="Info Agregado" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenDetalle(item.id)}
+                onClick={() => handleOpenDetalle(agregado.id)}
                 icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
               />
             </Tooltip>
-            <Tooltip content="Editar Calidad" relationship="label">
+            <Tooltip content="Editar Agregado" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenEditar(item.id)}
+                onClick={() => handleOpenEditar(agregado.id)}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
 
-            <Tooltip content="Eliminar Calidad" relationship="label">
+            <Tooltip content="Eliminar Agregado" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
                 onClick={() => {
                   setInfoAgregado({
-                    id: item.id,
-                    codigo: item.codigo,
+                    id: agregado.id,
+                    codigo: agregado.codigo,
                   });
                   setOpenModal(true);
                 }}
@@ -155,12 +202,49 @@ export function AgregadoTable() {
           </div>
         );
       default:
-        return item[columnKey] ?? "";
+        return (agregado as any)[columnKey] ?? "";
     }
   };
 
-  const acctionDeleteModal = async () => {
+  const handlePanelSuccess = () => {
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+    
+    if (mode === "crear") {
+      const newTotal = paginationTotalItems + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize);
+      setPage(newLastPage);
+      mutate(buildAgregadosKey(newLastPage, pageSize, serviceFilters));
+    } else {
+      mutate(buildAgregadosKey(page, pageSize, serviceFilters));
+    }
+  };
+
+  const actionDeleteModal = async () => {
     if (!infoAgregado) return;
+    const userId = user?.id;
+    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
+    
+    await deleteAction.execute(
+      async () => {
+        await AgregadoService.eliminar(infoAgregado.id, userId);
+        return { success: true, message: "Agregado eliminado correctamente" };
+      },
+      buildAgregadosKey(page, pageSize, serviceFilters)
+    );
+
+    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+      mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+    
+    mutate(buildAgregadosKey(page, pageSize, serviceFilters));
+    
+    if (items.length === 1 && page > 1) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildAgregadosKey(prevPage, pageSize, serviceFilters));
+    }
   };
   return (
     <>
@@ -182,22 +266,26 @@ export function AgregadoTable() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={dataAgregados?.data ?? []}
+                data={items}
                 renderCell={renderCell}
                 isLoading={loadingAgregados}
-                error={errorAregados}
+                error={errorAgregados}
                 height="100%"
               />
             </div>
           </div>
 
           <div className="w-full h-1/10">
-            {dataAgregados && (
+            {items.length > 0 && (
               <Pagination
-                currentPage={page}
-                totalPages={10}
-                totalItems={12}
-                onPageChange={setPage}
+                currentPage={paginationCurrentPage}
+                totalPages={paginationTotalPages}
+                totalItems={paginationTotalItems}
+                onPageChange={handlePageChange}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>
@@ -208,7 +296,8 @@ export function AgregadoTable() {
         mode={mode}
         open={openPanel}
         close={handleClosePanel}
-        id={idCalidad}
+  id={idAgregado}
+        onSuccess={handlePanelSuccess}
       />
 
       <ModalBase
@@ -223,13 +312,13 @@ export function AgregadoTable() {
         type="alert"
         buttonText="Eliminar"
         closeOnOutsideClick={false}
-        buttonAction={acctionDeleteModal}
+  buttonAction={actionDeleteModal}
         requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess}
       >
         <>
           {!deleteAction.isSuccess && (
             <>
-              ¿Está seguro de eliminar el agregado con código{" "}
+              ¿Está seguro de eliminar el agregado con código {" "}
               <span className="font-bold">{infoAgregado?.codigo}</span>?
             </>
           )}
@@ -237,7 +326,7 @@ export function AgregadoTable() {
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
-              loadingMessage="Eliminando calidad..."
+              loadingMessage="Eliminando agregado..."
               successMessage=""
             />
           )}
@@ -254,14 +343,11 @@ export function AgregadoTable() {
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage=""
-              successMessage="Calidad eliminada correctamente"
+              successMessage="Agregado eliminado correctamente"
               onSuccess={() => {
-                // Marcar que está cerrando después del éxito
                 setIsClosingAfterSuccess(true);
-                // Cerrar el modal inmediatamente
                 setOpenModal(false);
                 setInfoAgregado(null);
-
                 setTimeout(() => {
                   deleteAction.reset();
                   setIsClosingAfterSuccess(false);

@@ -1,22 +1,33 @@
+interface IPlantaBase {
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
 export interface IPlantaRequest {
   codigo: string;
   nombre: string;
-  descripcion: string;
+  descripcion?: string;
   numeroRuma: number;
   activo: boolean;
 }
 
-export interface IPlantaResponse {
-  id: string; // UNIQUEIDENTIFIER en SQL Server
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  numeroRuma: number;
-  activo: boolean;
-  creadoEl: string; // DateTime generado por el backend
+export interface IPlantaUpdate extends IPlantaRequest {
+  id: string;
 }
 
-// Mantener IPlanta e IPlantaGet para compatibilidad
-export interface IPlanta extends IPlantaRequest {}
-export interface IPlantaGet extends IPlantaResponse {}
- 
+export interface IPlantaResponse extends IPlantaBase {
+  id: string;
+  activo: boolean;
+  numeroRuma: number;
+  creadoPorId: string;
+  creadoEl: string;
+  modificadoPorId?: string;
+  modificadoEl?: string;
+}
+
+import { PagedResponse, BaseFiltersParams } from "@/interface";
+export type PagedPlantaResponse = PagedResponse<IPlantaResponse>;
+
+export interface PlantaFiltersParams extends BaseFiltersParams {}

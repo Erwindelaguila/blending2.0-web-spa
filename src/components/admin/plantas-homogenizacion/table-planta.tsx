@@ -10,55 +10,101 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect, useMemo } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
-import { PanelCrearPlanta } from "./panel-crear-planta";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR from "swr";
+import { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { IPlantaResponse } from "@/interface";
-import { IPlantaGet } from "@/interface/admin/planta";
-import { PlantasService } from "@/services";
-import { getAllPlantaKey } from "@/lib/constants/key-fetch";
+import { BaseResponse } from "@/interface";
+import { PlantaPanel } from "./planta-panel";
+import { PlantasService } from "@/services/plantas.service";
+import { PlantaFiltersParams } from "@/interface/admin/planta";
+import { IPlantaResponse } from "@/interface/admin/planta";
+import { useAuth } from "@/hooks/use-auth";
+import { PagedPlantaResponse } from "@/interface/admin/planta";
+import { usePlantaContext } from './planta-context';
+import { buildPaginatedSWRKey } from '@/utils/swr-keys';
+import { PAGINATION_CONFIG } from '@/config/pagination.config';
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
   { uid: "nombre", name: "Nombre", width: 5 },
-  { uid: "descripcion", name: "Descripción", width: 15 },
+  { uid: "descripcion", name: "Descripción", width: 10 },
+  { uid: "numeroRuma", name: "N° Ruma", width: 5 },
   { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
+const buildPlantasKey = (page: number, size: number, filters?: PlantaFiltersParams) => {
+  return buildPaginatedSWRKey('plantas', page, size, filters);
+};
+
 export function TablePlanta() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
+  const { user } = useAuth();
+  const { filters } = usePlantaContext();
+
+  const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
+  const pageSize = PAGINATION_CONFIG.DEFAULT_SIZE;
+
+  const serviceFilters: PlantaFiltersParams | undefined = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined;
+    
+    return {
+      codigo: filters.codigo,
+      estado: filters.estado,
+      fechaDesde: filters.fechaDesde?.toISOString().split('T')[0],
+    };
+  }, [filters]);
+
+  const swrKey = buildPlantasKey(page, pageSize, serviceFilters);
+  
+  useEffect(() => {
+    setPage(PAGINATION_CONFIG.DEFAULT_PAGE);
+  }, [serviceFilters]);
 
   const {
     data: dataPlantas,
     isLoading: loadingPlantas,
     error: errorPlantas,
-  } = useSWR<IPlantaResponse[]>(getAllPlantaKey(), PlantasService.listar, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-  });
+  } = useSWR<BaseResponse<PagedPlantaResponse>>(
+    swrKey, 
+    () => PlantasService.listar(page, pageSize, serviceFilters),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000,
+    }
+  );
+
+  const respData = dataPlantas?.data;
+  const items: IPlantaResponse[] = respData?.data ?? [];
+  const {
+    currentPage: paginationCurrentPage = page,
+    totalPages: paginationTotalPages = 1,
+    totalCount: paginationTotalItems = 0,
+    hasPrevious,
+    hasNext,
+    previousPage,
+    nextPage,
+  } = respData?.pagination ?? {};
+  
+  const handlePageChange = (newPage: number) => {
+    if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
+      setPage(newPage);
+    }
+  };
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [idPlanta, setIdPlanta] = useState<string | undefined>(undefined);
-  const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
-  const [page, setPage] = useState(1);
   const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
-  const itemsPerPage = 10; // O el valor que uses para paginación
-  
-  // Calcular paginación dinámica
-  const totalItems = dataPlantas?.length || 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentPageData = dataPlantas?.slice(startIndex, endIndex) || [];
+
+  const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
 
   const handleOpenCrear = () => {
     setMode("crear");
@@ -100,19 +146,19 @@ export function TablePlanta() {
   } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
-    const planta = item as IPlantaGet;
+    const planta = item as IPlantaResponse;
     switch (columnKey) {
       case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
           Inactivo: OrgColors.rojo,
         };
-
         return (
           <Badge
             appearance="filled"
             style={{
-              backgroundColor: statusColorMap[planta.activo ? "Activo" : "Inactivo"] || "#666",
+              backgroundColor:
+                statusColorMap[planta.activo ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "100%",
             }}
@@ -121,7 +167,6 @@ export function TablePlanta() {
             {planta.activo ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
-
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
@@ -129,7 +174,7 @@ export function TablePlanta() {
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenDetalle(planta.id.toString())}
+                onClick={() => handleOpenDetalle(planta.id)}
                 icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
               />
             </Tooltip>
@@ -137,7 +182,7 @@ export function TablePlanta() {
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenEditar(planta.id.toString())}
+                onClick={() => handleOpenEditar(planta.id)}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
@@ -147,9 +192,6 @@ export function TablePlanta() {
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  // Limpiar el estado anterior antes de abrir el modal
-                  deleteAction.reset();
-                  setIsClosingAfterSuccess(false);
                   setInfoPlanta({
                     id: planta.id,
                     codigo: planta.codigo,
@@ -161,27 +203,52 @@ export function TablePlanta() {
             </Tooltip>
           </div>
         );
-
       default:
-        return planta[columnKey as keyof IPlantaGet];
+        return (planta as any)[columnKey] ?? "";
     }
   };
 
-  const { user } = useAuth();
-  const acctionDeleteModal = async () => {
+  const handlePanelSuccess = () => {
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildPlantasKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+    
+    if (mode === "crear") {
+      const newTotal = paginationTotalItems + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize);
+      setPage(newLastPage);
+      mutate(buildPlantasKey(newLastPage, pageSize, serviceFilters));
+    } else {
+      mutate(buildPlantasKey(page, pageSize, serviceFilters));
+    }
+  };
+
+  const actionDeleteModal = async () => {
     if (!infoPlanta) return;
     const userId = user?.id;
     if (!userId) throw new Error("No se encontró el id del usuario autenticado");
+    
     await deleteAction.execute(
       async () => {
         await PlantasService.eliminar(infoPlanta.id, userId);
         return { success: true, message: "Planta eliminada correctamente" };
       },
-      getAllPlantaKey()
+      buildPlantasKey(page, pageSize, serviceFilters)
     );
-    // NO cerrar el modal aquí, dejar que el usuario haga clic en "Aceptar"
+
+    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+      mutate(buildPlantasKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+    
+    mutate(buildPlantasKey(page, pageSize, serviceFilters));
+    
+    if (items.length === 1 && page > 1) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildPlantasKey(prevPage, pageSize, serviceFilters));
+    }
   };
-  
+
   return (
     <>
       <Card style={{ width: "100%", height: "100%" }}>
@@ -193,7 +260,7 @@ export function TablePlanta() {
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
                 className={`w-[13rem] ${style.buttonVerdeBase}`}
-                onClick={handleOpenCrear}
+                onClick={() => handleOpenCrear()}
               >
                 Nuevo
               </Button>
@@ -202,7 +269,7 @@ export function TablePlanta() {
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={currentPageData}
+                data={items}
                 renderCell={renderCell}
                 isLoading={loadingPlantas}
                 error={errorPlantas}
@@ -212,23 +279,28 @@ export function TablePlanta() {
           </div>
 
           <div className="w-full h-1/10">
-            {dataPlantas && totalItems > 0 && (
+            {items.length > 0 && (
               <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                onPageChange={setPage}
+                currentPage={paginationCurrentPage}
+                totalPages={paginationTotalPages}
+                totalItems={paginationTotalItems}
+                onPageChange={handlePageChange}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>
         </div>
       </Card>
 
-      <PanelCrearPlanta
-        open={openPanel}
+      <PlantaPanel
         mode={mode}
-        id={idPlanta}
+        open={openPanel}
         close={handleClosePanel}
+        id={idPlanta}
+        onSuccess={handlePanelSuccess}
       />
 
       <ModalBase
@@ -242,17 +314,18 @@ export function TablePlanta() {
         }}
         type="alert"
         buttonText="Eliminar"
-        buttonAction={acctionDeleteModal}
-        closeOnOutsideClick={false} // No permitir cerrar haciendo clic fuera
-        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess} // Ocultar botones cuando hay éxito O cuando está cerrando
+        closeOnOutsideClick={false}
+        buttonAction={actionDeleteModal}
+        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess}
       >
         <>
           {!deleteAction.isSuccess && (
             <>
-              ¿Está seguro de eliminar la planta con código{" "}
+              ¿Está seguro de eliminar la planta con código {" "}
               <span className="font-bold">{infoPlanta?.codigo}</span>?
             </>
           )}
+
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
@@ -275,12 +348,9 @@ export function TablePlanta() {
               loadingMessage=""
               successMessage="Planta eliminada correctamente"
               onSuccess={() => {
-                // Marcar que está cerrando después del éxito
                 setIsClosingAfterSuccess(true);
-                // Cerrar el modal inmediatamente
                 setOpenModal(false);
                 setInfoPlanta(null);
-                // Resetear después de que el modal se haya cerrado
                 setTimeout(() => {
                   deleteAction.reset();
                   setIsClosingAfterSuccess(false);

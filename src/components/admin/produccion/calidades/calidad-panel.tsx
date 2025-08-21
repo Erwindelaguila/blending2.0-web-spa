@@ -2,27 +2,24 @@ import { DrawerBase } from "@/components/ui/drawe-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { OrgColors } from "@/config/app.config.server";
-import { ICalidad, ICalidadGet, IDrawer } from "@/interface";
+import { IDrawer } from "@/interface/components/drawer";
 import { useInputStyles } from "@/styles/input.styles";
-import {
-  Checkbox,
-  Input,
-  Label,
-  Spinner,
-  Switch,
-  Textarea,
-} from "@fluentui/react-components";
+import { Checkbox, Input, Label, Spinner, Switch, Textarea } from "@fluentui/react-components";
+import { CalendarClock20Regular, Edit20Regular, Info20Regular } from "@fluentui/react-icons";
+import { formatearFechaCompleta } from "@/utils/date";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { fetchGetCalidadesId, getByIdCalidadKey } from "@/lib/constants/key-fetch";
 import { CalidadesService } from "@/services/calidades.service";
-import useSWR from "swr";
-import { CalidadFechApi } from "@/services/calidad-service-api";
-import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { BaseResponse } from "@/interface";
 import {
-  fetchGetCalidadesId,
-  getAllCalidadKey,
-} from "@/lib/constants/key-fetch";
+  ICalidadResponse,
+  ICalidadRequest,
+  ICalidadUpdate,
+} from "@/interface/admin/calidad";
 
-const defaultFormValues: ICalidad = {
+const defaultFormValues: ICalidadRequest = {
   codigo: "",
   nombre: "",
   codigoMaterial: "",
@@ -31,56 +28,93 @@ const defaultFormValues: ICalidad = {
   activo: true,
 };
 
-export function CalidadPanel({ open, mode, id, close }: IDrawer) {
+export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
+  const { user } = useAuth();
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },
-  } = useForm<ICalidad>({
+  } = useForm<ICalidadRequest>({
     defaultValues: defaultFormValues,
   });
 
-  const {
-    data: dataCalidad,
-    isLoading: loadingCalidad,
-    error: errorCalidad,
-  } = useSWR<ICalidadGet>(
-    id != undefined ? fetchGetCalidadesId(id) : null,
-    CalidadFechApi,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
-    }
-  );
+  const [dataCalidad, setDataCalidad] = useState<BaseResponse<ICalidadResponse> | null>(null);
+  const [loadingCalidad, setLoadingCalidad] = useState(false);
+  const [errorCalidad, setErrorCalidad] = useState<string | null>(null);
 
-  const onSubmit: SubmitHandler<ICalidad> = async (data) => {
+  useEffect(() => {
+    const loadData = async () => {
+      if (!open) return;
+      
+      if (mode === "crear") {
+        reset(defaultFormValues);
+        setDataCalidad(null);
+        setErrorCalidad(null);
+        return;
+      }
+      
+      if (mode === "editar" || mode === "detalle") {
+        if (!id) {
+          setErrorCalidad("ID no proporcionado para cargar datos");
+          return;
+        }
+        
+        setLoadingCalidad(true);
+        setErrorCalidad(null);
+        
+        try {
+          const response = await CalidadesService.obtenerPorId(getByIdCalidadKey(id));
+          setDataCalidad(response);
+          reset(response.data);
+        } catch (error) {
+          setErrorCalidad("Error al cargar los datos");
+          console.error("Error loading calidad:", error);
+        } finally {
+          setLoadingCalidad(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [open, mode, id, reset]);
+
+  useEffect(() => {
+    if (!open) {
+      setDataCalidad(null);
+      setLoadingCalidad(false);
+      setErrorCalidad(null);
+      asyncAction.reset();
+    }
+  }, [open]);
+
+  const onSubmit: SubmitHandler<ICalidadRequest> = async (data) => {
+    const sendCreate: ICalidadRequest = { ...data };
+    const sendUpdate: ICalidadUpdate = { ...data, id: id || "" };
+
     await asyncAction.execute(
       async () =>
-        id ? CalidadesService.editar(id, data) : CalidadesService.crear(data),
-      getAllCalidadKey()
+        id
+          ? await CalidadesService.actualizar(sendUpdate)
+          : await CalidadesService.crear(sendCreate)
     );
   };
 
   const closeAcction = () => {
+    if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
+      onSuccess(asyncAction.response.data as any, mode);
+    }
     reset(defaultFormValues);
     close();
     asyncAction.reset();
   };
 
-  useEffect(() => {
-    if (mode !== "crear" && dataCalidad) {
-      reset(dataCalidad);
-    } else if (mode === "crear" && open) {
-      reset(defaultFormValues);
-    }
-  }, [dataCalidad, reset, mode, open]);
+  const values = watch();
 
   const TITULOS_PANEL: Record<typeof mode, string> = {
     crear: "Nueva Calidad",
@@ -109,31 +143,71 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
 
     if (mode === "detalle") {
       return (
-        <div className="py-2 flex flex-col gap-3">
-          <div>
-            <Label>Código</Label>
-            <p>{values.codigo}</p>
+        <div className="py-4 flex flex-col gap-6">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Código</Label>
+              <Input value={values.codigo || ""} readOnly className={`${styles.inputGrisBase} font-medium`} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Nombre</Label>
+              <Input value={values.nombre || ""} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Código de Material</Label>
+              <Input value={values.codigoMaterial || ""} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Descripción</Label>
+              <Textarea value={values.descripcion || "Sin descripción"} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${OrgColors.serotGris}`, backgroundColor: "#f8f9fa", color: "#495057", minHeight: "80px", resize: "none" }} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Conforme</Label>
+              <div className="flex items-center">
+                <Input value={values.conforme ? "Sí" : "No"} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${values.conforme ? "#28a745" : "#dc3545"}`, backgroundColor: values.conforme ? "#d4edda" : "#f8d7da", color: values.conforme ? "#155724" : "#721c24", fontWeight: "500", width: "100px", textAlign: "center" }} />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Estado</Label>
+              <div className="flex items-center">
+                <Input value={values.activo ? "Activo" : "Inactivo"} readOnly className={styles.inputGrisBase} style={{ border: `2px solid ${values.activo ? "#28a745" : "#dc3545"}`, backgroundColor: values.activo ? "#d4edda" : "#f8d7da", color: values.activo ? "#155724" : "#721c24", fontWeight: "500", width: "100px", textAlign: "center" }} />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label>Nombre</Label>
-            <p>{values.nombre}</p>
-          </div>
-          <div>
-            <Label>Código de Material</Label>
-            <p>{values.codigoMaterial}</p>
-          </div>
-          <div>
-            <Label>Descripción</Label>
-            <p>{values.descripcion || "-"}</p>
-          </div>
-          <div>
-            <Label>Conforme</Label>
-            <p>{values.conforme ? "Sí" : "No"}</p>
-          </div>
-          <div>
-            <Label>Activo</Label>
-            <p>{values.activo ? "Sí" : "No"}</p>
-          </div>
+
+          {dataCalidad?.data && (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info20Regular className="text-blue-500" />
+                <h4 className="font-semibold text-gray-700 text-lg">Información de Registro</h4>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {(dataCalidad.data as any).creadoEl && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-gray-600 flex items-center gap-2">
+                      <CalendarClock20Regular className="text-blue-500" />
+                      Fecha de Creación
+                    </Label>
+                    <Input value={formatearFechaCompleta((dataCalidad.data as any).creadoEl)} readOnly className={styles.inputGrisBase} style={{ border: `2px solid #e3f2fd`, backgroundColor: "#f3f8ff", color: "#1976d2", fontWeight: "500", fontSize: "14px" }} />
+                  </div>
+                )}
+                {(dataCalidad.data as any).modificadoEl && (dataCalidad.data as any).modificadoEl !== (dataCalidad.data as any).creadoEl && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-gray-600 flex items-center gap-2">
+                      <Edit20Regular className="text-orange-500" />
+                      Última Modificación
+                    </Label>
+                    <Input value={formatearFechaCompleta((dataCalidad.data as any).modificadoEl)} readOnly className={styles.inputGrisBase} style={{ border: `2px solid #fff3e0`, backgroundColor: "#fffaf5", color: "#f57c00", fontWeight: "500", fontSize: "14px" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -150,6 +224,7 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
             render={({ field }) => (
               <Input
                 {...field}
+                value={field.value ?? ""}
                 className={styles.inputGrisBase}
                 style={{ border: `2px solid ${OrgColors.serotGris}` }}
               />
@@ -169,6 +244,7 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
             render={({ field }) => (
               <Input
                 {...field}
+                value={field.value ?? ""}
                 className={styles.inputGrisBase}
                 style={{ border: `2px solid ${OrgColors.serotGris}` }}
               />
@@ -188,7 +264,8 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
             rules={{ required: "El código de material es requerido" }}
             render={({ field }) => (
               <Input
-                {...field}
+                value={field.value ?? ""}
+                onChange={(_, data) => field.onChange(data.value)}
                 className={styles.inputGrisBase}
                 style={{ border: `2px solid ${OrgColors.serotGris}` }}
               />
@@ -224,8 +301,8 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
             render={({ field }) => (
               <Checkbox
                 size="large"
-                checked={field.value}
-                onChange={(e, data) => field.onChange(data.checked)}
+                checked={!!field.value}
+                onChange={(_, data) => field.onChange(!!data.checked)}
                 label={field.value ? "Conforme" : "No conforme"}
               />
             )}
@@ -239,8 +316,8 @@ export function CalidadPanel({ open, mode, id, close }: IDrawer) {
             control={control}
             render={({ field }) => (
               <Switch
-                checked={field.value}
-                onChange={(e) => field.onChange(e.currentTarget.checked)}
+                checked={!!field.value}
+                onChange={(_, data) => field.onChange(!!data.checked)}
                 label={field.value ? "Activo" : "Inactivo"}
               />
             )}

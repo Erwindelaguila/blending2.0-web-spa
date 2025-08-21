@@ -1,8 +1,11 @@
 import { TableDynamic } from "@/components/ui/table-dynamic";
 import { useButtonsStyles } from "@/styles/button.styles";
-import { Button, Card, CardPreview } from "@fluentui/react-components";
+import { Button, Card, CardPreview, Spinner } from "@fluentui/react-components";
 import { Checkmark24Regular } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import useSWR, { mutate } from "swr";
+import { CalidadParametrosService } from "@/services/calidad-parametros.service";
+import { useAsyncAction } from "@/hooks/use-async-action";
 
 const calidades: Calidad[] = [
   {
@@ -284,9 +287,93 @@ type Calidad = {
 
 export function TableValoresCalidad() {
   const style = useButtonsStyles();
-  const [datos, setDatos] = useState<Calidad[]>(calidades);
+  const asyncAction = useAsyncAction();
+  
+  // Obtener datos dinámicos del backend
+  const { data: matrizData, isLoading } = useSWR(
+    "matriz-calidad-parametros",
+    () => CalidadParametrosService.obtenerMatriz()
+  );
 
-  console.log("Datos iniciales:", datos);
+  // Convertir datos de la matriz a formato para TableDynamic
+  const datos = useMemo(() => {
+    if (!matrizData?.data) return []; // sin datos del backend = tabla vacía
+    
+    const matriz = matrizData.data;
+    
+    // Tabla completamente dinámica: solo lo que venga del backend
+    return matriz.calidades.map(calidad => {
+      const fila: any = { calidad: calidad.codigo };
+      matriz.parametros.forEach(param => {
+        const valor = calidad.valores[param.codigo];
+        fila[param.codigo] = valor?.valor?.toString() ?? "0";
+      });
+      return fila;
+    });
+  }, [matrizData]);
+
+  const [datosEditables, setDatosEditables] = useState<Calidad[]>(datos);
+
+  useEffect(() => {
+    setDatosEditables(datos);
+  }, [datos]);
+
+  const handleGuardarConfiguracion = async () => {
+    if (!matrizData?.data) return;
+
+    const matriz = matrizData.data;
+    const cambios: Array<{ calidadId: string; parametroId: string; valor: number }> = [];
+
+    // Comparar datos editables con datos originales para encontrar cambios
+    datosEditables.forEach((filaEditada) => {
+      const calidadCodigo = filaEditada.calidad;
+      const calidadOriginal = matriz.calidades.find(c => c.codigo === calidadCodigo);
+      
+      if (calidadOriginal) {
+        matriz.parametros.forEach((param) => {
+          const valorEditado = parseFloat(filaEditada[param.codigo] || "0");
+          const valorOriginal = calidadOriginal.valores[param.codigo]?.valor ?? 0;
+          
+          // Si el valor cambió, agregarlo a la lista de cambios
+          if (valorEditado !== valorOriginal) {
+            cambios.push({
+              calidadId: calidadOriginal.id,
+              parametroId: param.id,
+              valor: valorEditado
+            });
+          }
+        });
+      }
+    });
+
+    if (cambios.length === 0) {
+      console.log("No hay cambios para guardar");
+      return;
+    }
+
+    console.log(`Guardando ${cambios.length} cambios en una sola petición:`, cambios);
+
+    await asyncAction.execute(async () => {
+      // Enviar TODOS los cambios en una sola petición
+      const result = await CalidadParametrosService.upsertValoresBatch(cambios);
+      
+      // Refrescar datos después de guardar
+      mutate("matriz-calidad-parametros");
+      
+      return { 
+        message: `Se procesaron ${result.data?.processedCount || cambios.length} cambios exitosamente`,
+        data: result.data
+      };
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Spinner labelPosition="below" label="Cargando matriz de calidad-parámetros..." />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -294,16 +381,15 @@ export function TableValoresCalidad() {
         <div className="w-full h-full flex flex-col ">
           <div className="w-full h-23/25">
             <TableDynamic
-              calidades={calidades}
-              title="Paramtroes"
+              calidades={datosEditables}
+              titleFirstCol="Calidades"
               editable
-              onDataChange={setDatos}
+              onDataChange={setDatosEditables}
               widthFull={true}
               height="100%"
               isStickyFirstCol={true}
               paintRowCol={true}
-              titleFirstCol="Calidades"
-            ></TableDynamic>
+            />
           </div>
 
           <div className="flex justify-end items-center w-full h-2/25">
@@ -311,9 +397,11 @@ export function TableValoresCalidad() {
               size="large"
               style={{ width: "20rem" }}
               className={style.buttonAzulOscuroBase}
-              icon={<Checkmark24Regular></Checkmark24Regular>}
+              icon={<Checkmark24Regular />}
+              onClick={handleGuardarConfiguracion}
+              disabled={asyncAction.isLoading}
             >
-              Guardar configuración
+              {asyncAction.isLoading ? "Guardando..." : "Guardar configuración"}
             </Button>
           </div>
         </div>

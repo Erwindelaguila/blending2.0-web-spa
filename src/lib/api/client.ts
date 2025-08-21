@@ -4,6 +4,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { API_URL } from "../constants/env";
+import { AuthService } from "@/services/auth.service";
 
 // Configuración base del cliente Axios
 const api = axios.create({
@@ -39,10 +40,17 @@ api.interceptors.request.use(
 // Obtiene token almacenado y valida expiración
 async function getAzureAdToken(): Promise<string | null> {
   try {
+    // Primero buscar token ya guardado en storage
     let token = sessionStorage.getItem("azure-ad-token");
     if (token && isTokenValid(token)) return token;
+    
     token = localStorage.getItem("azure-ad-token");
     if (token && isTokenValid(token)) return token;
+    
+    // Solo si no hay token válido, intentar obtener uno nuevo del AuthService
+    const { token: freshToken } = await AuthService.getExistingUser();
+    if (freshToken && isTokenValid(freshToken)) return freshToken;
+    
     return null;
   } catch (_) {
     return null;
@@ -78,18 +86,22 @@ api.interceptors.response.use(
         }
       } catch (_) {
         // Falló refresh → redirigir a login
-        window.location.href = "/login";
+        await AuthService.login();
       }
-      window.location.href = "/login";
+      await AuthService.login();
     }
 
     return Promise.reject(error);
   }
 );
 
-// Placeholder de refresh (integrar con MSAL cuando se implemente)
+// Refresh token usando AuthService
 async function refreshAzureAdToken(): Promise<string | null> {
-  return null; // Forzar flujo de re-login por ahora
+  try {
+    return await AuthService.refreshToken();
+  } catch (_) {
+    return null;
+  }
 }
 
 export default api;

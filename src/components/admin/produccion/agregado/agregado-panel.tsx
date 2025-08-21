@@ -12,25 +12,34 @@ import {
   Textarea,
 } from "@fluentui/react-components";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import useSWR from "swr";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  getAllAgregadoKey,
   getByIdAgregadoKey,
 } from "@/lib/constants/key-fetch";
-import { IAgregado, IAgregadoSend, IAgregadoUpdate } from "@/interface/admin/agregado";
+import { IAgregado, IAgregadoRequest, IAgregadoUpdate } from "@/interface/admin/agregado";
 import { AgregadoService } from "@/services/agregado.service";
+import { formatearFechaCompleta } from "@/utils/date";
+import { 
+  CalendarClock20Regular, 
+  Edit20Regular, 
+  Info20Regular 
+} from "@fluentui/react-icons";
 
 
-const defaultFormValues: IAgregadoSend = {
+const TITULOS_PANEL: Record<IDrawer["mode"], string> = {
+  crear: "Nuevo Agregado",
+  editar: "Editar Agregado",
+  detalle: "Detalle de Agregado",
+};
+
+const defaultFormValues: IAgregadoRequest = {
   codigo: "",
   nombre: "",
   descripcion: "",
   activo: true,
-  creadoPorId: "",
 };
 
-export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
+export function AgregadoPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
 
@@ -38,72 +47,87 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     control,
     formState: { errors },
-  } = useForm<IAgregadoSend>({
+  } = useForm<IAgregadoRequest>({
     defaultValues: defaultFormValues,
   });
 
-  const {
-    data: dataCalidad,
-    isLoading: loadingCalidad,
-    error: errorCalidad,
-  } = useSWR<BaseResponse<IAgregado>>(
-    id != undefined ? getByIdAgregadoKey(id) : null,
-    AgregadoService.obtenerPorId,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: true,
-    }
-  );
+  const [dataAgregado, setDataAgregado] = useState<BaseResponse<IAgregado> | null>(null);
+  const [loadingAgregado, setLoadingAgregado] = useState(false);
+  const [errorAgregado, setErrorAgregado] = useState<string | null>(null);
 
-  const onSubmit: SubmitHandler<IAgregadoSend> = async (data) => {
+  const onSubmit: SubmitHandler<IAgregadoRequest> = async (data) => {
+    const sendCreate: IAgregadoRequest = { ...data };
+    const sendUpdate: IAgregadoUpdate = { ...data, id: id || "" };
 
-    const sendAgregado: IAgregadoSend = {
-      ...data,
-      creadoPorId: "a6f3d290-43a0-4b3f-a8e9-6d9a4c8d7d11", 
-    }
-  
-    const sendUpdate: IAgregadoUpdate={
-      ...data,
-      modificadoPorId: "f13298c2-7e1a-4b88-90fa-cf6136b4098e", 
-      id: id || "",
-    }
-
-    await asyncAction.execute(
-      async () =>
-        id ? AgregadoService.actualizar(sendUpdate) : AgregadoService.crear(sendAgregado),
-      getAllAgregadoKey()
-    );
-    
+    await asyncAction.execute(async () => {
+      const result = id
+        ? await AgregadoService.actualizar(sendUpdate)
+        : await AgregadoService.crear(sendCreate);
+      return result;
+    });
   };
 
   const closeAcction = () => {
+    if (asyncAction.isSuccess && onSuccess && asyncAction.response?.data) {
+      onSuccess(asyncAction.response.data as any, mode);
+    }
     reset(defaultFormValues);
     close();
     asyncAction.reset();
   };
 
   useEffect(() => {
-    if (mode !== "crear" && dataCalidad) {
-      reset(dataCalidad.data);
-    } else if (mode === "crear" && open) {
-      reset(defaultFormValues);
+    const loadData = async () => {
+      if (!open) return;
+      
+      if (mode === "crear") {
+        reset(defaultFormValues);
+        setDataAgregado(null);
+        setErrorAgregado(null);
+        return;
+      }
+      
+      if (mode === "editar" || mode === "detalle") {
+        if (!id) {
+          setErrorAgregado("ID no proporcionado para cargar datos");
+          return;
+        }
+        
+        setLoadingAgregado(true);
+        setErrorAgregado(null);
+        
+        try {
+          const response = await AgregadoService.obtenerPorId(getByIdAgregadoKey(id));
+          setDataAgregado(response);
+          reset(response.data);
+        } catch (error) {
+          setErrorAgregado("Error al cargar los datos");
+          console.error("Error loading agregado:", error);
+        } finally {
+          setLoadingAgregado(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [open, mode, id, reset]);
+
+  useEffect(() => {
+    if (!open) {
+      setDataAgregado(null);
+      setLoadingAgregado(false);
+      setErrorAgregado(null);
+      asyncAction.reset();
     }
-  }, [dataCalidad, reset, mode, open]);
+  }, [open]);
 
-  const TITULOS_PANEL: Record<typeof mode, string> = {
-    crear: "Nuevo Agregado",
-    editar: "Editar Agregado",
-    detalle: "Detalle de Agregado",
-  };
+  const values = watch();
 
-  const renderContenidoSegunModo = () => {
-    const values = watch();
-
-    if (loadingCalidad) {
+  const contenido = useMemo(() => {
+    if (loadingAgregado) {
       return (
         <div className="py-2">
           <Spinner labelPosition="above" label="Cargando datos" />
@@ -111,7 +135,7 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
       );
     }
 
-    if (errorCalidad) {
+    if (errorAgregado) {
       return (
         <div className="py-2 text-red-500">
           Ocurrió un error al traer los datos.
@@ -121,28 +145,126 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
 
     if (mode === "detalle") {
       return (
-        <div className="py-2 flex flex-col gap-3">
-          <div>
-            <Label>Código</Label>
-            <p>{values.codigo}</p>
+        <div className="py-4 flex flex-col gap-6">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Código</Label>
+              <Input
+                value={values.codigo || ""}
+                readOnly
+                className={`${styles.inputGrisBase} font-medium`}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Nombre</Label>
+              <Input
+                value={values.nombre || ""}
+                readOnly
+                className={styles.inputGrisBase}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Descripción</Label>
+              <Textarea
+                value={values.descripcion || "Sin descripción"}
+                readOnly
+                className={styles.inputGrisBase}
+                style={{ 
+                  border: `2px solid ${OrgColors.serotGris}`,
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057",
+                  minHeight: "80px",
+                  resize: "none"
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="font-semibold text-gray-700">Estado</Label>
+              <div className="flex items-center">
+                <Input
+                  value={values.activo ? "Activo" : "Inactivo"}
+                  readOnly
+                  className={styles.inputGrisBase}
+                  style={{ 
+                    border: `2px solid ${values.activo ? "#28a745" : "#dc3545"}`,
+                    backgroundColor: values.activo ? "#d4edda" : "#f8d7da",
+                    color: values.activo ? "#155724" : "#721c24",
+                    fontWeight: "500",
+                    width: "100px",
+                    textAlign: "center"
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label>Nombre</Label>
-            <p>{values.nombre}</p>
-          </div>
-          <div>
-            <Label>Descripción</Label>
-            <p>{values.descripcion || "-"}</p>
-          </div>
-          <div>
-            <Label>Activo</Label>
-            <p>{values.activo ? "Sí" : "No"}</p>
-          </div>
+          
+          {dataAgregado?.data?.creadoEl && (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info20Regular className="text-blue-500" />
+                <h4 className="font-semibold text-gray-700 text-lg">Información de Registro</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-gray-600 flex items-center gap-2">
+                    <CalendarClock20Regular className="text-blue-500" />
+                    Fecha de Creación
+                  </Label>
+                  <Input
+                    value={formatearFechaCompleta(dataAgregado.data.creadoEl)}
+                    readOnly
+                    className={styles.inputGrisBase}
+                    style={{ 
+                      border: `2px solid #e3f2fd`,
+                      backgroundColor: "#f3f8ff",
+                      color: "#1976d2",
+                      fontWeight: "500",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+                
+                {dataAgregado.data.modificadoEl && dataAgregado.data.modificadoEl !== dataAgregado.data.creadoEl && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-gray-600 flex items-center gap-2">
+                      <Edit20Regular className="text-orange-500" />
+                      Última Modificación
+                    </Label>
+                    <Input
+                      value={formatearFechaCompleta(dataAgregado.data.modificadoEl)}
+                      readOnly
+                      className={styles.inputGrisBase}
+                      style={{ 
+                        border: `2px solid #fff3e0`,
+                        backgroundColor: "#fffaf5",
+                        color: "#f57c00",
+                        fontWeight: "500",
+                        fontSize: "14px"
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
-    // Crear y editar
     return (
       <div className="py-2 flex flex-col gap-3">
         <div className="flex flex-col justify-start w-full gap-0.5">
@@ -216,7 +338,16 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
         </div>
       </div>
     );
-  };
+  }, [
+    loadingAgregado,
+    errorAgregado,
+    mode,
+    dataAgregado,
+    styles,
+    values,
+    control,
+    errors,
+  ]);
 
   return (
     <DrawerBase
@@ -242,22 +373,21 @@ export function AgregadoPanel({ open, mode, id, close }: IDrawer) {
         />
       )}
 
-      {(mode === "detalle" || asyncAction.isFromInit || asyncAction.error) &&
-        renderContenidoSegunModo()}
+  {(mode === "detalle" || asyncAction.isFromInit || asyncAction.error) && contenido}
 
       {mode !== "detalle" &&
         (asyncAction.isLoading || asyncAction.isSuccess) && (
           <AsyncActionDisplay
             state={asyncAction.state}
             loadingMessage={
-              id ? "Actualizando calidad..." : "Creando nueva calidad..."
+              id ? "Actualizando agregado..." : "Creando nuevo agregado..."
             }
             successMessage={
               id
                 ? asyncAction.response?.message ??
-                  "Se actualizó correctamente la calidad"
+                  "Se actualizó correctamente el agregado"
                 : asyncAction.response?.message ??
-                  "Se creó correctamente la calidad"
+                  "Se creó correctamente el agregado"
             }
             onSuccess={() => {
               closeAcction();

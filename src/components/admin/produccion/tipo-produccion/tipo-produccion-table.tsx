@@ -10,62 +10,135 @@ import {
   Edit24Filled,
   Info24Filled,
 } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 import { ModalBase } from "@/components/ui/modal-base";
 import { Pagination } from "@/components/ui/pagination-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { ICalidad } from "@/interface";
-import { getAllCalidadKey } from "@/lib/constants/key-fetch";
-import { CalidadesService } from "@/services";
+import { BaseResponse } from "@/interface";
 import { TipoProduccionPanel } from "./tipo-produccion-panel";
+import { TipoProduccionService } from "@/services/tipo-produccion.service";
+import { LineaProduccionService } from "@/services/linea-produccion.service";
+import { AgregadoService } from "@/services/agregado.service";
+// import { ITipoProduccionResponse } from "@/interface/admin/tipo-produccion";
+import { useAuth } from "@/hooks/use-auth";
+import { useTipoProduccionContext } from "./tipo-produccion-context";
+import { buildPaginatedSWRKey } from "@/utils/swr-keys";
+import { PAGINATION_CONFIG } from "@/config/pagination.config";
 
 const columns = [
   { uid: "codigo", name: "Codigo", width: 5 },
   { uid: "nombre", name: "Nombre", width: 5 },
   { uid: "descripcion", name: "Descripción", width: 10 },
-  { uid: "codigoMaterial", name: "Código de Material", width: 5 },
+  { uid: "linea_produccion_id", name: "Línea", width: 5 },
+  { uid: "agregado_id", name: "Agregado", width: 5 },
   { uid: "activo", name: "Estado", width: 7 },
   { uid: "action", name: "Acciones", width: 5 },
 ];
 
+const buildTipoProduccionKey = (page: number, size: number, filters?: any) =>
+  buildPaginatedSWRKey("tipoproduccion", page, size, filters);
+
 export function TipoProduccionTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
+  const { user } = useAuth();
+  const { filters } = useTipoProduccionContext();
+
+  const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
+  const pageSize = PAGINATION_CONFIG.DEFAULT_SIZE;
+  const serviceFilters = useMemo(() => {
+    if (!filters || Object.keys(filters).length === 0) return undefined;
+    return {
+      codigo: filters.codigo,
+      estado: filters.estado,
+      fechaDesde: filters.fechaDesde?.toISOString().split("T")[0],
+    };
+  }, [filters]);
+  const swrKey = buildTipoProduccionKey(page, pageSize, serviceFilters);
+  useEffect(() => { setPage(PAGINATION_CONFIG.DEFAULT_PAGE); }, [serviceFilters]);
 
   const {
-    data: dataCalidades,
-    isLoading: loadingCalidades,
-    error: errorCalidades,
-  } = useSWR<ICalidad[]>(getAllCalidadKey, CalidadesService.get, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true,
-  });
+    data: dataTipos,
+    isLoading: loadingTipos,
+    error: errorTipos,
+  } = useSWR<any>(
+    swrKey,
+    () => TipoProduccionService.listar(page, pageSize, serviceFilters),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000,
+    }
+  );
+
+  const { data: lineasLookup } = useSWR(
+    "lookup-lineas-produccion",
+    () => LineaProduccionService.listar(1, 500)
+  );
+  const { data: agregadosLookup } = useSWR(
+    "lookup-agregados-produccion",
+    () => AgregadoService.listar(1, 500)
+  );
+  const lineasMap = useMemo(() => {
+    const list = (lineasLookup?.data?.data || []) as any[];
+    // Incluir TODAS las líneas (activas e inactivas) para el mapeo
+    return Object.fromEntries(list.map((l: any) => [l.id, l.codigo]));
+  }, [lineasLookup]);
+  const agregadosMap = useMemo(() => {
+    const list = (agregadosLookup?.data?.data || []) as any[];
+    // Incluir TODOS los agregados (activos e inactivos) para el mapeo
+    return Object.fromEntries(list.map((a: any) => [a.id, a.codigo]));
+  }, [agregadosLookup]);
+
+  // Tolerar respuestas camelCase (estándar) y PascalCase (legacy)
+  const respCamel: any = dataTipos?.data;
+  const respPascal: any = (dataTipos as any)?.Data ? (dataTipos as any) : undefined;
+  const itemsRaw: any[] = respCamel?.data ?? respPascal?.Data ?? [];
+  const items: any[] = itemsRaw.map((it: any) => ({
+    ...it,
+    id: it.id ?? it.Id,
+    codigo: it.codigo ?? it.Codigo,
+    nombre: it.nombre ?? it.Nombre,
+    descripcion: it.descripcion ?? it.Descripcion ?? "",
+    activo: typeof it.activo === "boolean" ? it.activo : (it.Activo as boolean),
+    linea_produccion_id:
+      it.linea_produccion_id || it.LineaProduccionId || it.lineaProduccionId,
+    agregado_id: it.agregado_id || it.AgregadoId || it.agregadoId,
+  }));
+  const pagCamel = respCamel?.pagination;
+  const pagPascal = respPascal?.Pagination;
+  const paginationCurrentPage = pagCamel?.currentPage ?? pagPascal?.CurrentPage ?? page;
+  const paginationTotalPages = pagCamel?.totalPages ?? pagPascal?.TotalPages ?? 1;
+  const paginationTotalItems = pagCamel?.totalCount ?? pagPascal?.TotalCount ?? 0;
+  const hasPrevious = pagCamel?.hasPrevious ?? pagPascal?.HasPrevious;
+  const hasNext = pagCamel?.hasNext ?? pagPascal?.HasNext;
+  const previousPage = pagCamel?.previousPage ?? pagPascal?.PreviousPage;
+  const nextPage = pagCamel?.nextPage ?? pagPascal?.NextPage;
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [idCalidad, setIdCalidad] = useState<string | undefined>(undefined);
-
+  const [idTipo, setIdTipo] = useState<string | undefined>(undefined);
+  const [isClosingAfterSuccess, setIsClosingAfterSuccess] = useState(false);
   const [mode, setMode] = useState<"crear" | "editar" | "detalle">("crear");
-  const [page, setPage] = useState(1);
 
   const handleOpenCrear = () => {
     setMode("crear");
-    setIdCalidad(undefined);
+    setIdTipo(undefined);
     setOpenPanel(true);
   };
 
   const handleOpenEditar = (registroId: string) => {
     setMode("editar");
-    setIdCalidad(registroId);
+    setIdTipo(registroId);
     setOpenPanel(true);
   };
 
   const handleOpenDetalle = (registroId: string) => {
     setMode("detalle");
-    setIdCalidad(registroId);
+    setIdTipo(registroId);
     setOpenPanel(true);
   };
 
@@ -73,18 +146,30 @@ export function TipoProduccionTable() {
     setOpenPanel(false);
 
     setTimeout(() => {
-      setIdCalidad(undefined); // importante limpiar el ID
+      setIdTipo(undefined); // importante limpiar el ID
       setMode("crear"); // o el modo por defecto
     }, 30);
   };
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setInfoTipo(null);
+    setIsClosingAfterSuccess(false);
+    deleteAction.reset();
+  };
 
-  const [infoCalidad, setInfoCalidad] = useState<{
-    id: number;
+  const [infoTipo, setInfoTipo] = useState<{
+    id: string;
     codigo: string;
   } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
+      case "linea_produccion_id":
+        const lineaId = item.linea_produccion_id || item.LineaProduccionId || item.lineaProduccionId;
+        return lineasMap[lineaId] || "No encontrado";
+      case "agregado_id":
+        const agregadoId = item.agregado_id || item.AgregadoId || item.agregadoId;
+        return agregadosMap[agregadoId] || "No encontrado";
       case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
@@ -95,43 +180,43 @@ export function TipoProduccionTable() {
             appearance="filled"
             style={{
               backgroundColor:
-                statusColorMap[item.activo ? "Activo" : "Inactivo"] || "#666",
+                statusColorMap[(item.activo ?? item.Activo) ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "100%",
             }}
             size="large"
           >
-            {item.activo ? "ACTIVO" : "INACTIVO"}
+            {(item.activo ?? item.Activo) ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
-            <Tooltip content="Info Calidad" relationship="label">
+            <Tooltip content="Info" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenDetalle(item.id)}
+                onClick={() => handleOpenDetalle(String(item.id ?? item.Id))}
                 icon={<Info24Filled style={{ color: OrgColors.serotGris }} />}
               />
             </Tooltip>
-            <Tooltip content="Editar Calidad" relationship="label">
+            <Tooltip content="Editar" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
-                onClick={() => handleOpenEditar(item.id)}
+                onClick={() => handleOpenEditar(String(item.id ?? item.Id))}
                 icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />}
               />
             </Tooltip>
 
-            <Tooltip content="Eliminar Calidad" relationship="label">
+            <Tooltip content="Eliminar" relationship="label">
               <Button
                 size="large"
                 appearance="subtle"
                 onClick={() => {
-                  setInfoCalidad({
-                    id: item.id,
-                    codigo: item.code,
+                  setInfoTipo({
+                    id: String(item.id ?? item.Id),
+                    codigo: (item.codigo ?? item.Codigo) as string,
                   });
                   setOpenModal(true);
                 }}
@@ -145,16 +230,55 @@ export function TipoProduccionTable() {
     }
   };
 
-  const acctionDeleteModal = async () => {
-    if (!infoCalidad) return;
+  const handlePanelSuccess = () => {
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildTipoProduccionKey(i, pageSize, serviceFilters), undefined, {
+        revalidate: false,
+      });
+    }
+    if (mode === "crear") {
+      const newTotal = paginationTotalItems + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize);
+      setPage(newLastPage);
+      mutate(buildTipoProduccionKey(newLastPage, pageSize, serviceFilters));
+    } else {
+      mutate(buildTipoProduccionKey(page, pageSize, serviceFilters));
+    }
   };
+
+  const acctionDeleteModal = async () => {
+    if (!infoTipo) return;
+    const userId = user?.id;
+    if (!userId)
+      throw new Error("No se encontró el id del usuario autenticado");
+
+    await deleteAction.execute(
+      async () => {
+        await TipoProduccionService.eliminar(infoTipo.id.toString(), userId);
+        return { success: true, message: "Tipo de Producción eliminado correctamente" };
+      },
+      buildTipoProduccionKey(page, pageSize, serviceFilters)
+    );
+    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+      mutate(buildTipoProduccionKey(i, pageSize, serviceFilters), undefined, {
+        revalidate: false,
+      });
+    }
+    mutate(buildTipoProduccionKey(page, pageSize, serviceFilters));
+    if (items.length === 1 && page > 1) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      mutate(buildTipoProduccionKey(prevPage, pageSize, serviceFilters));
+    }
+  };
+
   return (
     <>
       <Card style={{ width: "100%", height: "100%" }}>
         <div className="w-full h-full flex flex-col  ">
           <div className="w-full h-9/10 ">
             <div className="w-full h-2/25 flex justify-between items-start ">
-              <Title title="Tipos de producción" />
+              <Title title="Tipos de Producción" />
               <Button
                 size="large"
                 icon={<Add24Regular></Add24Regular>}
@@ -164,26 +288,37 @@ export function TipoProduccionTable() {
                 Nuevo
               </Button>
             </div>
-
             <div className="w-full h-23/25">
               <TableBase
                 columns={columns}
-                data={[]}
+                data={items}
                 renderCell={renderCell}
-                isLoading={loadingCalidades}
-                error={errorCalidades}
+                isLoading={loadingTipos}
+                error={errorTipos}
                 height="100%"
               />
             </div>
           </div>
 
           <div className="w-full h-1/10">
-            {dataCalidades && (
+            {items.length > 0 && (
               <Pagination
-                currentPage={page}
-                totalPages={10}
-                totalItems={12}
-                onPageChange={setPage}
+                currentPage={paginationCurrentPage}
+                totalPages={paginationTotalPages}
+                totalItems={paginationTotalItems}
+                onPageChange={(newPage) => {
+                  if (
+                    newPage !== page &&
+                    newPage >= 1 &&
+                    newPage <= paginationTotalPages
+                  ) {
+                    setPage(newPage);
+                  }
+                }}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
               />
             )}
           </div>
@@ -194,23 +329,36 @@ export function TipoProduccionTable() {
         mode={mode}
         open={openPanel}
         close={handleClosePanel}
-        id={idCalidad}
+        id={idTipo}
+        onSuccess={handlePanelSuccess}
       />
 
       <ModalBase
         open={openModal}
-        setOpen={setOpenModal}
+        setOpen={(isOpen) => {
+          if (!isOpen) {
+            handleCloseModal();
+          } else {
+            setOpenModal(isOpen);
+          }
+        }}
         type="alert"
         buttonText="Eliminar"
+        closeOnOutsideClick={false}
         buttonAction={acctionDeleteModal}
+        requiereAction={!deleteAction.isSuccess && !isClosingAfterSuccess}
       >
         <>
-          ¿Está seguro de eliminar la calidad con código{" "}
-          <span className="font-bold">{infoCalidad?.codigo}</span>?
+          {!deleteAction.isSuccess && (
+            <>
+              ¿Está seguro de eliminar el tipo de producción con código{" "}
+              <span className="font-bold">{infoTipo?.codigo}</span>?
+            </>
+          )}
           {deleteAction.isLoading && (
             <AsyncActionDisplay
               state={deleteAction.state}
-              loadingMessage="Eliminando calidad..."
+              loadingMessage="Eliminando tipo de producción..."
               successMessage=""
             />
           )}
@@ -227,10 +375,15 @@ export function TipoProduccionTable() {
             <AsyncActionDisplay
               state={deleteAction.state}
               loadingMessage=""
-              successMessage="Calidad eliminada correctamente"
+              successMessage="Tipo de Producción eliminado correctamente"
               onSuccess={() => {
-                deleteAction.reset();
+                setIsClosingAfterSuccess(true);
                 setOpenModal(false);
+                setInfoTipo(null);
+                setTimeout(() => {
+                  deleteAction.reset();
+                  setIsClosingAfterSuccess(false);
+                }, 300);
               }}
             />
           )}
