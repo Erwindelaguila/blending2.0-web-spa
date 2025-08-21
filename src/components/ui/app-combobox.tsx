@@ -68,7 +68,6 @@ export const AppCombobox: React.FC<Props> = ({
       }
       return;
     }
-    // En el modo de mostrar el valor crudo, mantener el comportamiento original
     if (value) {
       setInputValue(value);
     } else {

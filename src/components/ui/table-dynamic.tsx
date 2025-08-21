@@ -117,13 +117,19 @@ export function TableDynamic({
 
   if (!localData || localData.length === 0) {
     return (
-      <TableRow>
-        <TableCell>
-          <Text align="center" size={300}>
-            No hay datos que mostrar
-          </Text>
-        </TableCell>
-      </TableRow>
+      <div className={styles.container} style={{ height }}>
+        <Table style={{ minWidth: widthFull ? "100%" : "20rem", width: "fit-content" }}>
+          <TableBody>
+            <TableRow>
+              <TableCell>
+                <Text align="center" size={300}>
+                  No hay datos que mostrar
+                </Text>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
     );
   }
 
