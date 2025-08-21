@@ -32,16 +32,16 @@ import {
   clearStockDisponibleFromDB,
   loadStockDisponible,
   persistStockDisponible,
+  StockDisponibleItem,
 } from "@/lib/store/slices/stockDisponible";
 import { downloadFileExcel } from "@/utils/download-file";
 import {
-  extraerValoresParametro,
   extraerValoresUnicos,
   getRelacionadosPorPlanta,
-  getValoresUnificadosPorCentros,
 } from "@/utils/process-data";
 import { resetBlobData, setBlobData } from "@/lib/store/slices/blobSlice";
 import { onFormatDate } from "@/utils/date";
+import { StockFiltradoItem } from "@/interface/quality/tab-data";
 
 export interface ErrorType {
   field: string;
@@ -55,6 +55,7 @@ export function TabData() {
   const PLATA_DEFAULT = "MSU";
   const style = useButtonsStyles();
   const asyncAction = useAsyncAction();
+  const dispatch = useAppDispatch();
 
   const [responseCargarExcel, setResponseCargarExcel] = useState<{
     error: string;
@@ -79,6 +80,24 @@ export function TabData() {
     (state) => state.blob
   );
 
+  const [checkedRumasHp, setCheckedRumasHp] =
+    useState<CheckboxProps["checked"]>(true);
+
+  const [checkedTiposProduccion, setCheckedTiposProduccion] =
+    useState<CheckboxProps["checked"]>(false);
+
+  const [checkedCadmio, setCheckedCadmio] =
+    useState<CheckboxProps["checked"]>(true);
+
+  const [centrosUbicacion, setCentrosUbicacion] = useState<string[]>([]);
+  const [alamacenesUbicacion, setAlmacenesUbicacion] = useState<string[]>([]);
+  const [centrosProduccion, setCentrosProduccion] = useState<string[]>([]);
+  const [errorDownloadExcel, setErrorDownloadExcel] = useState<string>("");
+  const [allTiposProduccion, setAllTiposProduccion] = useState<string[]>([]);
+  const [tipoProduccion, setTipoProduccion] = useState<string[]>([]);
+  const [calidadPlanta, setCalidadPlanta] = useState<string[]>([]);
+  const [plantas, setPlantas] = useState<string[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -99,36 +118,59 @@ export function TabData() {
     },
   });
 
-  const onSubmit: SubmitHandler<IFilterHomogenizacionHarina> = async (data) => {
-    console.log("Form data submitted:", data);
-    //(nextStep());
+  const onSubmit: SubmitHandler<IFilterHomogenizacionHarina> = async (
+    dataSubmit
+  ) => {
+    let dataFilter: StockDisponibleItem[] = [...data];
+
+    dataFilter = dataFilter.filter(
+      (item) => item.fijos.planta === dataSubmit.plata_Homogenizado
+    );
+
+    dataFilter = dataFilter.filter((item) =>
+      dataSubmit.centro_ubicacion.includes(item.fijos.centroUbicacion)
+    );
+
+    dataFilter = dataFilter.filter((item) =>
+      dataSubmit.centro_produccion.includes(item.fijos.centroProduccion)
+    );
+
+    dataFilter = dataFilter.filter((item) =>
+      dataSubmit.ubicacion_almacen.includes(item.fijos.almacenUbicacion)
+    );
+
+    dataFilter = dataFilter.filter((item) =>
+      dataSubmit.tipo_produccion.includes(item.fijos.tipoProduccion)
+    );
+
+    dataFilter = dataFilter.filter(
+      (item) => !dataSubmit.borrar_calidades.includes(item.fijos.calidadPlanta)
+    );
+
+    if (checkedRumasHp) {
+      dataFilter = dataFilter.filter((item) => item.fijos.serie !== "PH");
+    }
+
+    if (dataSubmit.agregar_rumas_serie.length > 0) {
+      dataFilter = dataFilter.filter((item) =>
+        dataSubmit.agregar_rumas_serie.includes(item.fijos.serie)
+      );
+    }
+
+    const stockFiltrado: StockFiltradoItem[] = dataFilter.map((item) => ({
+      rumaNro: item.fijos.rumaNro, // ajusta según tu modelo real
+      cantidad: item.fijos.cantidad,
+      parametros: item.parametrosCalidad,
+    }));
+
+    console.log("Es",stockFiltrado);
+
+    dispatch(nextStep());
   };
 
   const sendData = () => {
-    //handleSubmit(onSubmit)();
-    //dispatch(nextStep());
+    handleSubmit(onSubmit)();
   };
-
-  const [checkedRumasHp, setCheckedRumasHp] =
-    useState<CheckboxProps["checked"]>(true);
-
-  const [checkedTiposProduccion, setCheckedTiposProduccion] =
-    useState<CheckboxProps["checked"]>(false);
-  const [checkedCadmio, setCheckedCadmio] =
-    useState<CheckboxProps["checked"]>(true);
-
-  const [centrosUbicacion, setCentrosUbicacion] = useState<string[]>([]);
-  const [alamacenesUbicacion, setAlmacenesUbicacion] = useState<string[]>([]);
-  const [centrosProduccion, setCentrosProduccion] = useState<string[]>([]);
-  const [errorDownloadExcel, setErrorDownloadExcel] = useState<string>("");
-  const [allTiposProduccion, setAllTiposProduccion] = useState<string[]>([]);
-  const [tipoProduccion, setTipoProduccion] = useState<string[]>([]);
-  const [rumas, setRumas] = useState<string[]>([]);
-  const [allRumas, setAllRumas] = useState<string[]>([]);
-  const [calidadPlanta, setCalidadPlanta] = useState<string[]>([]);
-  const [plantas, setPlantas] = useState<string[]>([]);
-
-  const dispatch = useAppDispatch();
 
   const handleUploadFile = async (file: File) => {
     reset();
@@ -225,49 +267,24 @@ export function TabData() {
       setPlantas(valoresUnicos.planta);
       setAllTiposProduccion(valoresUnicos.tipoProduccion);
       setTipoProduccion(valoresUnicos.tipoProduccion);
-      setAllRumas(valoresUnicos.rumaNro);
       setCalidadPlanta(valoresUnicos.calidadPlanta);
     }
   }, [data]);
 
   useEffect(() => {
-    if (plantas) {
-      if (!plantas.includes(PLATA_DEFAULT)) return;
+    if (!data || plantas.length === 0) return;
+
+    if (plantas.includes(PLATA_DEFAULT) && !watch("plata_Homogenizado")) {
       setValue("plata_Homogenizado", PLATA_DEFAULT, { shouldValidate: true });
-      const resultado = getRelacionadosPorPlanta(data, PLATA_DEFAULT);
-      setCentrosUbicacion(resultado.centrosUbicacion);
-      setAlmacenesUbicacion(resultado.almacenesUbicacion);
-      setCentrosProduccion(resultado.centrosProduccion);
+      applyPlanta(PLATA_DEFAULT);
     }
-  }, [plantas, data]);
+  }, [data, plantas]);
 
-  useEffect(() => {
-    if (checkedRumasHp) {
-      const rumasFiltradas = allRumas.filter(
-        (ruma) => !ruma.toUpperCase().includes("PH")
-      );
-      setRumas(rumasFiltradas);
-    } else {
-      setRumas(allRumas);
-    }
-  }, [checkedRumasHp, allRumas]);
-
-  function processCentrosUbicacion(selected: string[]) {
-    setAlmacenesUbicacion([]);
-    setCentrosProduccion([]);
-    if (!data) {
-      return;
-    }
-    const resultado = getValoresUnificadosPorCentros(data, selected);
-    setAlmacenesUbicacion(resultado.almacenesUbicacion);
-    setCentrosProduccion(resultado.centrosProduccion);
-  }
-
-  function processPlantas(value: string | undefined) {
+  function applyPlanta(value?: string) {
     setCentrosUbicacion([]);
     setAlmacenesUbicacion([]);
     setCentrosProduccion([]);
-    if (!value) return;
+    if (!value || !data) return;
 
     const resultado = getRelacionadosPorPlanta(data, value);
     setCentrosUbicacion(resultado.centrosUbicacion);
@@ -325,7 +342,7 @@ export function TabData() {
                           value={field.value}
                           onChange={(value) => {
                             field.onChange(value);
-                            processPlantas(value);
+                            applyPlanta(value);
                           }}
                           error={errors.plata_Homogenizado?.message}
                         />
@@ -489,7 +506,7 @@ export function TabData() {
                       control={control}
                       render={({ field }) => (
                         <AppTagPicker
-                          options={[]}
+                          options={["PH", "16", "11"]}
                           value={field.value}
                           onChange={field.onChange}
                           error={errors.agregar_rumas_serie?.message}
@@ -566,8 +583,11 @@ export function TabData() {
     centrosUbicacion,
     allTiposProduccion,
     tipoProduccion,
-    allRumas,
     calidadPlanta,
+    checkedCadmio,
+    checkedRumasHp,
+    checkedTiposProduccion,
+    sendData,
   ]);
 
   return (

@@ -26,9 +26,24 @@ export default function HarinaPage() {
           <Stepper currentStep={step} />
         </div>
 
-        <div className="w-full h-23/25 ">
+        <div className="w-full h-23/25">
+          <div className={`w-full h-full ${step === 0 ? "block" : "hidden"}`}>
+            <TabData />
+          </div>
+          <div className={`w-full h-full ${step === 1 ? "block" : "hidden"}`}>
+            <TabExecution />
+          </div>
+          <div className={`w-full h-full ${step === 2 ? "block" : "hidden"}`}>
+            <TabResult />
+          </div>
+        </div>
+
+        {/**
+         * 
+         * <div className="w-full h-23/25 ">
           {renderStepComponent()}
         </div>
+         */}
       </div>
     </>
   );

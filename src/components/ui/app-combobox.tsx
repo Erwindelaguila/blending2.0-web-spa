@@ -49,6 +49,7 @@ export const AppCombobox: React.FC<Props> = ({
         style={{ border: `2px solid ${borderColor}` }}
         placeholder={placeholder}
         value={value}
+        selectedOptions={value ? [value] : []}
         clearable
         onOptionSelect={(_, data) => onChange(data.optionValue)}
         // 👇 aquí limitamos la altura del listbox
