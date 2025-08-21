@@ -19,6 +19,9 @@ const deepCopy = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 
 const getColumns = (rows: DynamicRow[], firstColKey: string) => {
   const set = new Set<string>();
+  if (!rows || !Array.isArray(rows)) {
+    return [];
+  }
   rows.forEach((r) =>
     Object.keys(r).forEach((k) => k !== firstColKey && set.add(k))
   );
@@ -76,7 +79,7 @@ export function TableDynamic({
 }: ITableDynamicProps) {
   const styles = useTableDynamicStyles();
 
-  const [localData, setLocalData] = useState<DynamicRow[]>(data);
+  const [localData, setLocalData] = useState<DynamicRow[]>(data || []);
   const [originalData, setOriginalData] = useState<DynamicRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
 
@@ -87,12 +90,13 @@ export function TableDynamic({
   //    PERO el snapshot (originalData) SOLO se inicializa una vez o
   //    se recalcula cuando cambian las columnas (no cuando cambian valores).
   useEffect(() => {
-    setLocalData(data);
+    const safeData = data || [];
+    setLocalData(safeData);
 
-    const incomingCols = getColumns(data, firstColKey);
+    const incomingCols = getColumns(safeData, firstColKey);
 
     if (originalData.length === 0) {
-      setOriginalData(deepCopy(data));
+      setOriginalData(deepCopy(safeData));
       lastColsRef.current = incomingCols;
       return;
     }
@@ -101,7 +105,7 @@ export function TableDynamic({
     if (!sameSet(incomingCols, lastColsRef.current)) {
       const merged = mergeBaselineByKey(
         originalData,
-        data,
+        safeData,
         incomingCols,
         firstColKey
       );

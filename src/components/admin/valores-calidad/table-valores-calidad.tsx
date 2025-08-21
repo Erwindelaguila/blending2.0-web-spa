@@ -381,7 +381,7 @@ export function TableValoresCalidad() {
         <div className="w-full h-full flex flex-col ">
           <div className="w-full h-23/25">
             <TableDynamic
-              calidades={datosEditables}
+              data={datosEditables}
               titleFirstCol="Calidades"
               editable
               onDataChange={setDatosEditables}
