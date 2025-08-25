@@ -32,7 +32,6 @@ export interface ITableDynamicProps {
   width?: string;
   isStickyFirstCol?: boolean;
   isChangeBold?: boolean;
-  ///
   dataOriginal?: DynamicRow[];
 }
 

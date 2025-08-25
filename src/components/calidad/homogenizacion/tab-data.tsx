@@ -19,6 +19,7 @@ import {
   BaseResponse,
   BlobUploadResultDto,
   IFilterHomogenizacionHarina,
+  PlantaFiltersParams,
 } from "@/interface";
 import { AppCombobox } from "../../ui/app-combobox";
 import { Info16Regular } from "@fluentui/react-icons";
@@ -35,24 +36,31 @@ import {
   StockDisponibleItem,
 } from "@/lib/store/slices/stockDisponible";
 import { downloadFileExcel } from "@/utils/download-file";
-import {
-  extraerValoresUnicos,
-  getRelacionadosPorPlanta,
-} from "@/utils/process-data";
+import { extraerValoresUnicos } from "@/utils/process-data";
 import { resetBlobData, setBlobData } from "@/lib/store/slices/blobSlice";
-import { onFormatDate } from "@/utils/date";
-import { StockFiltradoItem } from "@/interface/quality/tab-data";
+import { datePickerStringsEs, onFormatDate } from "@/utils/date";
+import {
+  IPlantaDataShort,
+  ITabData,
+  StockFiltradoItem,
+} from "@/interface/quality/tab-data";
+import useSWR from "swr";
+import { buildPaginatedSWRKey } from "@/utils";
+import { PlantasService } from "@/services";
 
-export interface ErrorType {
-  field: string;
-  detail: string;
-  code: string;
-  instance: string;
-  traceId: string;
-}
+const buildPlantasKey = (
+  page: number,
+  size: number,
+  filters?: PlantaFiltersParams
+) => {
+  return buildPaginatedSWRKey("plantas", page, size, filters);
+};
 
 export function TabData() {
   const PLATA_DEFAULT = "MSU";
+
+  const PARAMETRO_SERIE = ["12", "16", "11", "15", "00"];
+
   const style = useButtonsStyles();
   const asyncAction = useAsyncAction();
   const dispatch = useAppDispatch();
@@ -96,7 +104,28 @@ export function TabData() {
   const [allTiposProduccion, setAllTiposProduccion] = useState<string[]>([]);
   const [tipoProduccion, setTipoProduccion] = useState<string[]>([]);
   const [calidadPlanta, setCalidadPlanta] = useState<string[]>([]);
-  const [plantas, setPlantas] = useState<string[]>([]);
+  const [dataFiltered, setDataFiltered] = useState<StockDisponibleItem[]>([]);
+  const [rumasSeries, setRumasSeries] = useState<string[]>([]);
+
+  const swrKey = buildPlantasKey(1, 10, { estado: 1, isHarina: 1 });
+
+  const {
+    data: dataPlantas,
+    isLoading: loadingPlantas,
+    error: errorPlantas,
+  } = useSWR<BaseResponse<IPlantaDataShort[]>>(
+    swrKey,
+    () =>
+      PlantasService.listar<IPlantaDataShort[]>(1, 10, {
+        estado: 1,
+        isHarina: 1,
+      } as PlantaFiltersParams),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 2000,
+    }
+  );
 
   const {
     register,
@@ -115,62 +144,214 @@ export function TabData() {
       tipo_produccion: [],
       borrar_calidades: [],
       agregar_rumas_serie: [],
+      fecha_corte: null,
     },
   });
 
   const onSubmit: SubmitHandler<IFilterHomogenizacionHarina> = async (
     dataSubmit
   ) => {
-    let dataFilter: StockDisponibleItem[] = [...data];
+    const fecha_corte = formatDate(dataSubmit.fecha_corte ?? new Date());
 
-    dataFilter = dataFilter.filter(
-      (item) => item.fijos.planta === dataSubmit.plata_Homogenizado
-    );
+    console.log("Fecha de corte: ", fecha_corte);
 
+    let dataFilter: StockDisponibleItem[] = [...dataFiltered];
+
+    // filtros normales
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.centro_ubicacion.includes(item.fijos.centroUbicacion)
     );
+
+    console.log("Centro ubicacion: ", dataFilter);
 
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.centro_produccion.includes(item.fijos.centroProduccion)
     );
 
+    console.log("Centro centro produccion: ", dataFilter);
+
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.ubicacion_almacen.includes(item.fijos.almacenUbicacion)
     );
+    console.log("Ubicacion alamacen: ", dataFilter);
 
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.tipo_produccion.includes(item.fijos.tipoProduccion)
     );
 
+    console.log("Tipo de Produccion", dataFilter);
+
+    /*
+
     dataFilter = dataFilter.filter(
       (item) => !dataSubmit.borrar_calidades.includes(item.fijos.calidadPlanta)
     );
+    */
 
     if (checkedRumasHp) {
       dataFilter = dataFilter.filter((item) => item.fijos.serie !== "PH");
     }
 
+    console.log("Se quitar el PH: ", dataFilter);
+
     if (dataSubmit.agregar_rumas_serie.length > 0) {
-      dataFilter = dataFilter.filter((item) =>
+      const recuperar = data.filter((item) =>
         dataSubmit.agregar_rumas_serie.includes(item.fijos.serie)
       );
+
+      const recuperarFiltrados = recuperar.filter(
+        (item) =>
+          dataSubmit.centro_ubicacion.includes(item.fijos.centroUbicacion) &&
+          dataSubmit.centro_produccion.includes(item.fijos.centroProduccion) &&
+          dataSubmit.ubicacion_almacen.includes(item.fijos.almacenUbicacion) &&
+          dataSubmit.tipo_produccion.includes(item.fijos.tipoProduccion) &&
+          !dataSubmit.borrar_calidades.includes(item.fijos.calidadPlanta)
+      );
+
+      // Combinar y quitar duplicados por `rumaNro`
+      const uniqueMap = new Map<string, StockDisponibleItem>();
+      [...dataFilter, ...recuperarFiltrados].forEach((item) => {
+        uniqueMap.set(item.fijos.rumaNro, item);
+      });
+
+      dataFilter = Array.from(uniqueMap.values());
     }
 
+    console.log("Data filtrada agregarr rumas serie : ", dataFilter);
+
+    dataFilter = dataFilter.filter(
+      (item) =>
+        item.fijos.fechaCorte && fecha_corte.includes(item.fijos.fechaCorte)
+    );
+
+    console.log("Data filtrada v1 : ", dataFilter);
+
     const stockFiltrado: StockFiltradoItem[] = dataFilter.map((item) => ({
-      rumaNro: item.fijos.rumaNro, // ajusta según tu modelo real
+      rumaNro: item.fijos.rumaNro,
       cantidad: item.fijos.cantidad,
       parametros: item.parametrosCalidad,
     }));
 
-    console.log("Es",stockFiltrado);
+    const TabDataExport: ITabData = {
+      stockFiltrado: stockFiltrado,
+      planta: dataSubmit.plata_Homogenizado,
+      incluirCadmio: checkedCadmio == true ? true : false,
+    };
 
-    dispatch(nextStep());
+    console.log("Estok filtrado", TabDataExport);
+
+    //dispatch(nextStep());
   };
 
   const sendData = () => {
     handleSubmit(onSubmit)();
   };
+
+  const centroUbicacionWatch = watch("centro_ubicacion");
+  const centroProduccionWatch = watch("centro_produccion");
+  const ubicacionAlmacenWatch = watch("ubicacion_almacen");
+  const tipoProduccionWatch = watch("tipo_produccion");
+  const borrarCalidadesWatch = watch("borrar_calidades");
+  const agregarRumasSerieWatch = watch("agregar_rumas_serie");
+  const fechaCorteWatch = watch("fecha_corte");
+
+  const dataFiltradaSocketCount = useMemo(() => {
+    let current = [...dataFiltered];
+
+    if (centroUbicacionWatch?.length > 0) {
+      current = current.filter((item) =>
+        centroUbicacionWatch.includes(item.fijos.centroUbicacion)
+      );
+    }
+
+    if (centroProduccionWatch?.length > 0) {
+      current = current.filter((item) =>
+        centroProduccionWatch.includes(item.fijos.centroProduccion)
+      );
+    }
+
+    if (ubicacionAlmacenWatch?.length > 0) {
+      current = current.filter((item) =>
+        ubicacionAlmacenWatch.includes(item.fijos.almacenUbicacion)
+      );
+    }
+
+    if (tipoProduccionWatch?.length > 0) {
+      current = current.filter((item) =>
+        tipoProduccionWatch.includes(item.fijos.tipoProduccion)
+      );
+    }
+
+    if (checkedRumasHp) {
+      current = current.filter((item) => item.fijos.serie !== "PH");
+    }
+
+    if (agregarRumasSerieWatch?.length > 0) {
+      // Recupera todas las rumas cuya serie está en la selección
+      const recuperar = data.filter((item) =>
+        agregarRumasSerieWatch.includes(item.fijos.serie)
+      );
+
+      const recuperarFiltrados = recuperar.filter((item) => {
+        const matchCentroUbicacion =
+          centroUbicacionWatch.length === 0 ||
+          centroUbicacionWatch.includes(item.fijos.centroUbicacion);
+
+        const matchCentroProduccion =
+          centroProduccionWatch.length === 0 ||
+          centroProduccionWatch.includes(item.fijos.centroProduccion);
+
+        const matchUbicacionAlmacen =
+          ubicacionAlmacenWatch.length === 0 ||
+          ubicacionAlmacenWatch.includes(item.fijos.almacenUbicacion);
+
+        const matchTipoProduccion =
+          tipoProduccionWatch.length === 0 ||
+          tipoProduccionWatch.includes(item.fijos.tipoProduccion);
+
+        const matchCalidades =
+          borrarCalidadesWatch.length === 0 ||
+          !borrarCalidadesWatch.includes(item.fijos.calidadPlanta);
+
+        return (
+          matchCentroUbicacion &&
+          matchCentroProduccion &&
+          matchUbicacionAlmacen &&
+          matchTipoProduccion &&
+          matchCalidades
+        );
+      });
+
+      // Combinar lo ya filtrado con las rumas recuperadas, evitando duplicados
+      const uniqueMap = new Map<string, StockDisponibleItem>();
+      [...current, ...recuperarFiltrados].forEach((item) => {
+        uniqueMap.set(item.fijos.rumaNro, item);
+      });
+      current = Array.from(uniqueMap.values());
+    }
+
+    if (fechaCorteWatch) {
+      const fecha_corte_value_parce = formatDate(fechaCorteWatch ?? new Date());
+      current = current.filter(
+        (item) =>
+          item.fijos.fechaCorte && // asegura que no sea vacío
+          fecha_corte_value_parce === item.fijos.fechaCorte
+      );
+    }
+
+    return current;
+  }, [
+    centroUbicacionWatch,
+    centroProduccionWatch,
+    ubicacionAlmacenWatch,
+    tipoProduccionWatch,
+    borrarCalidadesWatch,
+    agregarRumasSerieWatch,
+    data,
+    dataFiltered,
+    checkedRumasHp,
+    fechaCorteWatch,
+  ]);
 
   const handleUploadFile = async (file: File) => {
     reset();
@@ -263,34 +444,31 @@ export function TabData() {
 
   useEffect(() => {
     if (data && data.length > 0) {
+      console.log("Data: ", data);
+
+      let dataFilter: StockDisponibleItem[] = [...data];
       const valoresUnicos = extraerValoresUnicos(data);
-      setPlantas(valoresUnicos.planta);
       setAllTiposProduccion(valoresUnicos.tipoProduccion);
       setTipoProduccion(valoresUnicos.tipoProduccion);
       setCalidadPlanta(valoresUnicos.calidadPlanta);
+      setCentrosUbicacion(valoresUnicos.centroUbicacion);
+      setAlmacenesUbicacion(valoresUnicos.almacenUbicacion);
+      setCentrosProduccion(valoresUnicos.centroProduccion);
+      const serieExcel = valoresUnicos.serie;
+
+      const intersection = serieExcel.filter((value) =>
+        PARAMETRO_SERIE.includes(value)
+      );
+
+      if (intersection.length > 0) {
+        dataFilter = dataFilter.filter(
+          (item) => !intersection.includes(item.fijos.serie)
+        );
+        setRumasSeries(intersection);
+      }
+      setDataFiltered(dataFilter);
     }
   }, [data]);
-
-  useEffect(() => {
-    if (!data || plantas.length === 0) return;
-
-    if (plantas.includes(PLATA_DEFAULT) && !watch("plata_Homogenizado")) {
-      setValue("plata_Homogenizado", PLATA_DEFAULT, { shouldValidate: true });
-      applyPlanta(PLATA_DEFAULT);
-    }
-  }, [data, plantas]);
-
-  function applyPlanta(value?: string) {
-    setCentrosUbicacion([]);
-    setAlmacenesUbicacion([]);
-    setCentrosProduccion([]);
-    if (!value || !data) return;
-
-    const resultado = getRelacionadosPorPlanta(data, value);
-    setCentrosUbicacion(resultado.centrosUbicacion);
-    setAlmacenesUbicacion(resultado.almacenesUbicacion);
-    setCentrosProduccion(resultado.centrosProduccion);
-  }
 
   function processTipoProduccion(selected: string[]) {
     if (!data || checkedTiposProduccion || selected.length === 0) {
@@ -311,6 +489,13 @@ export function TabData() {
     setTipoProduccion(opcionesFiltradas);
   }
 
+  function formatDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth() es 0-based
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
   const processData = useMemo(() => {
     if (loading) {
       return (
@@ -329,25 +514,42 @@ export function TabData() {
                 <Title title="Filtros"></Title>
                 <div className="w-full flex flex-col gap-2 ">
                   <div className="w-full mt-2 flex flex-col gap-1">
-                    <Controller
-                      name="plata_Homogenizado"
-                      control={control}
-                      rules={{ required: "Seleccione una planta" }}
-                      render={({ field }) => (
-                        <AppCombobox
-                          label="Planta Homogenizado"
-                          labelRequired={true}
-                          size="medium"
-                          options={plantas}
-                          value={field.value}
-                          onChange={(value) => {
-                            field.onChange(value);
-                            applyPlanta(value);
-                          }}
-                          error={errors.plata_Homogenizado?.message}
+                    {loadingPlantas ? (
+                      <>
+                        <Spinner
+                          size="small"
+                          label="Cargando plantas de homogenización ..."
+                        ></Spinner>
+                      </>
+                    ) : errorPlantas ? (
+                      <span className="text-red-400">
+                        Error al traer las plantas
+                      </span>
+                    ) : (
+                      <>
+                        <Controller
+                          name="plata_Homogenizado"
+                          control={control}
+                          rules={{ required: "Seleccione una planta" }}
+                          render={({ field }) => (
+                            <AppCombobox
+                              label="Planta Homogenizado"
+                              labelRequired={true}
+                              size="medium"
+                              options={
+                                dataPlantas?.data?.map((item) => item.codigo) ??
+                                []
+                              }
+                              value={field.value}
+                              onChange={(value) => {
+                                field.onChange(value);
+                              }}
+                              error={errors.plata_Homogenizado?.message}
+                            />
+                          )}
                         />
-                      )}
-                    />
+                      </>
+                    )}
                   </div>
 
                   <div className="w-full mt-2 flex flex-col gap-1">
@@ -364,7 +566,6 @@ export function TabData() {
                           value={field.value}
                           onChange={(selected) => {
                             field.onChange(selected);
-                            //processCentrosUbicacion(selected); // lógica extra opcional
                           }}
                           error={errors.centro_ubicacion?.message}
                           size="medium"
@@ -506,7 +707,7 @@ export function TabData() {
                       control={control}
                       render={({ field }) => (
                         <AppTagPicker
-                          options={["PH", "16", "11"]}
+                          options={rumasSeries}
                           value={field.value}
                           onChange={field.onChange}
                           error={errors.agregar_rumas_serie?.message}
@@ -522,7 +723,7 @@ export function TabData() {
                   </div>
 
                   <div className="w-full mt-6 flex items-center">
-                    <div className=" flex flex-col gap-1 w-2/4">
+                    <div className=" flex flex-col gap-1 w-2/4 ">
                       <Checkbox
                         checked={checkedCadmio}
                         size="medium"
@@ -531,36 +732,64 @@ export function TabData() {
                       />
                     </div>
 
-                    <div className="flex gap-3 items-center">
-                      <Label
-                        size="medium"
-                        required
-                        htmlFor="Centro de Ubicación"
-                      >
-                        Fecha de corte
-                      </Label>
-                      <DatePicker
-                        size="medium"
-                        placeholder="Elija una fecha"
-                        formatDate={onFormatDate}
-                        allowTextInput
-                      />
+                    <div className="flex flex-col gap-2 w-2/4">
+                      <div className="flex gap-3 items-center">
+                        <Label
+                          size="medium"
+                          required
+                          htmlFor="Centro de Ubicación"
+                        >
+                          Fecha de corte
+                        </Label>
+                        <div className="flex flex-col gap-2"></div>
+                        <Controller
+                          name="fecha_corte"
+                          control={control}
+                          rules={{ required: "Seleccione una fecha" }}
+                          render={({ field }) => (
+                            <DatePicker
+                              size="medium"
+                              placeholder="Elija una fecha"
+                              allowTextInput
+                              value={field.value}
+                              onSelectDate={field.onChange}
+                              formatDate={(date) =>
+                                date ? date.toLocaleDateString("es-ES") : ""
+                              }
+                              strings={datePickerStringsEs}
+                            />
+                          )}
+                        ></Controller>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="w-full h-6">
-                    {checkedCadmio && (
-                      <div className="pl-2 flex items-center gap-2">
-                        <Info16Regular className="text-blue-500" />{" "}
-                        <span className="text-xs">
-                          En el paso de ejecucion se podra editar el valor de
-                          cadmio
+                  <div className="w-full h-6 flex">
+                    <div className="w-2/4 ">
+                      {checkedCadmio && (
+                        <div className="pl-2 flex items-center gap-2">
+                          <Info16Regular className="text-blue-500" />{" "}
+                          <span className="text-xs">
+                            En el paso de ejecucion se podra editar el valor de
+                            cadmio
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="w-2/4 ">
+                      {errors.fecha_corte && (
+                        <span className="text-red-600 text-xs">
+                          {errors.fecha_corte.message}
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   <div className="w-full flex justify-end">
+                    <Button appearance="subtle">
+                      Coincidencias encontradas {dataFiltradaSocketCount.length}
+                    </Button>
+
                     <Button
                       size="large"
                       className={`w-[13rem] ${style.buttonCelesteBase}`}
@@ -588,6 +817,8 @@ export function TabData() {
     checkedRumasHp,
     checkedTiposProduccion,
     sendData,
+    loadingPlantas,
+    dataFiltradaSocketCount,
   ]);
 
   return (

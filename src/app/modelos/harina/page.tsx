@@ -6,19 +6,6 @@ import { useAppSelector } from "@/lib/store/hooks";
 export default function HarinaPage() {
   const step = useAppSelector((state) => state.step.current);
 
-  const renderStepComponent = () => {
-    switch (step) {
-      case 0:
-        return <TabData />;
-      case 1:
-        return <TabExecution />;
-      case 2:
-        return <TabResult />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <>
       <div className="w-full h-full flex flex-col gap-2">
@@ -37,13 +24,6 @@ export default function HarinaPage() {
             <TabResult />
           </div>
         </div>
-
-        {/**
-         * 
-         * <div className="w-full h-23/25 ">
-          {renderStepComponent()}
-        </div>
-         */}
       </div>
     </>
   );

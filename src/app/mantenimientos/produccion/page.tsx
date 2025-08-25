@@ -5,7 +5,8 @@ import { AgregadoView } from "@/components/admin/produccion/agregado/agregado-vi
 import { CalidadView } from "@/components/admin/produccion/calidades/calidad-view";
 import { LineaProduccionView } from "@/components/admin/produccion/linea-produccion/linea-produccion-view";
 import { TipoProduccionView } from "@/components/admin/produccion/tipo-produccion/tipo-produccion-view";
-import { ITabConfigProduccion } from "@/interface";
+import { ITabConfigProduccion } from "@/interface/admin/produccion";
+
 import {
   SelectTabData,
   SelectTabEvent,

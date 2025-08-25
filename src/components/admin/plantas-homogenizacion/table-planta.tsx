@@ -73,7 +73,7 @@ export function TablePlanta() {
     error: errorPlantas,
   } = useSWR<BaseResponse<PagedPlantaResponse>>(
     swrKey, 
-    () => PlantasService.listar(page, pageSize, serviceFilters),
+    () => PlantasService.listar<PagedPlantaResponse>(page, pageSize, serviceFilters),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,

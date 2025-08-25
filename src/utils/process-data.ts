@@ -1,20 +1,17 @@
 export function extraerValoresUnicos(data: DataItem[]) {
   const resultado: { [key: string]: Set<string> } = {
-    //descripcionMaterial: new Set(),
     centroUbicacion: new Set(),
     almacenUbicacion: new Set(),
     tipoProduccion: new Set(),
     centroProduccion: new Set(),
-    //ubicacionEnAlmacen: new Set(),
     rumaNro: new Set(),
     calidadPlanta: new Set(),
     planta: new Set(),
+    serie: new Set(),
   };
 
   data.forEach((item) => {
     const fijos = item.fijos;
-
-    //if (fijos.descripcionMaterial)resultado.descripcionMaterial.add(fijos.descripcionMaterial);
     if (fijos.centroUbicacion)
       resultado.centroUbicacion.add(fijos.centroUbicacion);
     if (fijos.almacenUbicacion)
@@ -23,10 +20,10 @@ export function extraerValoresUnicos(data: DataItem[]) {
       resultado.tipoProduccion.add(fijos.tipoProduccion);
     if (fijos.centroProduccion)
       resultado.centroProduccion.add(fijos.centroProduccion);
-    //if (fijos.ubicacionEnAlmacen)resultado.ubicacionEnAlmacen.add(fijos.ubicacionEnAlmacen);
     if (fijos.rumaNro) resultado.rumaNro.add(fijos.rumaNro);
     if (fijos.calidadPlanta) resultado.calidadPlanta.add(fijos.calidadPlanta);
     if (fijos.planta) resultado.planta.add(fijos.planta);
+    if (fijos.serie) resultado.serie.add(fijos.serie);
   });
 
   // Convertir los Sets a arrays
@@ -36,15 +33,14 @@ export function extraerValoresUnicos(data: DataItem[]) {
 }
 
 type Fijos = {
-  //descripcionMaterial: string;
   centroUbicacion: string;
   almacenUbicacion: string;
   tipoProduccion: string;
   centroProduccion: string;
-  //ubicacionEnAlmacen: string;
   calidadPlanta: string;
   rumaNro: string;
   planta: string;
+  serie: string;
 };
 
 type DataItem = {

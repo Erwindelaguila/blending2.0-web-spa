@@ -11,3 +11,5 @@ export * from "./admin/planta";
 export * from "./api/base-response";
 export * from "./auth/user-menu";
 export * from "./quality/blob";
+export * from "./components/combobox";
+export * from "./quality/tab-data";

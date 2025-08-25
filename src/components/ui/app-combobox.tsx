@@ -1,24 +1,11 @@
 import React from "react";
 import { Combobox, Option, Label, Text } from "@fluentui/react-components";
 import { OrgColors } from "@/config/app.config.server";
+import { IComboboxApp } from "@/interface";
 
-type Props = {
-  options: string[];
-  value: string;
-  onChange: (value: string | undefined) => void;
-  placeholder?: string;
-  disabledOptions?: string[];
-  label?: string;
-  labelRequired: boolean;
-  error?: string;
-  size?: sizeCombobox;
-  errorInput?: boolean;
-  grayBorder?: boolean;
-};
 
-type sizeCombobox = "small" | "medium" | "large";
 
-export const AppCombobox: React.FC<Props> = ({
+export const AppCombobox = ({
   options,
   value,
   onChange,
@@ -30,7 +17,7 @@ export const AppCombobox: React.FC<Props> = ({
   size = "medium",
   errorInput = false,
   grayBorder = false,
-}) => {
+}: IComboboxApp) => {
   const borderColor = errorInput
     ? OrgColors.serotRojo
     : grayBorder
@@ -52,7 +39,6 @@ export const AppCombobox: React.FC<Props> = ({
         selectedOptions={value ? [value] : []}
         clearable
         onOptionSelect={(_, data) => onChange(data.optionValue)}
-        // 👇 aquí limitamos la altura del listbox
         listbox={{ style: { maxHeight: "5px", overflowY: "auto" } }}
       >
         <div className="max-h-96 overflow-auto z-0">

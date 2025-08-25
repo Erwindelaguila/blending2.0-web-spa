@@ -5,5 +5,6 @@ export interface IFilterHomogenizacionHarina {
   ubicacion_almacen: string[];
   tipo_produccion: string[];
   borrar_calidades: string[];
-  agregar_rumas_serie : string[];
+  agregar_rumas_serie: string[];
+  fecha_corte: Date | null | undefined;
 }

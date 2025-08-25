@@ -5,11 +5,11 @@ import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllPlantaKey } from "@/lib/constants/key-fetch";
 
 export class PlantasService {
-  static async listar(
+  static async listar<TResponse>(
     page: number = 1,
     size: number = 10,
     filters?: PlantaFiltersParams
-  ): Promise<BaseResponse<PagedPlantaResponse>> {
+  ): Promise<BaseResponse<TResponse>> {
     let url = `${getAllPlantaKey()}?page=${page}&size=${size}`;
 
     if (filters) {
@@ -19,11 +19,15 @@ export class PlantasService {
       if (filters.estado !== undefined) {
         url += `&estado=${filters.estado}`;
       }
+      if (filters.isHarina) {
+        url += `&isHarina=${encodeURIComponent(filters.isHarina)}`;
+      } 
       if (filters.fechaDesde) {
         url += `&fechaDesde=${encodeURIComponent(filters.fechaDesde)}`;
       }
     }
-    const response = await api.get<BaseResponse<PagedPlantaResponse>>(url);
+
+    const response = await api.get<BaseResponse<TResponse>>(url);
     return response.data;
   }
 

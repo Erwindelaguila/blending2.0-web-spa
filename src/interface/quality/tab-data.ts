@@ -1,14 +1,3 @@
-export interface RequestHomogenizacion {
-  stockFiltrado: StockFiltradoItem[];
-  valoresParametros: ValorParametro[];
-  planta: string;
-  calidadObjetivo: string[];
-  parametros: string[];
-  incluirCadmio: boolean;
-  cantidadRumas: number;
-  divisionRumas: number;
-}
-
 export interface StockFiltradoItem {
   rumaNro: string;
   cantidad: number;
@@ -16,5 +5,26 @@ export interface StockFiltradoItem {
 }
 
 export interface ValorParametro {
-  [codigoCalidad: string]: Record<string, number>; 
+  [codigoCalidad: string]: Record<string, number>;
+}
+
+export interface ITabData {
+  stockFiltrado: StockFiltradoItem[];
+  planta: string;
+  incluirCadmio: boolean;
+}
+
+export interface ITabEjecucion {
+  valoresParametros: ValorParametro[];
+  calidadObjetivo: string[];
+  parametros: string[];
+  cantidadRumas: number;
+  divisionRumas: number;
+}
+
+export interface RequestHomogenizacion extends ITabData, ITabEjecucion {}
+export interface IPlantaDataShort {
+  id: string;
+  codigo: string;
+  nombre: string;
 }
