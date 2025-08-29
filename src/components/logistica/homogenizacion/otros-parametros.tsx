@@ -12,6 +12,8 @@ import {
   IEmparejamientos,
   IParticiones,
 } from "@/interface/logistics/asignacion";
+import { useAppSelector } from "@/lib/store/hooks";
+import { getAppParamOrDefault } from "@/lib/store/slices/appParamsSlice";
 import { AsignacionData } from "@/lib/store/slices/asignacion";
 import {
   agruparPorUmVta,
@@ -33,8 +35,6 @@ import {
 } from "@fluentui/react-components";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const TIEMPO_ESPERA = 520;
-
 export function OtrosParametros({
   dataAsignacion,
   onChange,
@@ -48,6 +48,21 @@ export function OtrosParametros({
     tiempoEspera: string
   ) => void;
 }) {
+  const APP_LOG_TIEMPO_ESPERA_DEFAULT = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_TIEMPO_ESPERA_DEFAULT", "300")
+  );
+
+  const APP_LOG_VALOR_DIVISION_DEFAULT = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_VALOR_DIVISION_DEFAULT", "40")
+  );
+
+  const APP_LOG_HABILITAR_DIVISION = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_HABILITAR_DIVISION", "TRUE")
+  );
+
+
+  
+
   const [dataRumasExcelList, setDataRumasExcelList] = useState<DynamicRow[]>(
     []
   );
@@ -55,15 +70,16 @@ export function OtrosParametros({
     DynamicRow[]
   >([]);
 
-  const [habilitarDivision, setHabilitarDivision] =
-    useState<CheckboxProps["checked"]>(false);
+  const [habilitarDivision, setHabilitarDivision] = useState<
+    CheckboxProps["checked"]
+  >(APP_LOG_HABILITAR_DIVISION === "TRUE");
 
   //Variable general de errores en otro paramentros
   const [isErrorOtrosParamentros, setIsErrorOtrosParametros] =
     useState<boolean>(false);
 
   const [tiempoEspera, setTiempoEspera] = useState<string>(
-    TIEMPO_ESPERA.toString()
+    APP_LOG_TIEMPO_ESPERA_DEFAULT
   );
 
   //Variable a enviar al Padre
@@ -189,7 +205,7 @@ export function OtrosParametros({
       setValuesRumas("");
       const nuevosDatos: DynamicRow[] = loteKeys.map((element) => ({
         ruma: element,
-        División: "40",
+        División: APP_LOG_VALOR_DIVISION_DEFAULT,
       }));
       setDataRumasExcelList(nuevosDatos);
     } else {
@@ -359,7 +375,10 @@ export function OtrosParametros({
       const filasConDivisionFiltrada = dataRumasExcelList.filter((row) => {
         const divisionRaw = row["División"]?.toString().trim() ?? "";
         const divisiones = divisionRaw.split(",").map((d) => d.trim());
-        return !(divisiones.length === 1 && divisiones[0] === "40");
+        return !(
+          divisiones.length === 1 &&
+          divisiones[0] === APP_LOG_VALOR_DIVISION_DEFAULT
+        );
       });
 
       const particiones: IParticiones = filasConDivisionFiltrada.reduce(

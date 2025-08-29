@@ -4,6 +4,7 @@ import stepReducer from "./slices/stepSlice";
 import stockDisponibleReducer from "./slices/stockDisponible";
 import asignacionReducer from "./slices/asignacion";
 import authReducer from "./slices/authSlice";
+import appParamsSlice from "./slices/appParamsSlice";
 import { loadState, saveState } from "@/utils/persist-state";
 import blobReducer, { BlobState, initialState } from "./slices/blobSlice";
 
@@ -17,6 +18,7 @@ export const store = configureStore({
     blob: blobReducer,
     auth: authReducer,
     asignacion: asignacionReducer,
+    appParams: appParamsSlice,
   },
   preloadedState: {
     blob: persistedBlobState,

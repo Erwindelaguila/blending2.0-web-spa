@@ -66,6 +66,7 @@ export function useAsyncAction<T>(): ApiResponseState<T> {
           mutate(key);
         }
       } catch (err: any) {
+        console.log("Error en useAsyncAction:", err);
         const errMsg = err?.response?.data?.message ?? "Network Error";
 
         setError(errMsg);

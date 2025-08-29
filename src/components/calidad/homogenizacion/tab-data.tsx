@@ -14,7 +14,7 @@ import {
 import { DatePicker } from "@fluentui/react-datepicker-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppTagPicker } from "../../ui/app-tagPicker";
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import { Controller, set, SubmitHandler, useForm } from "react-hook-form";
 import {
   BaseResponse,
   BlobUploadResultDto,
@@ -36,7 +36,10 @@ import {
   StockDisponibleItem,
 } from "@/lib/store/slices/stockDisponible";
 import { downloadFileExcel } from "@/utils/download-file";
-import { extraerValoresUnicos } from "@/utils/process-data";
+import {
+  extraerValoresUnicos,
+  parseCommaSeparatedArray,
+} from "@/utils/process-data";
 import { resetBlobData, setBlobData } from "@/lib/store/slices/blobSlice";
 import { datePickerStringsEs, onFormatDate } from "@/utils/date";
 import {
@@ -47,6 +50,8 @@ import {
 import useSWR from "swr";
 import { buildPaginatedSWRKey } from "@/utils";
 import { PlantasService } from "@/services";
+import { getAppParamOrDefault } from "@/lib/store/slices/appParamsSlice";
+
 
 const buildPlantasKey = (
   page: number,
@@ -57,9 +62,107 @@ const buildPlantasKey = (
 };
 
 export function TabData() {
-  const PLATA_DEFAULT = "MSU";
+  const APP_CAL_PLANTA_HOMO_DEFAULT = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_PLANTA_HOMO_DEFAULT", "")
+  );
 
-  const PARAMETRO_SERIE = ["12", "16", "11", "15", "00"];
+  const APP_CAL_CONSIDERAR_VALOR_CADMIO = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_CONSIDERAR_VALOR_CADMIO", "TRUE")
+  );
+
+  const APP_CAL_PERMITIR_MEZCLAR_TIPO_PRODUCCION = useAppSelector((state) =>
+    getAppParamOrDefault(
+      state,
+      "APP_CAL_PERMITIR_MEZCLAR_TIPO_PRODUCCION",
+      "TRUE"
+    )
+  );
+
+  const APP_CAL_PERMITIR_QUITAR_RUMAS_SERIES_PH = useAppSelector((state) =>
+    getAppParamOrDefault(
+      state,
+      "APP_CAL_PERMITIR_QUITAR_RUMAS_SERIES_PH",
+      "TRUE"
+    )
+  );
+
+  //multiple
+  const APP_CAL_RUMAS_SERIE_PH_A_QUITAR = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_RUMAS_SERIE_PH_A_QUITAR", "")
+  );
+
+  //Quitar rumas de la serie
+  const APP_CAL_RUMAS_SERIE_XX_A_QUITAR_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_RUMAS_SERIE_XX_A_QUITAR", "")
+  );
+  const APP_CAL_RUMAS_SERIE_XX_A_QUITAR = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_RUMAS_SERIE_XX_A_QUITAR_RAW);
+  }, [APP_CAL_RUMAS_SERIE_XX_A_QUITAR_RAW]);
+
+  //Tipo produccion a excluir
+  const APP_CAL_TIPOS_PRODUCCION_A_EXCLUIR_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_TIPOS_PRODUCCION_A_EXCLUIR", "")
+  );
+  const APP_CAL_TIPOS_PRODUCCION_A_EXCLUIR = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_TIPOS_PRODUCCION_A_EXCLUIR_RAW);
+  }, [APP_CAL_TIPOS_PRODUCCION_A_EXCLUIR_RAW]);
+
+  //Tipo produccion default
+  const APP_CAL_TIPOS_PRODUCCION_DEFAULT_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_TIPOS_PRODUCCION_DEFAULT", "")
+  );
+  const APP_CAL_TIPOS_PRODUCCION_DEFAULT = useMemo(() => {
+    if (!APP_CAL_TIPOS_PRODUCCION_DEFAULT_RAW) return [];
+    return parseCommaSeparatedArray(APP_CAL_TIPOS_PRODUCCION_DEFAULT_RAW);
+  }, [APP_CAL_TIPOS_PRODUCCION_DEFAULT_RAW]);
+
+  //Ubicacion alamacen a excluir
+  const APP_CAL_UBICACION_ALMACEN_A_EXCLUIR_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_UBICACION_ALMACEN_A_EXCLUIR", "")
+  );
+  const APP_CAL_UBICACION_ALMACEN_A_EXCLUIR = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_UBICACION_ALMACEN_A_EXCLUIR_RAW);
+  }, [APP_CAL_UBICACION_ALMACEN_A_EXCLUIR_RAW]);
+
+  //Ubicacion alamacen default
+  const APP_CAL_UBICACION_ALMACEN_DEFAULT_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_UBICACION_ALMACEN_DEFAULT", "")
+  );
+  const APP_CAL_UBICACION_ALMACEN_DEFAULT = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_UBICACION_ALMACEN_DEFAULT_RAW);
+  }, [APP_CAL_UBICACION_ALMACEN_DEFAULT_RAW]);
+
+  //Centros de Produccion a excluir
+  const APP_CAL_CENTROS_PRODUCCION_A_EXCLUIR_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_CENTROS_PRODUCCION_A_EXCLUIR", "")
+  );
+  const APP_CAL_CENTROS_PRODUCCION_A_EXCLUIR = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_CENTROS_PRODUCCION_A_EXCLUIR_RAW);
+  }, [APP_CAL_CENTROS_PRODUCCION_A_EXCLUIR_RAW]);
+
+  //Centros de Produccion default
+  const APP_CAL_CENTROS_PRODUCCION_DEFAULT_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_CENTROS_PRODUCCION_DEFAULT", "")
+  );
+  const APP_CAL_CENTROS_PRODUCCION_DEFAULT = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_CENTROS_PRODUCCION_DEFAULT_RAW);
+  }, [APP_CAL_CENTROS_PRODUCCION_DEFAULT_RAW]);
+
+  //Centros de ubicacion a excluir
+  const APP_CAL_CENTROS_UBICACION_A_EXCLUIR_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_CENTROS_UBICACION_A_EXCLUIR", "")
+  );
+  const APP_CAL_CENTROS_UBICACION_A_EXCLUIR = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_CENTROS_UBICACION_A_EXCLUIR_RAW);
+  }, [APP_CAL_CENTROS_UBICACION_A_EXCLUIR_RAW]);
+
+  //Centros de ubicacion default
+  const APP_CAL_CENTROS_UBICACION_DEFAULT_RAW = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_CAL_CENTROS_UBICACION_DEFAULT", "")
+  );
+  const APP_CAL_CENTROS_UBICACION_DEFAULT = useMemo(() => {
+    return parseCommaSeparatedArray(APP_CAL_CENTROS_UBICACION_DEFAULT_RAW);
+  }, [APP_CAL_CENTROS_UBICACION_DEFAULT_RAW]);
 
   const style = useButtonsStyles();
   const asyncAction = useAsyncAction();
@@ -68,6 +171,14 @@ export function TabData() {
   const [responseCargarExcel, setResponseCargarExcel] = useState<{
     error: string;
     success: BaseResponse<any> | null;
+  }>({
+    error: "",
+    success: null,
+  });
+
+  const [responseObtnerCadmio, setResponseOpteneCadmio] = useState<{
+    error: string;
+    success: any | null;
   }>({
     error: "",
     success: null,
@@ -83,19 +194,24 @@ export function TabData() {
 
   const [loadingFile, setLoadingFile] = useState<boolean>(false);
   const [loadingSap, setLoadingSap] = useState<boolean>(false);
+  const [loadingObtenerCadmio, setLoadingObtenerCadmio] =
+    useState<boolean>(false);
   const { data, loading } = useAppSelector((state) => state.stockDisponible);
   const { downloadUrl, fileName, expiresAtUtc } = useAppSelector(
     (state) => state.blob
   );
 
-  const [checkedRumasHp, setCheckedRumasHp] =
-    useState<CheckboxProps["checked"]>(true);
+  const [checkedQuitarRumasHp, setCheckedQuitarRumasHp] = useState<
+    CheckboxProps["checked"]
+  >(APP_CAL_PERMITIR_QUITAR_RUMAS_SERIES_PH === "TRUE");
 
-  const [checkedTiposProduccion, setCheckedTiposProduccion] =
-    useState<CheckboxProps["checked"]>(false);
+  const [checkedTiposProduccion, setCheckedTiposProduccion] = useState<
+    CheckboxProps["checked"]
+  >(APP_CAL_PERMITIR_MEZCLAR_TIPO_PRODUCCION === "TRUE");
 
-  const [checkedCadmio, setCheckedCadmio] =
-    useState<CheckboxProps["checked"]>(true);
+  const [checkedCadmio, setCheckedCadmio] = useState<CheckboxProps["checked"]>(
+    APP_CAL_CONSIDERAR_VALOR_CADMIO === "TRUE"
+  );
 
   const [centrosUbicacion, setCentrosUbicacion] = useState<string[]>([]);
   const [alamacenesUbicacion, setAlmacenesUbicacion] = useState<string[]>([]);
@@ -123,7 +239,6 @@ export function TabData() {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 2000,
     }
   );
 
@@ -148,9 +263,23 @@ export function TabData() {
     },
   });
 
+  useEffect(() => {
+    if (dataPlantas?.data?.length) {
+      const existePlanta = dataPlantas.data.find(
+        (item) => item.codigo === APP_CAL_PLANTA_HOMO_DEFAULT
+      );
+      if (existePlanta) {
+        setValue("plata_Homogenizado", APP_CAL_PLANTA_HOMO_DEFAULT, {
+          shouldValidate: true,
+        });
+      }
+    }
+  }, [data, dataPlantas, APP_CAL_PLANTA_HOMO_DEFAULT, setValue]);
+
   const onSubmit: SubmitHandler<IFilterHomogenizacionHarina> = async (
     dataSubmit
   ) => {
+    setResponseOpteneCadmio({ error: "", success: null });
     const fecha_corte = formatDate(dataSubmit.fecha_corte ?? new Date());
 
     console.log("Fecha de corte: ", fecha_corte);
@@ -188,8 +317,10 @@ export function TabData() {
     );
     */
 
-    if (checkedRumasHp) {
-      dataFilter = dataFilter.filter((item) => item.fijos.serie !== "PH");
+    if (checkedQuitarRumasHp) {
+      dataFilter = dataFilter.filter(
+        (item) => item.fijos.serie !== APP_CAL_RUMAS_SERIE_PH_A_QUITAR
+      );
     }
 
     console.log("Se quitar el PH: ", dataFilter);
@@ -226,22 +357,23 @@ export function TabData() {
 
     console.log("Data filtrada v1 : ", dataFilter);
 
+    //Obtener Data filtrada
     const stockFiltrado: StockFiltradoItem[] = dataFilter.map((item) => ({
       rumaNro: item.fijos.rumaNro,
       cantidad: item.fijos.cantidad,
       parametros: item.parametrosCalidad,
     }));
-
+    //Numero de rumas
+    const rumaNros: string[] = stockFiltrado.map((item) => item.rumaNro);
     const TabDataExport: ITabData = {
       stockFiltrado: stockFiltrado,
       planta: dataSubmit.plata_Homogenizado,
       incluirCadmio: checkedCadmio == true ? true : false,
     };
-
-    console.log("Estok filtrado", TabDataExport);
-
-    //dispatch(nextStep());
+    
   };
+
+
 
   const sendData = () => {
     handleSubmit(onSubmit)();
@@ -282,8 +414,10 @@ export function TabData() {
       );
     }
 
-    if (checkedRumasHp) {
-      current = current.filter((item) => item.fijos.serie !== "PH");
+    if (checkedQuitarRumasHp) {
+      current = current.filter(
+        (item) => item.fijos.serie !== APP_CAL_RUMAS_SERIE_PH_A_QUITAR
+      );
     }
 
     if (agregarRumasSerieWatch?.length > 0) {
@@ -349,7 +483,7 @@ export function TabData() {
     agregarRumasSerieWatch,
     data,
     dataFiltered,
-    checkedRumasHp,
+    checkedQuitarRumasHp,
     fechaCorteWatch,
   ]);
 
@@ -448,16 +582,86 @@ export function TabData() {
 
       let dataFilter: StockDisponibleItem[] = [...data];
       const valoresUnicos = extraerValoresUnicos(data);
-      setAllTiposProduccion(valoresUnicos.tipoProduccion);
-      setTipoProduccion(valoresUnicos.tipoProduccion);
+
+      //Seccion Tipos de Produccion
+      const tiposProduccionFiltrados = valoresUnicos.tipoProduccion.filter(
+        (tipo) => !APP_CAL_TIPOS_PRODUCCION_A_EXCLUIR.includes(tipo)
+      );
+      setAllTiposProduccion(tiposProduccionFiltrados);
+      setTipoProduccion(tiposProduccionFiltrados);
+      const tiposProduccionDefaultValidos =
+        APP_CAL_TIPOS_PRODUCCION_DEFAULT.filter((defaultTipo) =>
+          tiposProduccionFiltrados.includes(defaultTipo)
+        );
+
+      tiposProduccionDefaultValidos.length > 0 &&
+        setValue("tipo_produccion", tiposProduccionDefaultValidos, {
+          shouldValidate: true,
+        });
+      //Fin seccion Tipo de Produccion
+
       setCalidadPlanta(valoresUnicos.calidadPlanta);
-      setCentrosUbicacion(valoresUnicos.centroUbicacion);
-      setAlmacenesUbicacion(valoresUnicos.almacenUbicacion);
-      setCentrosProduccion(valoresUnicos.centroProduccion);
+
+      //Seccion alamacenes
+      const alamaceneUbicacionFiltrados = valoresUnicos.almacenUbicacion.filter(
+        (almacen) => !APP_CAL_UBICACION_ALMACEN_A_EXCLUIR.includes(almacen)
+      );
+      setAlmacenesUbicacion(alamaceneUbicacionFiltrados);
+
+      const almaceneUbicacionDefaultValidos =
+        APP_CAL_UBICACION_ALMACEN_DEFAULT.filter((defaultAlmacen) =>
+          alamaceneUbicacionFiltrados.includes(defaultAlmacen)
+        );
+
+      alamaceneUbicacionFiltrados.length > 0 &&
+        setValue("ubicacion_almacen", almaceneUbicacionDefaultValidos, {
+          shouldValidate: true,
+        });
+      //Fin seccion alamcenes
+
+      //Seccion centros de produccion
+
+      const centroProduccionFiltrados = valoresUnicos.centroProduccion.filter(
+        (centroProduccion) =>
+          !APP_CAL_CENTROS_PRODUCCION_A_EXCLUIR.includes(centroProduccion)
+      );
+      setCentrosProduccion(centroProduccionFiltrados);
+
+      const centroProduccionDefaultValidos =
+        APP_CAL_CENTROS_PRODUCCION_DEFAULT.filter((defaultCentrosProduccion) =>
+          centroProduccionFiltrados.includes(defaultCentrosProduccion)
+        );
+
+      centroProduccionDefaultValidos.length > 0 &&
+        setValue("centro_produccion", centroProduccionDefaultValidos, {
+          shouldValidate: true,
+        });
+      //Fin seccion centros de produccion
+
+      //Seccion Centros de ubicacion
+      const centrosUbicacionFiltrados = valoresUnicos.centroUbicacion.filter(
+        (centroUbicacion) =>
+          !APP_CAL_CENTROS_UBICACION_A_EXCLUIR.includes(centroUbicacion)
+      );
+
+      setCentrosUbicacion(centrosUbicacionFiltrados);
+
+      const centroUbicacionDefaultValidos =
+        APP_CAL_CENTROS_UBICACION_DEFAULT.filter((defaultCentrosUbicacion) =>
+          centrosUbicacionFiltrados.includes(defaultCentrosUbicacion)
+        );
+
+      centroUbicacionDefaultValidos.length > 0 &&
+        setValue("centro_ubicacion", centroUbicacionDefaultValidos, {
+          shouldValidate: true,
+        });
+
+      //Fin seccion Centros de ubicacion
+
       const serieExcel = valoresUnicos.serie;
 
       const intersection = serieExcel.filter((value) =>
-        PARAMETRO_SERIE.includes(value)
+        APP_CAL_RUMAS_SERIE_XX_A_QUITAR.includes(value)
       );
 
       if (intersection.length > 0) {
@@ -693,10 +897,12 @@ export function TabData() {
 
                   <div className="w-full mt-2 flex flex-col gap-1">
                     <Checkbox
-                      checked={checkedRumasHp}
+                      checked={checkedQuitarRumasHp}
                       style={{ color: OrgColors.serotRojo }}
                       size="medium"
-                      onChange={(ev, data) => setCheckedRumasHp(data.checked)}
+                      onChange={(ev, data) =>
+                        setCheckedQuitarRumasHp(data.checked)
+                      }
                       label="Quitar rumas tipo PH"
                     />
                   </div>
@@ -814,7 +1020,7 @@ export function TabData() {
     tipoProduccion,
     calidadPlanta,
     checkedCadmio,
-    checkedRumasHp,
+    checkedQuitarRumasHp,
     checkedTiposProduccion,
     sendData,
     loadingPlantas,

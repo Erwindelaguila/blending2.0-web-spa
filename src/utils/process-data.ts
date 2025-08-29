@@ -227,3 +227,17 @@ export function OrderKeyAgupacionUmVta(key: string[]): string[] {
   });
   return keysOrdenados;
 }
+
+
+export function parseCommaSeparatedArray(raw: string | null | undefined): string[] {
+  if (!raw || typeof raw !== "string") return [];
+
+  // validar que tiene formato "valor(,valor)*"
+  const isValid = /^([^,]+)(,[^,]+)*$/.test(raw.trim());
+  if (!isValid) return [];
+
+  return raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item !== "");
+}

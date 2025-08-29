@@ -20,13 +20,8 @@ import { useEffect, useState } from "react";
 import TablaContenedores from "./TablaContenedores";
 import { ErrorAlertContent } from "@/interface/components/message-alert";
 import { ICapacidades } from "@/interface/logistics/asignacion";
-
-const PESO_CONTENEDOR_DEFAULD = 26000;
-const CANTIDAD_SACOS_CONTENEDORES = 520;
-const LOG_PESO_MIN_CONTENEDOR = 18000;
-const LOG_PESO_MAX_CONTENEDOR = 28000;
-const MIN_SACOS = 480;
-const MAX_SACOS = 630;
+import { useAppSelector } from "@/lib/store/hooks";
+import { getAllAppParams, getAppParamOrDefault } from "@/lib/store/slices/appParamsSlice";
 
 export function ParametrosLogisticos({
   dataAsignacion,
@@ -39,8 +34,47 @@ export function ParametrosLogisticos({
     pesoContendor: string
   ) => void;
 }) {
-  const [actualizarcantcontenedor, setActualizarcantcontenedor] =
-    useState<CheckboxProps["checked"]>(false);
+  const APP_LOG_PESO_CONTENEDOR_DEFAULT = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_PESO_CONTENEDOR_DEFAULT", "0")
+  );
+
+  const APP_LOG_PESO_MAX_CONTENEDOR = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_PESO_MAX_CONTENEDOR", "0")
+  );
+
+  const APP_LOG_PESO_MIN_CONTENEDOR = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_PESO_MIN_CONTENEDOR", "0")
+  );
+
+  const APP_LOG_CANTIDAD_MIN_SACOS_X_CONTENEDOR = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_CANTIDAD_MIN_SACOS_X_CONTENEDOR", "0")
+  );
+
+  const APP_LOG_CANTIDAD_MAX_SACOS_X_CONTENEDOR = useAppSelector((state) =>
+    getAppParamOrDefault(state, "APP_LOG_CANTIDAD_MAX_SACOS_X_CONTENEDOR", "0")
+  );
+
+  const APP_LOG_CANTIDAD_SACOS_X_CONTENEDOR_DEFAULT = useAppSelector((state) =>
+    getAppParamOrDefault(
+      state,
+      "APP_LOG_CANTIDAD_SACOS_X_CONTENEDOR_DEFAULT",
+      "0"
+    )
+  );
+
+  const APP_LOG_ACTUALIZAR_CANTIDAD_CONTENEDORES = useAppSelector((state) =>
+    getAppParamOrDefault(
+      state,
+      "APP_LOG_ACTUALIZAR_CANTIDAD_CONTENEDORES",
+      "TRUE"
+    )
+  );
+
+
+  const [actualizarcantcontenedor, setActualizarcantcontenedor] = useState<
+    CheckboxProps["checked"]
+  >(APP_LOG_ACTUALIZAR_CANTIDAD_CONTENEDORES === "TRUE");
+
 
   if (!dataAsignacion) {
     return;
@@ -66,7 +100,7 @@ export function ParametrosLogisticos({
 
   const [cantidadContenedores, setCantidadContenedores] = useState<string>("1");
   const [cantidadSacosContenedores, setCantidadSacosContenedores] =
-    useState<string>(CANTIDAD_SACOS_CONTENEDORES.toString());
+    useState<string>(APP_LOG_CANTIDAD_SACOS_X_CONTENEDOR_DEFAULT);
 
   //Error a Evaluar
   const [
@@ -116,7 +150,7 @@ export function ParametrosLogisticos({
   >([
     {
       contrato: "CHI2511010",
-      "Peso Contenedores": PESO_CONTENEDOR_DEFAULD.toString(),
+      "Peso Contenedores": APP_LOG_PESO_CONTENEDOR_DEFAULT ?? "",
     },
   ]);
 
@@ -133,16 +167,16 @@ export function ParametrosLogisticos({
       return;
     }
 
-    if (valor > LOG_PESO_MAX_CONTENEDOR) {
+    if (valor > Number(APP_LOG_PESO_MAX_CONTENEDOR)) {
       setVisibleErrorPesoContenedor(true);
       setErrorPesoContenedor({
-        descripcion: `El peso del contenedor no puede ser mayor que ${LOG_PESO_MAX_CONTENEDOR}`,
+        descripcion: `El peso del contenedor no puede ser mayor que ${APP_LOG_PESO_MAX_CONTENEDOR}`,
         typeError: "error",
       });
-    } else if (valor < LOG_PESO_MIN_CONTENEDOR) {
+    } else if (valor < Number(APP_LOG_PESO_MIN_CONTENEDOR)) {
       setVisibleErrorPesoContenedor(true);
       setErrorPesoContenedor({
-        descripcion: `El peso del contenedor no puede ser menor que ${LOG_PESO_MIN_CONTENEDOR}`,
+        descripcion: `El peso del contenedor no puede ser menor que ${APP_LOG_PESO_MIN_CONTENEDOR}`,
         typeError: "error",
       });
     } else {
@@ -237,16 +271,22 @@ export function ParametrosLogisticos({
               "La cantidad de sacos en contenedores no debe de ser 0",
             typeError: "error",
           });
-        } else if (Number(cantidadSacosContenedores) > MAX_SACOS) {
+        } else if (
+          Number(cantidadSacosContenedores) >
+          Number(APP_LOG_CANTIDAD_MAX_SACOS_X_CONTENEDOR)
+        ) {
           setVisibleErrorSacosContenedorUnicoValor(true);
           setErrorSacosContenedorUnicoValor({
-            descripcion: `La cantidad de sacos en contenedores no debe ser mayor a ${MAX_SACOS}`,
+            descripcion: `La cantidad de sacos en contenedores no debe ser mayor a ${APP_LOG_CANTIDAD_MAX_SACOS_X_CONTENEDOR}`,
             typeError: "error",
           });
-        } else if (Number(cantidadSacosContenedores) < MIN_SACOS) {
+        } else if (
+          Number(cantidadSacosContenedores) <
+          Number(APP_LOG_CANTIDAD_MIN_SACOS_X_CONTENEDOR)
+        ) {
           setVisibleErrorSacosContenedorUnicoValor(true);
           setErrorSacosContenedorUnicoValor({
-            descripcion: `La cantidad de sacos en contenedores no debe ser menor a ${MIN_SACOS}`,
+            descripcion: `La cantidad de sacos en contenedores no debe ser menor a ${APP_LOG_CANTIDAD_MIN_SACOS_X_CONTENEDOR}`,
             typeError: "error",
           });
         } else {
@@ -418,8 +458,8 @@ export function ParametrosLogisticos({
                         value={cantidadSacosContenedores}
                         onChange={onChangeValueCantSacos}
                         type="number"
-                        min={MIN_SACOS}
-                        max={MAX_SACOS}
+                        min={Number(APP_LOG_CANTIDAD_MIN_SACOS_X_CONTENEDOR)}
+                        max={Number(APP_LOG_CANTIDAD_MAX_SACOS_X_CONTENEDOR)}
                         disabled={actualizarcantcontenedor === true}
                         onKeyDown={(e) => {
                           if (e.key === "-" || e.key === "e" || e.key === "E") {
