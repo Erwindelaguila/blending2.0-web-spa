@@ -1,8 +1,7 @@
 import { BaseResponse } from "@/interface";
-import { IProductoResponse, IProductoRequest, IProductoUpdate, PagedProductoResponse, ProductoFiltersParams, PagedProductoBackendResponse } from "@/interface/admin/producto";
+import { IProductoResponse, IProductoRequest, IProductoUpdate, PagedProductoResponse, ProductoFiltersParams } from "@/interface/admin/producto";
 import { api } from "@/lib/api";
-import { withCreateAudit, withUpdateAudit } from "./audit.util";
-import { getAllProductoKey } from "@/lib/constants/key-fetch";
+import { getAllProductoKey, getByIdProductoKey, deleteProductoKey } from "@/lib/constants/key-fetch";
 
 export class ProductoService {
   static async listar(page: number = 1, size: number = 10, filters?: ProductoFiltersParams): Promise<BaseResponse<PagedProductoResponse>> {
@@ -27,14 +26,14 @@ export class ProductoService {
     page: number = 1,
     size: number = 10,
     filters?: ProductoFiltersParams
-  ): Promise<PagedProductoBackendResponse> {
+  ): Promise<PagedProductoResponse> {
     let url = `${getAllProductoKey()}?page=${page}&size=${size}`;
     if (filters) {
       if (filters.codigo) url += `&codigo=${encodeURIComponent(filters.codigo)}`;
       if (filters.estado !== undefined) url += `&estado=${filters.estado}`;
       if (filters.fechaDesde) url += `&fechaDesde=${encodeURIComponent(filters.fechaDesde)}`;
     }
-  const response = await api.get<PagedProductoBackendResponse>(url);
+  const response = await api.get<PagedProductoResponse>(url);
   return response.data;
   }
 
@@ -46,21 +45,21 @@ export class ProductoService {
   static async crear(data: IProductoRequest): Promise<BaseResponse<IProductoResponse>> {
     const response = await api.post<BaseResponse<IProductoResponse>>(
       getAllProductoKey(),
-      withCreateAudit(data as any)
+      data
     );
     return response.data;
   }
 
   static async actualizar(data: IProductoUpdate): Promise<BaseResponse<IProductoResponse>> {
     const response = await api.put<BaseResponse<IProductoResponse>>(
-      getAllProductoKey(),
-      withUpdateAudit(data as any)
+      getByIdProductoKey(data.id),
+      data
     );
     return response.data;
   }
 
-  static async eliminar(id: string, eliminadoPorId: string): Promise<BaseResponse<void>> {
-    const response = await api.delete<BaseResponse<void>>(`${getAllProductoKey()}?id=${encodeURIComponent(id)}&eliminadoPorId=${encodeURIComponent(eliminadoPorId)}`);
+  static async eliminar(id: string): Promise<BaseResponse<void>> {
+    const response = await api.delete<BaseResponse<void>>(`${deleteProductoKey()}/${encodeURIComponent(id)}`);
     return response.data;
   }
 }

@@ -10,8 +10,8 @@ export interface ITipoProduccionRequest {
   nombre: string;
   descripcion?: string;
   activo: boolean;
-  LineaProduccionId: string;
-  AgregadoId: string;
+  lineaProduccionId: string;
+  agregadoId: string;
 }
 
 export interface ITipoProduccionUpdate extends ITipoProduccionRequest {
@@ -21,11 +21,14 @@ export interface ITipoProduccionUpdate extends ITipoProduccionRequest {
 export interface ITipoProduccionResponse extends ITipoProduccionBase {
   id: string;
   activo: boolean;
-  // Aceptar ambas variantes que puede enviar el backend para compatibilidad
-  lineaProduccionId?: string;
-  agregadoId?: string;
-  LineaProduccionId?: string;
-  AgregadoId?: string;
+  lineaProduccion: {
+    id: string;
+    codigo: string;
+  };
+  agregado: {
+    id: string;
+    codigo: string;
+  };
   creadoPorId: string;
   creadoEl: string;
   modificadoPorId?: string;

@@ -9,12 +9,20 @@ export const fetchGetCalidadesId = (id: string) => {
 // Alias para consistencia de nomenclatura en servicios
 export const getByIdCalidadKey = (id: string) => fetchGetCalidadesId(id);
 
+export const deleteCalidadKey = () => {
+  return "/api/core/produccion/calidad";
+};
+
 export const getAllParametroKey = () => {
   return "/api/core/parametro";
 };
 
 export const getByIdParametroKey = (id: string) => {
   return `/api/core/parametro/detail?id=${id}`;
+};
+
+export const deleteParametroKey = () => {
+  return "/api/core/parametro";
 };
 
 export const fetchGetParametrosId = (id: string) => {
@@ -33,6 +41,8 @@ export const fetchGetPlantasId = (id: string) => {
   return `/api/core/planta/detail?id=${id}`;
 };
 
+export const getByIdPlantaKey = (id: string) => fetchGetPlantasId(id);
+
 export const createPlantaKey = () => {
   return "/api/core/planta";
 };
@@ -49,11 +59,17 @@ export const deletePlantaKey = () => {
 export const getAllAgregadoKey = () => {
   return `/api/core/produccion/agregado`;
 };
-//http://localhost:7006/api/core/produccion/agregado
 
-
-export const getByIdAgregadoKey = (id: string ) => {
+export const getByIdAgregadoKey = (id: string) => {
   return `/api/core/produccion/agregado/detail?id=${id}`;
+};
+
+export const getAllAppParamKey = () => {
+  return "/api/core/appparam";
+};
+
+export const getByIdAppParamKey = (key: string) => {
+  return `/api/core/appparam/detail/${encodeURIComponent(key)}`;
 };
 
 export const deleteAgregadoKey = () => {
@@ -97,4 +113,17 @@ export const getByIdProductoKey = (id: string) => {
 
 export const deleteProductoKey = () => {
   return `/api/core/produccion/producto`;
+};
+
+// Region Configuraciones - Calidad Parametros
+export const getCalidadParametrosMatrizKey = () => {
+  return `/api/core/configuraciones/calidadparametro/matriz`;
+};
+
+export const getCalidadParametrosPorCalidadKey = (codigoCalidad: string) => {
+  return `/api/core/configuraciones/calidadparametro?codigoCalidad=${codigoCalidad}`;
+};
+
+export const upsertCalidadParametrosKey = () => {
+  return `/api/core/configuraciones/calidadparametro/upsert`;
 };

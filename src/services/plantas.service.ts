@@ -1,15 +1,14 @@
 import { BaseResponse } from "@/interface";
-import { IPlantaResponse, IPlantaRequest, IPlantaUpdate, PagedPlantaResponse, PlantaFiltersParams } from "@/interface/admin/planta";
+import { IPlantaResponse, IPlantaRequest, IPlantaUpdate, PlantaPagedItemsResponse, PlantaFiltersParams } from "@/interface/admin/planta";
 import { api } from "@/lib/api";
-import { withCreateAudit, withUpdateAudit } from "./audit.util";
-import { getAllPlantaKey } from "@/lib/constants/key-fetch";
+import { getAllPlantaKey, getByIdPlantaKey, createPlantaKey, deletePlantaKey } from "@/lib/constants/key-fetch";
 
 export class PlantasService {
   static async listar(
     page: number = 1,
     size: number = 10,
     filters?: PlantaFiltersParams
-  ): Promise<BaseResponse<PagedPlantaResponse>> {
+  ): Promise<BaseResponse<PlantaPagedItemsResponse>> {
     let url = `${getAllPlantaKey()}?page=${page}&size=${size}`;
 
     if (filters) {
@@ -23,7 +22,7 @@ export class PlantasService {
         url += `&fechaDesde=${encodeURIComponent(filters.fechaDesde)}`;
       }
     }
-    const response = await api.get<BaseResponse<PagedPlantaResponse>>(url);
+  const response = await api.get<BaseResponse<PlantaPagedItemsResponse>>(url);
     return response.data;
   }
 
@@ -36,8 +35,8 @@ export class PlantasService {
     data: IPlantaRequest
   ): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.post<BaseResponse<IPlantaResponse>>(
-      getAllPlantaKey(),
-  withCreateAudit(data as any)
+      createPlantaKey(),
+      data
     );
     return response.data;
   }
@@ -46,15 +45,15 @@ export class PlantasService {
     data: IPlantaUpdate
   ): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.put<BaseResponse<IPlantaResponse>>(
-      getAllPlantaKey(),
-  withUpdateAudit(data as any)
+      getByIdPlantaKey(data.id),
+      data
     );
     return response.data;
   }
 
-  static async eliminar(id: string, eliminadoPorId: string): Promise<BaseResponse<void>> {
+  static async eliminar(id: string): Promise<BaseResponse<void>> {
     const response = await api.delete<BaseResponse<void>>(
-      `${getAllPlantaKey()}?id=${encodeURIComponent(id)}&eliminadoPorId=${encodeURIComponent(eliminadoPorId)}`
+      `${deletePlantaKey()}/${encodeURIComponent(id)}`
     );
     return response.data;
   }

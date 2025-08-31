@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { mergeClasses } from "@fluentui/react-components";
 import { useTableDynamicStyles } from "@/styles/table-dynamic";
 import { DynamicRow, ITableDynamicProps } from "@/interface";
+import { ValidationUtils } from "@/utils/validation-utils";
 
 // Helpers
 const deepCopy = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -34,9 +35,7 @@ const sameSet = (a: string[], b: string[]) => {
   return b.every((x) => A.has(x));
 };
 
-// Construye nuevo snapshot cuando cambian columnas.
-// - Mantiene baseline previo para columnas existentes.
-// - Para columnas nuevas, toma como baseline el valor actual.
+
 function mergeBaselineByKey(
   prevBaseline: DynamicRow[],
   newData: DynamicRow[],
@@ -55,7 +54,7 @@ function mergeBaselineByKey(
       if (prev && Object.prototype.hasOwnProperty.call(prev, col)) {
         merged[col] = prev[col];
       } else {
-        // Nueva columna: baseline = valor actual
+   
         merged[col] = row[col];
       }
     });
@@ -76,6 +75,7 @@ export function TableDynamic({
   uppercaseTitle = false,
   width = "20rem",
   isChangeBold = false,
+  numericValidation,
 }: ITableDynamicProps) {
   const styles = useTableDynamicStyles();
 
@@ -83,44 +83,60 @@ export function TableDynamic({
   const [originalData, setOriginalData] = useState<DynamicRow[]>([]);
   const [changedCells, setChangedCells] = useState<Set<string>>(new Set());
 
-  // Guardamos las columnas "conocidas" para detectar cambios estructurales.
   const lastColsRef = useRef<string[]>([]);
+  const isInitializedRef = useRef<boolean>(false);
+  const editingRef = useRef(false);
+  const lastPropDataRef = useRef<DynamicRow[] | null>(null);
 
-  // 1) Sincroniza localData SIEMPRE con la prop data.
-  //    PERO el snapshot (originalData) SOLO se inicializa una vez o
-  //    se recalcula cuando cambian las columnas (no cuando cambian valores).
+
   useEffect(() => {
     const safeData = data || [];
-    setLocalData(safeData);
+
+    if (editingRef.current) {
+      editingRef.current = false;
+    } else {
+      const propChanged = lastPropDataRef.current !== safeData;
+      if (propChanged) {
+        const prev = lastPropDataRef.current;
+        let shallowEqual = false;
+        if (prev && prev.length === safeData.length) {
+          shallowEqual = safeData.every((row, idx) => row === prev[idx]);
+        }
+        if (!shallowEqual) {
+          setLocalData(safeData);
+        }
+        lastPropDataRef.current = safeData;
+      }
+    }
 
     const incomingCols = getColumns(safeData, firstColKey);
 
-    if (originalData.length === 0) {
+    if (!isInitializedRef.current) {
       setOriginalData(deepCopy(safeData));
       lastColsRef.current = incomingCols;
+      isInitializedRef.current = true;
       return;
     }
 
-    // ¿Cambió la estructura de columnas?
     if (!sameSet(incomingCols, lastColsRef.current)) {
-      const merged = mergeBaselineByKey(
-        originalData,
-        safeData,
-        incomingCols,
-        firstColKey
-      );
-      setOriginalData(merged);
+      setOriginalData(prevOriginal => {
+        const merged = mergeBaselineByKey(
+          prevOriginal,
+          safeData,
+          incomingCols,
+          firstColKey
+        );
+        return merged;
+      });
       lastColsRef.current = incomingCols;
     }
-  }, [data, firstColKey]); // <- no dependas de originalData aquí
+  }, [data, firstColKey]); 
 
-  // 2) Columnas actuales (derivadas de localData)
   const paramKeys = useMemo(
     () => getColumns(localData, firstColKey),
     [localData, firstColKey]
   );
 
-  // 3) Recalcula celdas cambiadas cada vez que cambia localData o el snapshot.
   useEffect(() => {
     if (originalData.length === 0) return;
 
@@ -144,18 +160,68 @@ export function TableDynamic({
     setChangedCells(newChanged);
   }, [localData, originalData, paramKeys, firstColKey]);
 
-  // 4) Cambio de input (usa data.value en Fluent UI v9)
   const handleChange = (rowIndex: number, key: string, value: string) => {
+    let formattedValue = value;
+    
+    if (numericValidation?.enabled) {
+      const shouldValidate = !numericValidation.columns || 
+                           numericValidation.columns.includes(key);
+      
+      if (shouldValidate) {
+        const config = {
+          mode: numericValidation.mode || 'auto',
+          integerMaxDigits: numericValidation.integerMaxDigits || 5,
+          decimalIntegerMaxDigits: numericValidation.decimalIntegerMaxDigits || 4,
+          decimalDigits: numericValidation.decimalDigits || 3,
+          padOnBlur: numericValidation.padOnBlur !== false,
+          allowLeadingDot: numericValidation.allowLeadingDot !== false,
+        };
+        
+        formattedValue = ValidationUtils.validateAndFormatNumber(value, false);
+      }
+    }
+    
+    editingRef.current = true; 
+    
     setLocalData((prev) => {
       const updated = [...prev];
-      updated[rowIndex] = { ...updated[rowIndex], [key]: value };
+      updated[rowIndex] = { ...updated[rowIndex], [key]: formattedValue };
       return updated;
     });
   };
 
+  const handleBlur = (rowIndex: number, key: string, value: string) => {
+    if (!numericValidation?.enabled) return;
+    
+    const shouldValidate = !numericValidation.columns || 
+                         numericValidation.columns.includes(key);
+    
+    if (shouldValidate && numericValidation.padOnBlur !== false) {
+      const finalized = ValidationUtils.finalizeNumber(value);
+      if (finalized !== value) {
+        handleChange(rowIndex, key, finalized);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, key: string) => {
+    if (!numericValidation?.enabled) return;
+    
+    const shouldValidate = !numericValidation.columns || 
+                         numericValidation.columns.includes(key);
+    
+    if (shouldValidate) {
+      ValidationUtils.handleNumberInput(e);
+    }
+  };  
+  const onDataChangeRef = useRef(onDataChange);
+  onDataChangeRef.current = onDataChange;
+
   useEffect(() => {
-    onDataChange?.(localData);
-  }, [localData, onDataChange]);
+    if (onDataChangeRef.current) {
+      onDataChangeRef.current(localData);
+    }
+  }, [localData]);
 
   if (!localData || localData.length === 0) {
     return (
@@ -216,9 +282,9 @@ export function TableDynamic({
                   <Input
                     type="text"
                     value={String(row[param] ?? "")}
-                    onChange={(_, data) =>
-                      handleChange(i, param, data?.value ?? "")
-                    }
+                    onChange={(_, data) => handleChange(i, param, data?.value ?? "")}
+                    onBlur={(e) => handleBlur(i, param, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, i, param)}
                     style={{
                       width: "100%",
                       border: "none",

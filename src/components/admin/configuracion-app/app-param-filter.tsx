@@ -7,62 +7,80 @@ import { DatePicker } from "@fluentui/react-datepicker-compat";
 import { OrgColors } from "@/config/app.config.server";
 import { Search24Regular, DismissCircle24Regular } from "@fluentui/react-icons";
 import { useButtonsStyles } from "@/styles/button.styles";
-import { usePlantaContext, PlantaFilters } from './planta-context';
+import { useAppParamContext } from './app-param-context';
+import { IAppParamFilters } from '@/interface/admin/app-param';
 import { datePickerStringsEs } from '@/utils/date';
 
-export function PlantaFilter() {
-  const stylebtn = useButtonsStyles();
-  const { filters, setFilters, clearFilters } = usePlantaContext();
 
-  const [localFilters, setLocalFilters] = useState<PlantaFilters>({
-    codigo: filters.codigo || "",
-    estado: filters.estado,
-    fechaDesde: filters.fechaDesde || undefined,
+export function AppParamFilter() {
+  const stylebtn = useButtonsStyles();
+  const { filters, setFilters, clearFilters } = useAppParamContext();
+
+  const [localFilters, setLocalFilters] = useState<IAppParamFilters>({
+    key: filters.key || "",
+    isActive: filters.isActive,
+    fecha: filters.fecha || "",
   });
 
   useEffect(() => {
     setLocalFilters({
-      codigo: filters.codigo || "",
-      estado: filters.estado,
-      fechaDesde: filters.fechaDesde || undefined,
+      key: filters.key || "",
+      isActive: filters.isActive,
+      fecha: filters.fecha || "",
     });
   }, [filters]);
 
   const estadoOptions = [
     { value: "", label: "Todos" },
-    { value: "1", label: "Activos" },
-    { value: "0", label: "Inactivos" },
+    { value: "true", label: "Activos" },
+    { value: "false", label: "Inactivos" },
   ];
 
-  const handleCodigoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalFilters((prev) => ({ ...prev, codigo: event.target.value }));
+  const handleKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalFilters((prev) => ({ ...prev, key: event.target.value }));
   };
 
-  const handleCodigoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleFilter();
     }
   };
 
   const handleEstadoChange = (_event: any, data: any) => {
-    const numValue = data.optionValue === "" ? undefined : parseInt(data.optionValue);
-    setLocalFilters((prev) => ({ ...prev, estado: numValue }));
+    const boolValue = data.optionValue === "" ? undefined : data.optionValue === "true";
+    setLocalFilters((prev) => ({ ...prev, isActive: boolValue }));
   };
 
-  const handleFechaDesdeChange = (date: Date | null | undefined) => {
-    setLocalFilters((prev) => ({ ...prev, fechaDesde: date || undefined }));
+  
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const parseLocalDateString = (s: string): Date | null => {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d); // fecha local sin desplazamiento
+  };
+
+  const handleFechaChange = (date: Date | null | undefined) => {
+    const fechaString = date ? formatLocalDate(date) : "";
+    setLocalFilters((prev) => ({ ...prev, fecha: fechaString }));
   };
 
   const handleFilter = () => {
-    const cleanFilters: PlantaFilters = {};
-    if (localFilters.codigo && localFilters.codigo.trim()) cleanFilters.codigo = localFilters.codigo.trim();
-    if (localFilters.estado !== undefined) cleanFilters.estado = localFilters.estado;
-    if (localFilters.fechaDesde) cleanFilters.fechaDesde = localFilters.fechaDesde;
-    setFilters(cleanFilters);
+    const cleanedFilters: IAppParamFilters = {};
+    if (localFilters.key && localFilters.key.trim()) cleanedFilters.key = localFilters.key.trim();
+    if (localFilters.isActive !== undefined) cleanedFilters.isActive = localFilters.isActive;
+    if (localFilters.fecha && localFilters.fecha.trim()) cleanedFilters.fecha = localFilters.fecha.trim();
+    setFilters(cleanedFilters);
   };
 
   const handleClear = () => {
-    const emptyFilters: PlantaFilters = { codigo: "", estado: undefined, fechaDesde: undefined };
+    const emptyFilters = { key: "", isActive: undefined, fecha: "" };
     setLocalFilters(emptyFilters);
     clearFilters();
   };
@@ -75,12 +93,12 @@ export function PlantaFilter() {
           <div className="w-full flex h-4/5 justify-between">
             <div className="w-1/4 h-full pr-4 flex items-center ">
               <div className="flex flex-col justify-start w-full">
-                <Label>Codigo</Label>
+                <Label>Código</Label>
                 <Input
                   style={{ width: "100%", border: `2px solid ${OrgColors.serotGris}` }}
-                  value={localFilters.codigo || ""}
-                  onChange={handleCodigoChange}
-                  onKeyDown={handleCodigoKeyDown}
+                  value={localFilters.key || ""}
+                  onChange={handleKeyChange}
+                  onKeyDown={handleKeyKeyDown}
                   placeholder="Buscar por código..."
                 />
               </div>
@@ -95,8 +113,8 @@ export function PlantaFilter() {
                   <Dropdown
                     placeholder="Seleccione estado"
                     value={
-                      localFilters.estado !== undefined
-                        ? estadoOptions.find((opt) => opt.value === localFilters.estado!.toString())?.label
+                      localFilters.isActive !== undefined
+                        ? estadoOptions.find((opt) => opt.value === String(localFilters.isActive))?.label
                         : estadoOptions.find((opt) => opt.value === "")?.label || "Todos"
                     }
                     onOptionSelect={handleEstadoChange}
@@ -115,8 +133,8 @@ export function PlantaFilter() {
                       size="medium"
                       style={{ border: `2px solid ${OrgColors.serotGris}`, minWidth: "140px" }}
                       placeholder="Buscar por fecha..."
-                      value={localFilters.fechaDesde || null}
-                      onSelectDate={handleFechaDesdeChange}
+                      value={localFilters.fecha ? parseLocalDateString(localFilters.fecha) : null}
+                      onSelectDate={handleFechaChange}
                       formatDate={(date) => (date ? date.toLocaleDateString('es-ES') : '')}
                       strings={datePickerStringsEs}
                     />

@@ -2,6 +2,7 @@
 
 import { Input, Label } from "@fluentui/react-components"
 import { Add20Regular, Subtract20Regular } from "@fluentui/react-icons"
+import { ValidationUtils } from "@/utils/validation-utils"
 
 interface NumericInputControlProps {
   label: string
@@ -40,7 +41,15 @@ export function NumericInputControl({
         </button>
         <Input
           value={value.toString()}
-          onChange={(e, data) => onInputChange(data.value)}
+          onChange={(e, data) => {
+            const formattedValue = ValidationUtils.validateAndFormatNumber(data.value, false);
+            onInputChange(formattedValue);
+          }}
+          onBlur={(e) => {
+            const fin = ValidationUtils.finalizeNumber(e.target.value);
+            if (fin !== e.target.value) onInputChange(fin);
+          }}
+          onKeyDown={(e) => ValidationUtils.handleNumberInput(e)}
           className="w-12 h-7 !border-0 text-center text-sm font-medium bg-white focus:outline-none px-1"
         />
         <button

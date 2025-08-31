@@ -82,7 +82,7 @@ export function TipoProduccionFilter() {
           <div className="w-full flex h-4/5 justify-between">
             <div className="w-1/4 h-full pr-4 flex items-center ">
               <div className="flex flex-col justify-start w-full">
-                <Label>Codigo</Label>
+                <Label>Código</Label>
                 <Input
                   style={{
                     width: "100%",
@@ -91,7 +91,7 @@ export function TipoProduccionFilter() {
                   value={localFilters.codigo}
                   onChange={handleCodigoChange}
                   onKeyDown={handleCodigoKeyDown}
-                  placeholder="Buscar por código..."
+                  placeholder="Buscar tipo de producción..."
                 />
               </div>
             </div>

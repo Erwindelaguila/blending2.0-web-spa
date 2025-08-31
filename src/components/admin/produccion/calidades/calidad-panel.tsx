@@ -11,7 +11,6 @@ import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { fetchGetCalidadesId, getByIdCalidadKey } from "@/lib/constants/key-fetch";
 import { CalidadesService } from "@/services/calidades.service";
-import { useAuth } from "@/hooks/use-auth";
 import { BaseResponse } from "@/interface";
 import {
   ICalidadResponse,
@@ -31,7 +30,6 @@ const defaultFormValues: ICalidadRequest = {
 export function CalidadPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   const styles = useInputStyles();
   const asyncAction = useAsyncAction();
-  const { user } = useAuth();
 
   const {
     register,

@@ -1,8 +1,7 @@
 import { BaseResponse } from "@/interface";
-import { ICalidadResponse, ICalidadRequest, ICalidadUpdate, PagedCalidadResponse, CalidadFiltersParams } from "@/interface/admin/calidad";
+import { ICalidadResponse, ICalidadRequest, ICalidadUpdate, CalidadFiltersParams, PagedCalidadResponse } from "@/interface/admin/calidad";
 import { api } from "@/lib/api";
-import { withCreateAudit, withUpdateAudit } from "./audit.util";
-import { getAllCalidadKey, fetchGetCalidadesId } from "@/lib/constants/key-fetch";
+import { getAllCalidadKey, getByIdCalidadKey, deleteCalidadKey } from "@/lib/constants/key-fetch";
 
 export class CalidadesService {
   static async listar(page: number = 1, size: number = 10, filters?: CalidadFiltersParams): Promise<BaseResponse<PagedCalidadResponse>> {
@@ -24,6 +23,13 @@ export class CalidadesService {
     return response.data;
   }
 
+  // Método específico para combos - solo activos
+  static async obtenerActivos(): Promise<BaseResponse<{ id: string; codigo: string }[]>> {
+    const url = `${getAllCalidadKey()}?activo=true`;
+    const response = await api.get<BaseResponse<{ id: string; codigo: string }[]>>(url);
+    return response.data;
+  }
+
   static async obtenerPorId(url: string): Promise<BaseResponse<ICalidadResponse>> {
     const response = await api.get<BaseResponse<ICalidadResponse>>(url);
     return response.data;
@@ -32,30 +38,27 @@ export class CalidadesService {
   static async crear(
       data: ICalidadRequest
     ): Promise<BaseResponse<ICalidadResponse>> {
-      const payload = { ...data, noConforme: !data.conforme };
-      const { conforme, ...rest } = payload;
       const response = await api.post<BaseResponse<ICalidadResponse>>(
         getAllCalidadKey(),
-        withCreateAudit(rest as any)
+        data
       );
       return response.data;
     }
 
-  static async actualizar(
-      data: ICalidadUpdate
-    ): Promise<BaseResponse<ICalidadResponse>> {
-      const payload = { ...data, noConforme: !data.conforme };
-      const { conforme, ...rest } = payload;
-      const response = await api.put<BaseResponse<ICalidadResponse>>(
-        getAllCalidadKey(),
-        withUpdateAudit(rest as any)
-      );
-      return response.data;
-    }
+    static async actualizar(
+    data: ICalidadUpdate
+  ): Promise<BaseResponse<ICalidadResponse>> {
+    const response = await api.put<BaseResponse<ICalidadResponse>>(
+      getByIdCalidadKey(data.id),
+      data
+    );
+    return response.data;
+  }
 
-  static async eliminar(id: string, eliminadoPorId: string): Promise<BaseResponse<void>> {
-    const url = `${getAllCalidadKey()}?id=${encodeURIComponent(id)}&eliminadoPorId=${encodeURIComponent(eliminadoPorId)}`;
-    const response = await api.delete<BaseResponse<void>>(url);
+  static async eliminar(id: string): Promise<BaseResponse<void>> {
+    const response = await api.delete<BaseResponse<void>>(
+      `${deleteCalidadKey()}/${encodeURIComponent(id)}`
+    );
     return response.data;
   }
 }

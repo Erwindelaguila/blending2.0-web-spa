@@ -5,7 +5,6 @@ interface IAgregadoBase {
   activo?: boolean;
 }
 
-// Request DTO sin campos de auditoría
 export interface IAgregadoRequest {
   codigo: string;
   nombre: string;
@@ -17,7 +16,6 @@ export interface IAgregadoUpdate extends IAgregadoRequest {
   id: string;
 }
 
-// Response estandarizado (mismo patrón que parámetros/plantas)
 export interface IAgregadoResponse extends IAgregadoBase {
   id: string;
   activo: boolean; 
@@ -26,8 +24,6 @@ export interface IAgregadoResponse extends IAgregadoBase {
   modificadoPorId?: string;
   modificadoEl?: string;
 }
-
-// Alias para compatibilidad retro con código existente
 export type IAgregado = IAgregadoResponse;
 import { PagedResponse, BaseFiltersParams } from "@/interface";
 export type PagedAgregadoResponse = PagedResponse<IAgregadoResponse>;

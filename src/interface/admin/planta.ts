@@ -30,4 +30,19 @@ export interface IPlantaResponse extends IPlantaBase {
 import { PagedResponse, BaseFiltersParams } from "@/interface";
 export type PagedPlantaResponse = PagedResponse<IPlantaResponse>;
 
+// Nueva estructura con items similar a calidades
+export interface PlantaPagedItemsResponse {
+  items: IPlantaResponse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+    totalCount: number;
+    hasPrevious: boolean;
+    hasNext: boolean;
+    previousPage: number | null;
+    nextPage: number | null;
+  };
+}
+
 export interface PlantaFiltersParams extends BaseFiltersParams {}

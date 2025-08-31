@@ -32,4 +32,18 @@ export interface ICalidadResponse extends ICalidadBase {
 import { PagedResponse, BaseFiltersParams } from "@/interface";
 export type PagedCalidadResponse = PagedResponse<ICalidadResponse>;
 
+export interface CalidadPagedResponse {
+  items: ICalidadResponse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+    totalCount: number;
+    hasPrevious: boolean;
+    hasNext: boolean;
+    previousPage: number | null;
+    nextPage: number | null;
+  };
+}
+
 export interface CalidadFiltersParams extends BaseFiltersParams {}

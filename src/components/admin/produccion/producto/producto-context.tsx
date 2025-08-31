@@ -6,7 +6,7 @@ import { buildPaginatedSWRKey } from "@/utils/swr-keys";
 
 export interface ProductoFilters {
   codigo?: string;
-  estado?: number; // 1=activos, 0=inactivos
+  estado?: number; 
   fechaDesde?: Date;
 }
 
