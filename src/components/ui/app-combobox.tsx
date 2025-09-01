@@ -36,7 +36,7 @@ export const AppCombobox = ({
   grayBorder = false,
   onTriggerLoad,
   freeform = false,
-}) => {
+}:Props) => {
   const [inputText, setInputText] = useState<string>("");
 
   const hasOptions = options && options.length > 0;

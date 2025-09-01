@@ -7,11 +7,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { MainLayout } from "@/components/layouts/main-layout";
 import { PageLoader } from "@/components/ui/page-loader";
 import { useAuth } from "@/hooks/use-auth";
-import useSWR from "swr";
-import { BaseResponse } from "@/interface";
-import { AppParamsService } from "@/services/appParams.service";
-import { useDispatch } from "react-redux";
-import { setAppParams } from "@/lib/store/slices/appParamsSlice";
 
 interface AppLayoutProps {
   children: React.ReactNode;

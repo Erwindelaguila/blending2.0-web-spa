@@ -5,29 +5,30 @@ import { getAllPlantaKey, getByIdPlantaKey, createPlantaKey, deletePlantaKey } f
 
 export class PlantasService {
   static async listar<TResponse>(
-    page: number = 1,
-    size: number = 10,
-    filters?: PlantaFiltersParams
-  ): Promise<BaseResponse<PlantaPagedItemsResponse>> {
-    let url = `${getAllPlantaKey()}?page=${page}&size=${size}`;
+  page: number = 1,
+  size: number = 10,
+  filters?: PlantaFiltersParams
+): Promise<BaseResponse<TResponse>> {
+  let url = `${getAllPlantaKey()}?page=${page}&size=${size}`;
 
-    if (filters) {
-      if (filters.codigo) {
-        url += `&codigo=${encodeURIComponent(filters.codigo)}`;
-      }
-      if (filters.estado !== undefined) {
-        url += `&estado=${filters.estado}`;
-      }
-      if (filters.isHarina) {
-        url += `&isHarina=${encodeURIComponent(filters.isHarina)}`;
-      } 
-      if (filters.fechaDesde) {
-        url += `&fechaDesde=${encodeURIComponent(filters.fechaDesde)}`;
-      }
+  if (filters) {
+    if (filters.codigo) {
+      url += `&codigo=${encodeURIComponent(filters.codigo)}`;
     }
-  const response = await api.get<BaseResponse<PlantaPagedItemsResponse>>(url);
-    return response.data;
+    if (filters.estado !== undefined) {
+      url += `&estado=${filters.estado}`;
+    }
+    if (filters.isHarina) {
+      url += `&isHarina=${encodeURIComponent(filters.isHarina)}`;
+    }
+    if (filters.fechaDesde) {
+      url += `&fechaDesde=${encodeURIComponent(filters.fechaDesde)}`;
+    }
   }
+
+  const response = await api.get<BaseResponse<TResponse>>(url);
+  return response.data;
+}
 
   static async obtenerPorId(url: string): Promise<BaseResponse<IPlantaResponse>> {
     const response = await api.get<BaseResponse<IPlantaResponse>>(url);

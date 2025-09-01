@@ -201,6 +201,9 @@ export function TabData() {
     success: null,
   });
 
+  const [loadingobteniendoValoresCadmio, setLoadingObteniendoValoresCadmio] =
+    useState<boolean>(false);
+
   const [loadingFile, setLoadingFile] = useState<boolean>(false);
   const [loadingSap, setLoadingSap] = useState<boolean>(false);
   const [loadingObtenerCadmio, setLoadingObtenerCadmio] =
@@ -298,6 +301,7 @@ export function TabData() {
   const onSubmit: SubmitHandler<IFilterHomogenizacionHarina> = async (
     dataSubmit
   ) => {
+    setLoadingObteniendoValoresCadmio(false);
     setVisibleErrorObtenerCadmio(false);
     setErrorObtenerCadmio({
       descripcion: "",
@@ -398,12 +402,14 @@ export function TabData() {
     };
 
     if (checkedCadmio) {
+      setLoadingObteniendoValoresCadmio(true);
       setDataSendTabData(TabDataExport);
       await asyncAction.execute(
         () => CadmioService.obtener(rumaNros),
         undefined,
         setResponseOpteneCadmio
       );
+      setLoadingObteniendoValoresCadmio(false);
       return;
     } else {
     }
@@ -417,6 +423,12 @@ export function TabData() {
       const dataCadmio = responseObtnerCadmio.success.data;
 
       if (!dataCadmio || dataCadmio.length === 0) {
+        setVisibleErrorObtenerCadmio(true);
+        setErrorObtenerCadmio({
+          descripcion: "No exiten valores de cadmio para las rumas filtradas.",
+          typeError: "error",
+        });
+
         return;
       }
 
@@ -443,7 +455,11 @@ export function TabData() {
         console.log("Data final con cadmio asignado: ", dataFiltrada);
       }
     } else if (responseObtnerCadmio.error) {
-      console.log("Error al obtener cadmio: ", responseObtnerCadmio.error);
+      setVisibleErrorObtenerCadmio(true);
+      setErrorObtenerCadmio({
+        descripcion: "Error al obtener los valores de cadmio.",
+        typeError: "error",
+      });
     }
   }, [responseObtnerCadmio]);
 
@@ -1054,7 +1070,7 @@ export function TabData() {
                     </div>
                   </div>
 
-                  <div className="w-full bg-amber-400 flex justify-between">
+                  <div className="w-full flex justify-between pt-6">
                     <div>
                       {visibleErrorObtenerCadmio && (
                         <>
@@ -1069,7 +1085,7 @@ export function TabData() {
                         </>
                       )}
                     </div>
-                    <div className="w-full flex justify-end bg-amber-300">
+                    <div className="w-full flex justify-end items-center">
                       <Button appearance="subtle">
                         Coincidencias encontradas{" "}
                         {dataFiltradaSocketCount.length}
@@ -1077,10 +1093,24 @@ export function TabData() {
 
                       <Button
                         size="large"
-                        className={`w-[13rem] ${style.buttonCelesteBase}`}
+                        className={`w-[16rem] ${
+                          dataFiltradaSocketCount.length > 0
+                            ? style.buttonCelesteBase
+                            : style.buttonDisabled
+                        }`}
+                        icon={
+                          loadingobteniendoValoresCadmio ? (
+                            <Spinner size="tiny"></Spinner>
+                          ) : undefined
+                        }
+                        disabled={
+                          dataFiltradaSocketCount.length > 0 ? false : true
+                        }
                         onClick={() => sendData()}
                       >
-                        Continuar
+                        {loadingobteniendoValoresCadmio
+                          ? "Obteniendo cadmio ..."
+                          : "Continuar"}
                       </Button>
                     </div>
                   </div>
