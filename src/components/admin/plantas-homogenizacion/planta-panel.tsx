@@ -98,8 +98,8 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
   }, [open]);
 
   const onSubmit: SubmitHandler<IPlantaRequest> = async (data) => {
-    const sendCreate: IPlantaRequest = { ...data };
-    const sendUpdate: IPlantaUpdate = { ...data, id: id || "" };
+  const sendCreate: IPlantaRequest = { ...data };
+  const sendUpdate: IPlantaUpdate = { ...data, id: id || "" };
 
     await asyncAction.execute(async () => {
       const result = id
@@ -239,6 +239,7 @@ export function PlantaPanel({ open, mode, id, close, onSuccess }: IDrawer) {
           loadingMessage={id ? "Actualizando planta..." : "Creando nueva planta..."}
           successMessage={id ? asyncAction.response?.message ?? "Se actualizó correctamente la planta" : asyncAction.response?.message ?? "Se creó correctamente la planta"}
           onSuccess={() => { closeAcction(); }}
+          loadingType="progress"
         />
       )}
     </DrawerBase>

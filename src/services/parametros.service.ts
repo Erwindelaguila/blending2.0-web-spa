@@ -1,21 +1,20 @@
 import { BaseResponse } from "@/interface";
-import {
-  IParametroResponse,
-  IParametroRequest,
-  IParametroUpdate,
-  PagedParametroResponse,
-  ParametroFiltersParams,
+import { 
+  IParametroResponse, 
+  IParametroRequest, 
+  IParametroUpdate, 
+  ParametroPagedItemsResponse, 
+  ParametroFiltersParams
 } from "@/interface/admin/parametro";
 import { api } from "@/lib/api";
-import { withCreateAudit, withUpdateAudit } from "./audit.util";
-import { getAllParametroKey } from "@/lib/constants/key-fetch";
+import { getAllParametroKey, getByIdParametroKey, deleteParametroKey } from "@/lib/constants/key-fetch";
 
 export class ParametrosService {
   static async listar(
     page: number = 1,
     size: number = 10,
     filters?: ParametroFiltersParams
-  ): Promise<BaseResponse<PagedParametroResponse>> {
+  ): Promise<BaseResponse<ParametroPagedItemsResponse>> {
     let url = `${getAllParametroKey()}?page=${page}&size=${size}`;
 
     if (filters) {
@@ -29,7 +28,7 @@ export class ParametrosService {
         url += `&fechaDesde=${encodeURIComponent(filters.fechaDesde)}`;
       }
     }
-    const response = await api.get<BaseResponse<PagedParametroResponse>>(url);
+  const response = await api.get<BaseResponse<ParametroPagedItemsResponse>>(url);
     return response.data;
   }
 
@@ -39,19 +38,17 @@ export class ParametrosService {
   }
 
   static async crear(data: IParametroRequest): Promise<BaseResponse<IParametroResponse>> {
-    const response = await api.post<BaseResponse<IParametroResponse>>(getAllParametroKey(), withCreateAudit(data as any));
+    const response = await api.post<BaseResponse<IParametroResponse>>(getAllParametroKey(), data);
     return response.data;
   }
 
   static async actualizar(data: IParametroUpdate): Promise<BaseResponse<IParametroResponse>> {
-    const response = await api.put<BaseResponse<IParametroResponse>>(getAllParametroKey(), withUpdateAudit(data as any));
+    const response = await api.put<BaseResponse<IParametroResponse>>(getByIdParametroKey(data.id), data);
     return response.data;
   }
 
-  static async eliminar(id: string, eliminadoPorId: string): Promise<BaseResponse<void>> {
-    const response = await api.delete<BaseResponse<void>>(
-      `${getAllParametroKey()}?id=${encodeURIComponent(id)}&eliminadoPorId=${encodeURIComponent(eliminadoPorId)}`
-    );
+  static async eliminar(id: string): Promise<BaseResponse<void>> {
+    const response = await api.delete<BaseResponse<void>>(`${deleteParametroKey()}/${encodeURIComponent(id)}`);
     return response.data;
   }
 }

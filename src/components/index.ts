@@ -15,14 +15,21 @@ export * from "./admin/plantas-homogenizacion/table-planta";
 export * from "./admin/plantas-homogenizacion/planta-filter";
 export * from "./admin/plantas-homogenizacion/planta-context";
 export * from "./ui/modal-base";
+export * from "./ui/numeric-input";
 // Parámetros de calidad
 export * from "./admin/parametros-calidad/parametro-table";
 export * from "./admin/parametros-calidad/parametro-panel";
 export * from "./admin/parametros-calidad/parametro-context";
 export * from "./admin/parametros-calidad/parametro-filter";
-export * from "./admin/configuracion-app/panel-crear-conguracion";
+// Configuración de aplicación
 export * from "./admin/configuracion-app/table-configuracion";
+export * from "./admin/configuracion-app/app-param-panel";
+export * from "./admin/configuracion-app/app-param-filter";
+export * from "./admin/configuracion-app/app-param-context";
+export * from "./admin/configuracion-app/app-param-view";
 export * from "./admin/valores-calidad/table-valores-calidad";
+export * from "./admin/valores-calidad/valores-calidad-filter";
+export * from "./admin/valores-calidad/valores-calidad-context";
 export * from "./logistica/homogenizacion/parametros-logisticos";
 export * from "./logistica/homogenizacion/otros-parametros";
 export * from "./admin/produccion/calidades/calidad-view";
@@ -35,6 +42,3 @@ export * from "./admin/produccion/tipo-produccion/tipo-produccion-context";
 
 // Nota: Evitamos exportar rutas inexistentes (por ejemplo panel-crear-parametros-new)
 // para no romper el compilado. Si se reintroduce ese archivo, agregar el export correspondiente.
-
-
-

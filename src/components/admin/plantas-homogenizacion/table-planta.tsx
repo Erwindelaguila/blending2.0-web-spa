@@ -23,8 +23,7 @@ import { PlantaPanel } from "./planta-panel";
 import { PlantasService } from "@/services/plantas.service";
 import { PlantaFiltersParams } from "@/interface/admin/planta";
 import { IPlantaResponse } from "@/interface/admin/planta";
-import { useAuth } from "@/hooks/use-auth";
-import { PagedPlantaResponse } from "@/interface/admin/planta";
+import { PlantaPagedItemsResponse } from "@/interface/admin/planta";
 import { usePlantaContext } from './planta-context';
 import { buildPaginatedSWRKey } from '@/utils/swr-keys';
 import { PAGINATION_CONFIG } from '@/config/pagination.config';
@@ -45,7 +44,6 @@ const buildPlantasKey = (page: number, size: number, filters?: PlantaFiltersPara
 export function TablePlanta() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
-  const { user } = useAuth();
   const { filters } = usePlantaContext();
 
   const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
@@ -71,18 +69,22 @@ export function TablePlanta() {
     data: dataPlantas,
     isLoading: loadingPlantas,
     error: errorPlantas,
-  } = useSWR<BaseResponse<PagedPlantaResponse>>(
+  } = useSWR<BaseResponse<PlantaPagedItemsResponse>>(
     swrKey, 
     () => PlantasService.listar<PagedPlantaResponse>(page, pageSize, serviceFilters),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 2000,
+      keepPreviousData: true,
+      errorRetryCount: 1,
+      errorRetryInterval: 1000,
     }
   );
 
   const respData = dataPlantas?.data;
-  const items: IPlantaResponse[] = respData?.data ?? [];
+  // La API ahora responde en data.items (estructura similar a calidades)
+  const items: IPlantaResponse[] = (respData as any)?.items ?? [];
   const {
     currentPage: paginationCurrentPage = page,
     totalPages: paginationTotalPages = 1,
@@ -212,7 +214,6 @@ export function TablePlanta() {
     for (let i = 1; i <= paginationTotalPages + 2; i++) {
       mutate(buildPlantasKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
-    
     if (mode === "crear") {
       const newTotal = paginationTotalItems + 1;
       const newLastPage = Math.ceil(newTotal / pageSize);
@@ -225,27 +226,26 @@ export function TablePlanta() {
 
   const actionDeleteModal = async () => {
     if (!infoPlanta) return;
-    const userId = user?.id;
-    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
-    
-    await deleteAction.execute(
-      async () => {
-        await PlantasService.eliminar(infoPlanta.id, userId);
-        return { success: true, message: "Planta eliminada correctamente" };
-      },
-      buildPlantasKey(page, pageSize, serviceFilters)
-    );
+    const deletingLastOnPage = items.length === 1 && page > 1;
 
-    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+    await deleteAction.execute(async () => {
+      await PlantasService.eliminar(infoPlanta.id);
+      return { success: true, message: "Planta eliminada correctamente" };
+    });
+
+    // Invalidar páginas adyacentes sin revalidar inmediata
+    for (let i = Math.max(1, page - 1); i <= Math.min(paginationTotalPages, page + 1); i++) {
       mutate(buildPlantasKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
-    
-    mutate(buildPlantasKey(page, pageSize, serviceFilters));
-    
-    if (items.length === 1 && page > 1) {
+
+    if (deletingLastOnPage) {
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildPlantasKey(prevPage, pageSize, serviceFilters));
+      setTimeout(() => {
+        mutate(buildPlantasKey(prevPage, pageSize, serviceFilters));
+      }, 100);
+    } else {
+      mutate(buildPlantasKey(page, pageSize, serviceFilters));
     }
   };
 
@@ -321,43 +321,21 @@ export function TablePlanta() {
         <>
           {!deleteAction.isSuccess && (
             <>
-              ¿Está seguro de eliminar la planta con código {" "}
-              <span className="font-bold">{infoPlanta?.codigo}</span>?
+              <div className="py-2">
+                ¿Seguro que desea eliminar la planta
+                <span className="font-semibold"> {infoPlanta?.codigo}</span>?
+              </div>
             </>
           )}
-
-          {deleteAction.isLoading && (
-            <AsyncActionDisplay
-              state={deleteAction.state}
-              loadingMessage="Eliminando planta..."
-              successMessage=""
-            />
-          )}
-          {deleteAction.error && (
-            <AsyncActionDisplay
-              state={deleteAction.state}
-              loadingMessage=""
-              successMessage=""
-              error={deleteAction.error}
-              onErrorDismiss={deleteAction.reset}
-            />
-          )}
-          {deleteAction.isSuccess && (
-            <AsyncActionDisplay
-              state={deleteAction.state}
-              loadingMessage=""
-              successMessage="Planta eliminada correctamente"
-              onSuccess={() => {
-                setIsClosingAfterSuccess(true);
-                setOpenModal(false);
-                setInfoPlanta(null);
-                setTimeout(() => {
-                  deleteAction.reset();
-                  setIsClosingAfterSuccess(false);
-                }, 300);
-              }}
-            />
-          )}
+          <AsyncActionDisplay
+            state={deleteAction.state}
+            loadingMessage={"Eliminando planta..."}
+            successMessage={deleteAction.response?.message ?? "Se eliminó la planta correctamente"}
+            onSuccess={() => {
+              setIsClosingAfterSuccess(true);
+              handleCloseModal();
+            }}
+          />
         </>
       </ModalBase>
     </>

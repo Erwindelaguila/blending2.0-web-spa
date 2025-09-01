@@ -1,4 +1,3 @@
-// Interfaces para la matriz de calidad-parámetros
 
 export interface IParametroMatriz {
   id: string;
@@ -13,7 +12,7 @@ export interface IValorParametro {
 export interface ICalidadMatriz {
   id: string;
   codigo: string;
-  valores: Record<string, IValorParametro>; // key = codigo del parámetro
+  valores: Record<string, IValorParametro>;
 }
 
 export interface IMatrizCalidadParametros {
@@ -21,17 +20,15 @@ export interface IMatrizCalidadParametros {
   calidades: ICalidadMatriz[];
 }
 
-// Para operaciones de upsert (crear/actualizar valor individual)
 export interface ICalidadParametroUpsertRequest {
   calidadId: string;
   parametroId: string;
   valor: number;
 }
 
-// Para operaciones de upsert múltiple (array de cambios)
 export interface ICalidadParametroUpsertBatchRequest {
   cambios: ICalidadParametroUpsertRequest[];
-  modificadoPorId?: string; // Se inyectará automáticamente
+  modificadoPorId?: string; 
 }
 
 export interface ICalidadParametroUpsertBatchResponse {

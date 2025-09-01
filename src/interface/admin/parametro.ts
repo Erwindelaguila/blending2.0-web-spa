@@ -28,4 +28,18 @@ export interface IParametroResponse extends IParametroBase {
 import { PagedResponse, BaseFiltersParams } from "@/interface";
 export type PagedParametroResponse = PagedResponse<IParametroResponse>;
 
+export interface ParametroPagedItemsResponse {
+  items: IParametroResponse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+    totalCount: number;
+    hasPrevious: boolean;
+    hasNext: boolean;
+    previousPage: number | null;
+    nextPage: number | null;
+  };
+}
+
 export interface ParametroFiltersParams extends BaseFiltersParams {}

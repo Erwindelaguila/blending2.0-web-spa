@@ -13,9 +13,8 @@ import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { BaseResponse } from "@/interface";
-import { IParametroResponse, ParametroFiltersParams, PagedParametroResponse } from "@/interface/admin/parametro";
+import { IParametroResponse, ParametroFiltersParams, ParametroPagedItemsResponse } from "@/interface/admin/parametro";
 import { ParametrosService } from "@/services/parametros.service";
-import { useAuth } from "@/hooks/use-auth";
 import { useParametroContext } from "./parametro-context";
 import { buildPaginatedSWRKey } from "@/utils/swr-keys";
 import { PAGINATION_CONFIG } from "@/config/pagination.config";
@@ -36,7 +35,6 @@ const buildParametrosKey = (page: number, size: number, filters?: ParametroFilte
 export function TableParametros() {
 	const style = useButtonsStyles();
 	const deleteAction = useAsyncAction();
-	const { user } = useAuth();
 	const { filters } = useParametroContext();
 
 	const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
@@ -57,14 +55,14 @@ export function TableParametros() {
 		setPage(PAGINATION_CONFIG.DEFAULT_PAGE);
 	}, [serviceFilters]);
 
-	const { data, isLoading, error } = useSWR<BaseResponse<PagedParametroResponse>>(
+	const { data, isLoading, error } = useSWR<BaseResponse<ParametroPagedItemsResponse>>(
 		swrKey,
 		() => ParametrosService.listar(page, pageSize, serviceFilters),
 		{ revalidateOnFocus: false, revalidateOnReconnect: false, dedupingInterval: 2000 }
 	);
 
 	const respData = data?.data;
-	const items: IParametroResponse[] = respData?.data ?? [];
+	const items: IParametroResponse[] = (respData as any)?.items ?? [];
 	const {
 		currentPage: paginationCurrentPage = page,
 		totalPages: paginationTotalPages = 1,
@@ -143,28 +141,23 @@ export function TableParametros() {
 
 	const actionDeleteModal = async () => {
 		if (!infoParametro) return;
-		const userId = user?.id;
-		if (!userId) throw new Error("No se encontró el id del usuario autenticado");
-		
-		await deleteAction.execute(
-			async () => {
-				await ParametrosService.eliminar(infoParametro.id, userId);
-				return { success: true, message: "Parámetro eliminado correctamente" };
-			},
-			buildParametrosKey(page, pageSize, serviceFilters)
-		);
+		const deletingLastOnPage = items.length === 1 && page > 1;
 
-		for (let i = 1; i <= paginationTotalPages + 1; i++) {
-			mutate(buildParametrosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+		await deleteAction.execute(async () => {
+			await ParametrosService.eliminar(infoParametro.id);
+			return { success: true, message: "Parámetro eliminado correctamente" };
+		});
+
+		mutate(buildParametrosKey(page, pageSize, serviceFilters), undefined, { revalidate: false });
+
+		if (!deletingLastOnPage) {
+			mutate(buildParametrosKey(page, pageSize, serviceFilters));
+			return;
 		}
-		
-		mutate(buildParametrosKey(page, pageSize, serviceFilters));
-		
-		if (items.length === 1 && page > 1) {
-			const prevPage = page - 1;
-			setPage(prevPage);
-			mutate(buildParametrosKey(prevPage, pageSize, serviceFilters));
-		}
+
+		const prevPage = page - 1;
+		setPage(prevPage);
+		mutate(buildParametrosKey(prevPage, pageSize, serviceFilters));
 	};
 
 	const renderCell = (item: any, columnKey: string) => {
@@ -233,27 +226,29 @@ export function TableParametros() {
 	return (
 			<Card style={{ width: "100%", height: "100%" }}>
 				<div className="w-full h-full flex flex-col">
-					<div className="w-full h-2/25 flex justify-between items-start">
-						<Title title="Parámetros de Calidad" />
-						<Button
-							size="large"
-							icon={<Add24Regular />}
-							className={`w-[13rem] ${style.buttonVerdeBase}`}
-							onClick={handleOpenCrear}
-						>
-							Nuevo
-						</Button>
-					</div>
+					<div className="w-full h-9/10">
+						<div className="w-full h-2/25 flex justify-between items-start">
+							<Title title="Parámetros de Calidad" />
+							<Button
+								size="large"
+								icon={<Add24Regular />}
+								className={`w-[13rem] ${style.buttonVerdeBase}`}
+								onClick={handleOpenCrear}
+							>
+								Nuevo
+							</Button>
+						</div>
 
-					<div className="w-full h-23/25">
-						<TableBase
-							columns={columns}
-							data={items}
-							renderCell={renderCell}
-							isLoading={isLoading}
-							error={error}
-							height="100%"
-						/>
+						<div className="w-full h-23/25">
+							<TableBase
+								columns={columns}
+								data={items}
+								renderCell={renderCell}
+								isLoading={isLoading}
+								error={error}
+								height="100%"
+							/>
+						</div>
 					</div>
 
 					<div className="w-full h-1/10">

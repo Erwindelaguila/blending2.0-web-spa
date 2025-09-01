@@ -15,8 +15,7 @@ import { BaseResponse } from "@/interface";
 import { LineaProduccionPanel } from "./linea-produccion-panel";
 import { LineaProduccionService } from "@/services/linea-produccion.service";
 import { LineaProduccionFiltersParams } from "@/interface/admin/linea-produccion";
-import { ILineaProduccionResponse } from "@/interface/admin/linea-produccion";
-import { useAuth } from "@/hooks/use-auth";
+import { ILineaProduccionResponse, PagedLineaProduccionResponse } from "@/interface/admin/linea-produccion";
 import { useLineaProduccionContext } from './linea-produccion-context';
 import { buildPaginatedSWRKey } from '@/utils/swr-keys';
 import { PAGINATION_CONFIG } from '@/config/pagination.config';
@@ -34,7 +33,6 @@ const buildLineasKey = (page: number, size: number, filters?: LineaProduccionFil
 export function LineaProduccionTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
-  const { user } = useAuth();
   const { filters } = useLineaProduccionContext();
 
   const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
@@ -57,7 +55,7 @@ export function LineaProduccionTable() {
     data: dataLineas,
     isLoading: loadingLineas,
     error: errorLineas,
-  } = useSWR<BaseResponse<any>>(
+  } = useSWR<BaseResponse<PagedLineaProduccionResponse>>(
     swrKey,
     () => LineaProduccionService.listar(page, pageSize, serviceFilters),
     {
@@ -67,8 +65,8 @@ export function LineaProduccionTable() {
     }
   );
 
-  const respData = dataLineas?.data;
-  const items: ILineaProduccionResponse[] = respData?.data ?? [];
+  const payload = dataLineas?.data; 
+  const items: ILineaProduccionResponse[] = payload?.items ?? [];
   const {
     currentPage: paginationCurrentPage = page,
     totalPages: paginationTotalPages = 1,
@@ -77,7 +75,7 @@ export function LineaProduccionTable() {
     hasNext,
     previousPage,
     nextPage,
-  } = respData?.pagination ?? {};
+  } = payload?.pagination ?? {};
 
   const handlePageChange = (newPage: number) => {
     if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
@@ -121,36 +119,44 @@ export function LineaProduccionTable() {
   };
 
   const handlePanelSuccess = () => {
-    const isLastPage = paginationCurrentPage === paginationTotalPages;
-    const isFullLastPage = items.length >= pageSize;
-    mutate(buildLineasKey(paginationCurrentPage, pageSize, serviceFilters));
-    if (isLastPage && isFullLastPage) {
-      const nextPage = paginationCurrentPage + 1;
-      setPage(nextPage);
-      mutate(buildLineasKey(nextPage, pageSize, serviceFilters));
+    for (let i = 1; i <= paginationTotalPages + 2; i++) {
+      mutate(buildLineasKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+
+    if (mode === "crear") {
+      const newTotal = paginationTotalItems + 1;
+      const newLastPage = Math.ceil(newTotal / pageSize);
+      setPage(newLastPage);
+      setTimeout(() => {
+        mutate(buildLineasKey(newLastPage, pageSize, serviceFilters));
+      }, 100);
     } else {
-      if (paginationCurrentPage !== 1) mutate(buildLineasKey(1, pageSize, serviceFilters));
+      mutate(buildLineasKey(page, pageSize, serviceFilters));
     }
   };
 
   const acctionDeleteModal = async () => {
     if (!infoLinea) return;
-    const userId = user?.id;
-    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
-    const willBeLastOnPage = items.length === 1 && page > 1;
+    const isLastItemOnPage = items.length === 1;
+    const shouldGoToPreviousPage = isLastItemOnPage && page > 1;
 
     await deleteAction.execute(async () => {
-      await LineaProduccionService.eliminar(infoLinea.id, userId);
+      await LineaProduccionService.eliminar(infoLinea.id);
       return { success: true, message: "Línea de producción eliminada correctamente" };
-    }, buildLineasKey(page, pageSize, serviceFilters));
+    });
 
-    mutate(buildLineasKey(page, pageSize, serviceFilters));
-    if (willBeLastOnPage) {
+    for (let i = Math.max(1, page - 1); i <= Math.min(paginationTotalPages, page + 1); i++) {
+      mutate(buildLineasKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
+    }
+
+    if (shouldGoToPreviousPage) {
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildLineasKey(prevPage, pageSize, serviceFilters));
+      setTimeout(() => {
+        mutate(buildLineasKey(prevPage, pageSize, serviceFilters));
+      }, 100);
     } else {
-      mutate(buildLineasKey(paginationTotalPages, pageSize, serviceFilters));
+      mutate(buildLineasKey(page, pageSize, serviceFilters));
     }
   };
 
@@ -163,11 +169,24 @@ export function LineaProduccionTable() {
               <Title title="Líneas de Producción" />
               <Button size="large" icon={<Add24Regular></Add24Regular>} className={`w-[13rem] ${style.buttonVerdeBase}`} onClick={() => handleOpenCrear()}>Nuevo</Button>
             </div>
-            <div className="w-full h-23/25">
+            <div className="w-full h-23/25 pt-1">
               <TableBase columns={columns} data={items} renderCell={renderCell} isLoading={loadingLineas} error={errorLineas} height="100%" />
             </div>
           </div>
-          <div className="w-full h-1/10">{items.length > 0 && (<Pagination currentPage={paginationCurrentPage} totalPages={paginationTotalPages} totalItems={paginationTotalItems} onPageChange={handlePageChange} />)}</div>
+          <div className="w-full h-1/10">
+            {items.length > 0 && (
+              <Pagination 
+                currentPage={paginationCurrentPage} 
+                totalPages={paginationTotalPages} 
+                totalItems={paginationTotalItems} 
+                onPageChange={handlePageChange}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                previousPage={previousPage}
+                nextPage={nextPage}
+              />
+            )}
+          </div>
         </div>
       </Card>
 

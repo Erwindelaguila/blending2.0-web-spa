@@ -1,8 +1,7 @@
 import { BaseResponse } from "@/interface";
 import { ITipoProduccionResponse, ITipoProduccionRequest, ITipoProduccionUpdate, PagedTipoProduccionResponse } from "@/interface/admin/tipo-produccion";
 import { api } from "@/lib/api";
-import { getAllTipoProduccionKey } from "@/lib/constants/key-fetch";
-import { withCreateAudit, withUpdateAudit } from "./audit.util";
+import { getAllTipoProduccionKey, getByIdTipoProduccionKey, deleteTipoProduccionKey } from "@/lib/constants/key-fetch";
 
 export class TipoProduccionService {
   static async listar(
@@ -26,25 +25,24 @@ export class TipoProduccionService {
   }
 
   static async crear(data: ITipoProduccionRequest) {
-  const payload: any = withCreateAudit(data as any);
-  // Evitar enviar campos de auditoría en camelCase que puedan venir nulos por accidente
-  delete payload.creadoPorId;
-  delete payload.modificadoPorId;
-  const response = await api.post<BaseResponse<ITipoProduccionResponse>>(getAllTipoProduccionKey(), payload);
+    const response = await api.post<BaseResponse<ITipoProduccionResponse>>(getAllTipoProduccionKey(), data);
     return response.data;
   }
 
   static async actualizar(data: ITipoProduccionUpdate) {
-  const payload: any = withUpdateAudit(data as any);
-  // Evitar enviar campos de auditoría en camelCase que puedan estar null y rompan el binder del backend
-  delete payload.creadoPorId;
-  delete payload.modificadoPorId;
-  const response = await api.put<BaseResponse<ITipoProduccionResponse>>(getAllTipoProduccionKey(), payload);
+    const response = await api.put<BaseResponse<ITipoProduccionResponse>>(getByIdTipoProduccionKey(data.id), data);
     return response.data;
   }
 
-  static async eliminar(id: string, eliminadoPorId: string) {
-    const response = await api.delete<BaseResponse<void>>(`${getAllTipoProduccionKey()}?id=${id}&eliminadoPorId=${eliminadoPorId}`);
+  // Obtener solo activos para combos (sin paginación)
+  static async obtenerActivos(): Promise<BaseResponse<{ id: string; codigo: string }[]>> {
+    const url = `${getAllTipoProduccionKey()}?activo=true`;
+    const response = await api.get<BaseResponse<{ id: string; codigo: string }[]>>(url);
+    return response.data;
+  }
+
+  static async eliminar(id: string) {
+    const response = await api.delete<BaseResponse<void>>(`${deleteTipoProduccionKey()}/${encodeURIComponent(id)}`);
     return response.data;
   }
 }

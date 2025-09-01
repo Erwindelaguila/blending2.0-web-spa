@@ -43,6 +43,18 @@ export class AuthService {
           
           if (token) {
             sessionStorage.setItem('azure-ad-token', token);
+            
+            // Log para debugging
+            try {
+              const payload = JSON.parse(atob(token.split(".")[1]));
+              console.log('✅ Token de API obtenido en callback:', {
+                aud: payload.aud,
+                scp: payload.scp,
+                expires: new Date(payload.exp * 1000).toLocaleString()
+              });
+            } catch (e) {
+              console.log('✅ Token de API obtenido en callback');
+            }
           }
           
           return { user, token };
@@ -62,9 +74,13 @@ export class AuthService {
   private static isApiToken(token: string): boolean {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      const expectedAud = process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID 
-        ? `api://${process.env.NEXT_PUBLIC_AZURE_BACKEND_CLIENT_ID}`
-        : `api://${process.env.NEXT_PUBLIC_AZURE_CLIENT_ID}`;
+      // Extraer el client ID del scope de la API: api://fc810a1e-f6b2-40b7-96a1-32abada72fd8/access_as_user
+      const apiScope = process.env.NEXT_PUBLIC_AZURE_API_SCOPE;
+      if (!apiScope) return false;
+      
+      const expectedClientId = apiScope.split('/')[2]; // fc810a1e-f6b2-40b7-96a1-32abada72fd8
+      const expectedAud = `api://${expectedClientId}`;
+      
       return payload.aud === expectedAud && payload.scp?.includes('access_as_user');
     } catch (_) {
       return false;
@@ -97,6 +113,19 @@ export class AuthService {
         
         if (token) {
           sessionStorage.setItem('azure-ad-token', token);
+          
+          // Log para debugging - mostrar info del token
+          try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            console.log('🔐 Token de API obtenido:', {
+              aud: payload.aud,
+              scp: payload.scp,
+              expires: new Date(payload.exp * 1000).toLocaleString(),
+              userId: payload.oid || payload.sub
+            });
+          } catch (e) {
+            console.log('✅ Token de API obtenido (no se pudo decodificar para debug)');
+          }
         }
         
         return { user, token };
@@ -126,6 +155,7 @@ export class AuthService {
     if (!this.instance) throw new Error('MSAL not initialized');
     
     try {
+      console.log('🚀 Iniciando login con scopes:', loginRequest.scopes);
       await this.instance.loginRedirect(loginRequest);
     } catch (error) {
       console.error('Error during login:', error);
@@ -136,9 +166,8 @@ export class AuthService {
   static async logout(): Promise<void> {
     if (!this.instance) throw new Error('MSAL not initialized');
 
-    // Limpiar tokens del almacenamiento
+    // Limpiar tokens del almacenamiento - solo sessionStorage
     sessionStorage.removeItem('azure-ad-token');
-    localStorage.removeItem('azure-ad-token');
     
     await this.instance.logoutRedirect({
       postLogoutRedirectUri: msalConfig.auth.postLogoutRedirectUri,
@@ -152,14 +181,13 @@ export class AuthService {
   static async clearSession(): Promise<void> {
     if (!this.instance) throw new Error('MSAL not initialized');
 
-    // Limpiar todos los tokens almacenados
+    // Limpiar todos los tokens almacenados - solo sessionStorage
     sessionStorage.clear();
-    localStorage.removeItem('azure-ad-token');
     
     // Limpiar cache de MSAL
     await this.instance.clearCache();
     
-    console.log('Sesión limpiada. Inicia sesión nuevamente para obtener nuevos scopes.');
+    console.log('🧹 Sesión limpiada. Inicia sesión nuevamente para obtener nuevos scopes.');
   }
 
   static async refreshToken(): Promise<string | null> {

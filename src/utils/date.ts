@@ -73,6 +73,7 @@ export const datePickerStringsEs = {
     "Nov",
     "Dic",
   ] as string[],
+  
   days: [
     "Domingo",
     "Lunes",

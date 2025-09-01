@@ -23,7 +23,6 @@ import { AgregadoPanel } from "./agregado-panel";
 import { AgregadoService } from "@/services/agregado.service";
 import { AgregadoFiltersParams } from "@/interface/admin/agregado";
 import { IAgregado } from "@/interface/admin/agregado";
-import { useAuth } from "@/hooks/use-auth";
 import { PagedAgregadoResponse } from "@/interface/admin/agregado";
 import { useAgregadoContext } from './agregado-context';
 import { buildPaginatedSWRKey } from '@/utils/swr-keys';
@@ -44,7 +43,6 @@ const buildAgregadosKey = (page: number, size: number, filters?: AgregadoFilters
 export function AgregadoTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
-  const { user } = useAuth();
   const { filters } = useAgregadoContext();
 
   const [page, setPage] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE);
@@ -80,8 +78,15 @@ export function AgregadoTable() {
     }
   );
 
-  const respData = dataAgregados?.data;
-  const items: IAgregado[] = respData?.data ?? [];
+  // El servicio retorna BaseResponse<PagedAgregadoResponse>
+  // Intentar varias formas por si hay discrepancia temporal de contrato
+  let payload: any = dataAgregados?.data || (dataAgregados as any)?.Data;
+  // Si por error el servicio estuviera devolviendo ya el inner payload directamente
+  if (!payload && dataAgregados && Array.isArray((dataAgregados as any).items)) {
+    payload = dataAgregados as any;
+  }
+  // Fallback: backend de Agregado aún envía inner { data: [...] } en vez de { items: [...] }
+  const items: IAgregado[] = (payload?.items || payload?.data || []) as IAgregado[];
   const {
     currentPage: paginationCurrentPage = page,
     totalPages: paginationTotalPages = 1,
@@ -90,7 +95,8 @@ export function AgregadoTable() {
     hasNext,
     previousPage,
     nextPage,
-  } = respData?.pagination ?? {};
+  } = payload?.pagination ?? {};
+  
   const handlePageChange = (newPage: number) => {
     if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
       setPage(newPage);
@@ -207,43 +213,52 @@ export function AgregadoTable() {
   };
 
   const handlePanelSuccess = () => {
+    // Invalidar cache de todas las páginas sin revalidar inmediatamente
     for (let i = 1; i <= paginationTotalPages + 2; i++) {
       mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
     
     if (mode === "crear") {
+      // Al crear: calcular y ir a la última página donde estará el nuevo registro
       const newTotal = paginationTotalItems + 1;
       const newLastPage = Math.ceil(newTotal / pageSize);
       setPage(newLastPage);
-      mutate(buildAgregadosKey(newLastPage, pageSize, serviceFilters));
+      // Revalidar la nueva página
+      setTimeout(() => {
+        mutate(buildAgregadosKey(newLastPage, pageSize, serviceFilters));
+      }, 100);
     } else {
+      // Al editar: revalidar página actual
       mutate(buildAgregadosKey(page, pageSize, serviceFilters));
     }
   };
 
   const actionDeleteModal = async () => {
     if (!infoAgregado) return;
-    const userId = user?.id;
-    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
     
-    await deleteAction.execute(
-      async () => {
-        await AgregadoService.eliminar(infoAgregado.id, userId);
-        return { success: true, message: "Agregado eliminado correctamente" };
-      },
-      buildAgregadosKey(page, pageSize, serviceFilters)
-    );
+    const isLastItemOnPage = items.length === 1;
+    const shouldGoToPreviousPage = isLastItemOnPage && page > 1;
 
-    for (let i = 1; i <= paginationTotalPages + 1; i++) {
+    await deleteAction.execute(async () => {
+      await AgregadoService.eliminar(infoAgregado.id);
+      return { success: true, message: "Agregado eliminado correctamente" };
+    });
+
+    // Invalidar cache de múltiples páginas
+    for (let i = Math.max(1, page - 1); i <= Math.min(paginationTotalPages, page + 1); i++) {
       mutate(buildAgregadosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
-    
-    mutate(buildAgregadosKey(page, pageSize, serviceFilters));
-    
-    if (items.length === 1 && page > 1) {
+
+    if (shouldGoToPreviousPage) {
+      // Si elimino el último elemento de la página, ir a página anterior
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildAgregadosKey(prevPage, pageSize, serviceFilters));
+      setTimeout(() => {
+        mutate(buildAgregadosKey(prevPage, pageSize, serviceFilters));
+      }, 100);
+    } else {
+      // Si no es el último elemento, revalidar página actual
+      mutate(buildAgregadosKey(page, pageSize, serviceFilters));
     }
   };
   return (
@@ -263,7 +278,7 @@ export function AgregadoTable() {
               </Button>
             </div>
 
-            <div className="w-full h-23/25">
+              <div className="w-full h-23/25 pt-1">
               <TableBase
                 columns={columns}
                 data={items}

@@ -1,22 +1,20 @@
 "use client";
 
-import { Filter, TableValoresCalidad } from "@/components";
+import { TableValoresCalidad } from "@/components";
+import { ValoresCalidadFilter } from "@/components/admin/valores-calidad/valores-calidad-filter";
+import { ValoresCalidadProvider } from "@/components/admin/valores-calidad/valores-calidad-context";
 
 export default function ValoresCalidadPage() {
   return (
-    <>
+    <ValoresCalidadProvider>
       <div className="w-full flex flex-col h-full ">
         <div className="w-full h-3/20 pb-2">
-          <Filter
-            title_filter="Filtro"
-            title_input="Codigo de calidad"
-            moreCamps={false}
-          ></Filter>
+          <ValoresCalidadFilter />
         </div>
         <div className="w-full h-17/20 pb-2">
-          <TableValoresCalidad></TableValoresCalidad>
+          <TableValoresCalidad />
         </div>
       </div>
-    </>
+    </ValoresCalidadProvider>
   );
 }

@@ -11,8 +11,8 @@
     "export": "next build && next export"
   },
   "dependencies": {
-    "@azure/msal-browser": "^4.18.0",
-    "@azure/msal-react": "^3.0.15",
+    "@azure/msal-browser": "^4.21.1",
+    "@azure/msal-react": "^3.0.19",
     "@fluentui/react-components": "^9.64.0",
     "@fluentui/react-datepicker-compat": "^0.5.8",
     "@fluentui/react-icons": "^2.0.301",

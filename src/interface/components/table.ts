@@ -21,7 +21,7 @@ export type DynamicRow = {
 
 export interface ITableDynamicProps {
   data: DynamicRow[];
-  firstColKey?: string; // 🔹 Aquí defines cómo se llama la primera columna (antes era fijo "calidad")
+  firstColKey?: string;
   titleFirstCol?: string;
   editable?: boolean;
   onDataChange?: (data: DynamicRow[]) => void;
@@ -33,6 +33,16 @@ export interface ITableDynamicProps {
   isStickyFirstCol?: boolean;
   isChangeBold?: boolean;
   dataOriginal?: DynamicRow[];
+  numericValidation?: {
+    enabled: boolean;
+    mode?: 'integer' | 'decimal' | 'auto';
+    integerMaxDigits?: number;
+    decimalIntegerMaxDigits?: number;
+    decimalDigits?: number;
+    padOnBlur?: boolean;
+    allowLeadingDot?: boolean;
+    columns?: string[]; 
+  };
 }
 
 export interface RowData {

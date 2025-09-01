@@ -8,6 +8,7 @@ export * from "./quality/quality-matrix.interfaces";
 export * from "./admin/calidad";
 export * from "./admin/parametro";
 export * from "./admin/planta";
+export * from "./admin/app-param";
 export * from "./api/base-response";
 export * from "./auth/user-menu";
 export * from "./quality/blob";

@@ -100,7 +100,7 @@ export function CalidadFilter() {
 
               <div className="w-1/2 flex justify-end items-center pt-3 h-full gap-2">
                 <Button size="large" icon={<DismissCircle24Regular />} appearance="secondary" className={`${stylebtn.buttonNaranjaBase}`} onClick={handleClear}>Limpiar</Button>
-                <Button size="large" icon={<Search24Regular />} className={`${stylebtn.buttonAzulOscuroBase} `} onClick={handleFilter}>Filtrar</Button>
+                <Button size="large" icon={<Search24Regular />} className={`w-[12rem] ${stylebtn.buttonAzulOscuroBase}`} onClick={handleFilter}>Filtrar</Button>
               </div>
             </div>
           </div>

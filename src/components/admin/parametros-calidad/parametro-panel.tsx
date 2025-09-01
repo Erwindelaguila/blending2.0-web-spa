@@ -191,7 +191,6 @@ export function ParametroPanel({ open, mode, id, close, onSuccess }: IDrawer) {
             </div>
           </div>
 
-          {/* Información de auditoría */}
           {dataParametro?.data && (
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center gap-2 mb-4">
@@ -222,7 +221,6 @@ export function ParametroPanel({ open, mode, id, close, onSuccess }: IDrawer) {
       );
     }
 
-    // Crear y editar
     return (
       <div className="py-2 flex flex-col gap-3">
         <div className="flex flex-col justify-start w-full gap-0.5">

@@ -33,7 +33,7 @@ export function MatrizCalidadParametros() {
     
     const valor = parseFloat(editValue);
     if (isNaN(valor)) {
-      // Podríamos mostrar un error aquí
+
       return;
     }
 
@@ -45,7 +45,6 @@ export function MatrizCalidadParametros() {
 
     await asyncAction.execute(async () => {
       const result = await CalidadParametrosService.upsertValor(payload);
-      // Refrescar la matriz después de guardar
       mutate("matriz-calidad-parametros");
       setEditingCell(null);
       setEditValue("");

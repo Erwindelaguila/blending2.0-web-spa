@@ -12,14 +12,12 @@ import { Pagination } from "@/components/ui/pagination-base";
 import { AsyncActionDisplay } from "@/components/ui/async-action-display";
 import useSWR, { mutate } from "swr";
 import { useAsyncAction } from "@/hooks/use-async-action";
-import { useAuth } from "@/hooks/use-auth";
 import { ProductoPanel } from "./producto-panel";
 import { ProductoService } from "@/services/producto.service";
-import { IProductoResponse, PagedProductoBackendResponse } from "@/interface/admin/producto";
+import { IProductoResponse, PagedProductoResponse } from "@/interface/admin/producto";
 import { useProductoContext } from "./producto-context";
 import { buildPaginatedSWRKey } from "@/utils/swr-keys";
-import { CalidadesService } from "@/services/calidades.service";
-import { TipoProduccionService } from "@/services/tipo-produccion.service";
+import { BaseResponse } from "@/interface";
 
 const columns = [
   { uid: "Codigo", name: "Codigo", width: 5 },
@@ -37,7 +35,6 @@ const buildProductosKey = (page: number, size: number, filters?: any) =>
 export function ProductoTable() {
   const style = useButtonsStyles();
   const deleteAction = useAsyncAction();
-  const { user } = useAuth();
   const { filters } = useProductoContext();
 
   const [page, setPage] = useState(1);
@@ -56,51 +53,25 @@ export function ProductoTable() {
 
   useEffect(() => { setPage(1); }, [serviceFilters]);
 
-  const { data, isLoading, error } = useSWR<PagedProductoBackendResponse>(
+  const { data, isLoading, error } = useSWR<BaseResponse<PagedProductoResponse>>(
     swrKey,
-    () => ProductoService.listarBackendPascal(page, pageSize, serviceFilters),
+    () => ProductoService.listar(page, pageSize, serviceFilters),
     { revalidateOnFocus: false, revalidateOnReconnect: false, dedupingInterval: 2000 }
   );
 
-  // Cargar combos para mapear IDs a códigos en columnas
-  const { data: calidadesData } = useSWR("combo-calidades", () => CalidadesService.listar(1, 500, { estado: 1 }));
-  const { data: tiposData } = useSWR("combo-tipos", () => TipoProduccionService.listar(1, 500, { estado: 1 }));
-
-  const calidadMap = useMemo(() => {
-    const resp = calidadesData as any;
-    const raw = resp?.data?.data || resp?.data?.items || resp?.Data?.data || resp?.Data?.items || resp?.Data || resp?.data || [];
-    const arr = (raw as any[]).filter((c: any) => (c.activo ?? c.Activo ?? true));
-    const map = new Map<string, string>();
-    arr.forEach((c: any) => {
-      const id = (c.id ?? c.Id)?.toString();
-      const codigo = c.codigo || c.Codigo || "";
-      if (id) map.set(id, codigo);
-    });
-    return map;
-  }, [calidadesData]);
-
-  const tipoMap = useMemo(() => {
-    const resp = tiposData as any;
-    const raw = resp?.data?.items || resp?.data?.data || resp?.Data?.items || resp?.Data?.data || resp?.Data || resp?.data || [];
-    const arr = (raw as any[]).filter((t: any) => (t.activo ?? t.Activo ?? true));
-    const map = new Map<string, string>();
-    arr.forEach((t: any) => {
-      const id = (t.id ?? t.Id)?.toString();
-      const codigo = t.codigo || t.Codigo || "";
-      if (id) map.set(id, codigo);
-    });
-    return map;
-  }, [tiposData]);
-
-  const respData = data;
-  const items = respData?.Data ?? [];
-  const paginationCurrentPage = respData?.Pagination?.CurrentPage || page;
-  const paginationTotalPages = respData?.Pagination?.TotalPages || 1;
-  const paginationTotalItems = respData?.Pagination?.TotalCount || 0;
-  const hasPrevious = respData?.Pagination?.HasPrevious;
-  const hasNext = respData?.Pagination?.HasNext;
-  const previousPage = respData?.Pagination?.PreviousPage;
-  const nextPage = respData?.Pagination?.NextPage;
+  
+  const respData = data?.data; 
+  const items: IProductoResponse[] = respData?.items ?? [];
+  
+  const {
+    currentPage: paginationCurrentPage = page,
+    totalPages: paginationTotalPages = 1,
+    totalCount: paginationTotalItems = 0,
+    hasPrevious,
+    hasNext,
+    previousPage,
+    nextPage,
+  } = respData?.pagination ?? {};
 
   const handlePageChange = (newPage: number) => {
     if (newPage !== page && newPage >= 1 && newPage <= paginationTotalPages) {
@@ -122,35 +93,48 @@ export function ProductoTable() {
   const [infoProducto, setInfoProducto] = useState<{ id: string; codigo: string } | null>(null);
 
   const renderCell = (item: any, columnKey: string) => {
+    // Normalizar item soportando estructura nueva con objetos anidados
+    const normalizedItem = {
+      id: item.id ?? item.Id,
+      codigo: item.codigo ?? item.Codigo,
+      nombre: item.nombre ?? item.Nombre,
+      descripcion: item.descripcion ?? item.Descripcion,
+      activo: item.activo ?? item.Activo,
+      calidadId: item.calidadId ?? item.CalidadId ?? item.calidad?.id,
+      calidadCodigo: item.calidadCodigo ?? item.calidad?.codigo,
+      tipoProduccionId: item.tipoProduccionId ?? item.TipoProduccionId ?? item.tipoProduccion?.id,
+      tipoProduccionCodigo: item.tipoProduccionCodigo ?? item.tipoProduccion?.codigo,
+    };
+
     switch (columnKey) {
-      case "calidad": {
-        const id = item.CalidadId?.toString?.();
-        const label = (id && (calidadMap.get(id) || id)) || "";
-        return label;
-      }
-      case "tipo_produccion": {
-        const id = item.TipoProduccionId?.toString?.();
-        const label = (id && (tipoMap.get(id) || id)) || "";
-        return label;
-      }
+      case "Codigo":
+        return normalizedItem.codigo;
+      case "Nombre":
+        return normalizedItem.nombre;
+      case "Descripcion":
+        return normalizedItem.descripcion ?? "Sin descripción";
+      case "calidad":
+        return normalizedItem.calidadCodigo || normalizedItem.calidadId || "";
+      case "tipo_produccion":
+        return normalizedItem.tipoProduccionCodigo || normalizedItem.tipoProduccionId || "";
       case "activo":
         const statusColorMap: Record<string, string> = { Activo: OrgColors.serotAzul, Inactivo: OrgColors.rojo };
         return (
-          <Badge appearance="filled" style={{ backgroundColor: statusColorMap[item.Activo ? "Activo" : "Inactivo"] || "#666", color: "#fff", width: "100%" }} size="large">
-            {item.Activo ? "ACTIVO" : "INACTIVO"}
+          <Badge appearance="filled" style={{ backgroundColor: statusColorMap[normalizedItem.activo ? "Activo" : "Inactivo"] || "#666", color: "#fff", width: "100%" }} size="large">
+            {normalizedItem.activo ? "ACTIVO" : "INACTIVO"}
           </Badge>
         );
       case "action":
         return (
           <div className="flex gap-1 justify-center w-full py-0.5">
             <Tooltip content="Info Producto" relationship="label">
-              <Button size="large" appearance="subtle" onClick={() => handleOpenDetalle(item.Id)} icon={<Info24Filled style={{ color: OrgColors.serotGris }} />} />
+              <Button size="large" appearance="subtle" onClick={() => handleOpenDetalle(normalizedItem.id)} icon={<Info24Filled style={{ color: OrgColors.serotGris }} />} />
             </Tooltip>
             <Tooltip content="Editar Producto" relationship="label">
-              <Button size="large" appearance="subtle" onClick={() => handleOpenEditar(item.Id)} icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />} />
+              <Button size="large" appearance="subtle" onClick={() => handleOpenEditar(normalizedItem.id)} icon={<Edit24Filled style={{ color: OrgColors.azulOscuro }} />} />
             </Tooltip>
             <Tooltip content="Eliminar Producto" relationship="label">
-              <Button size="large" appearance="subtle" onClick={() => { setInfoProducto({ id: item.Id, codigo: item.Codigo }); setOpenModal(true); }} icon={<Delete24Filled style={{ color: OrgColors.rojo }} />} />
+              <Button size="large" appearance="subtle" onClick={() => { setInfoProducto({ id: normalizedItem.id, codigo: normalizedItem.codigo }); setOpenModal(true); }} icon={<Delete24Filled style={{ color: OrgColors.rojo }} />} />
             </Tooltip>
           </div>
         );
@@ -160,11 +144,13 @@ export function ProductoTable() {
   };
 
   const handlePanelSuccess = () => {
+    // Invalidar silenciosamente cache de todas las páginas conocidas + potencial nueva
     for (let i = 1; i <= paginationTotalPages + 2; i++) {
       mutate(buildProductosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
+
     if (mode === "crear") {
-      const newTotal = (paginationTotalItems || 0) + 1;
+      const newTotal = paginationTotalItems + 1;
       const newLastPage = Math.ceil(newTotal / pageSize);
       setPage(newLastPage);
       mutate(buildProductosKey(newLastPage, pageSize, serviceFilters));
@@ -175,23 +161,30 @@ export function ProductoTable() {
 
   const acctionDeleteModal = async () => {
     if (!infoProducto) return;
-    const userId = user?.id;
-    if (!userId) throw new Error("No se encontró el id del usuario autenticado");
-    await deleteAction.execute(
-      async () => {
-        await ProductoService.eliminar(infoProducto.id, userId);
-        return { success: true, message: "Producto eliminado correctamente" } as any;
-      },
-      buildProductosKey(page, pageSize)
-    );
-    for (let i = 1; i <= (paginationTotalPages || 1) + 1; i++) {
+    
+    const isLastItemOnPage = items.length === 1;
+    const shouldGoToPreviousPage = isLastItemOnPage && page > 1;
+
+    await deleteAction.execute(async () => {
+      await ProductoService.eliminar(infoProducto.id);
+      return { success: true, message: "Producto eliminado correctamente" };
+    });
+
+    // Invalidar cache de múltiples páginas
+    for (let i = Math.max(1, page - 1); i <= Math.min(paginationTotalPages, page + 1); i++) {
       mutate(buildProductosKey(i, pageSize, serviceFilters), undefined, { revalidate: false });
     }
-    mutate(buildProductosKey(page, pageSize, serviceFilters));
-    if (items.length === 1 && page > 1) {
+
+    if (shouldGoToPreviousPage) {
+      // Si elimino el último elemento de la página, ir a página anterior
       const prevPage = page - 1;
       setPage(prevPage);
-      mutate(buildProductosKey(prevPage, pageSize, serviceFilters));
+      setTimeout(() => {
+        mutate(buildProductosKey(prevPage, pageSize, serviceFilters));
+      }, 100);
+    } else {
+      // Si no es el último elemento, revalidar página actual
+      mutate(buildProductosKey(page, pageSize, serviceFilters));
     }
   };
 
@@ -207,7 +200,7 @@ export function ProductoTable() {
               </Button>
             </div>
 
-            <div className="w-full h-23/25">
+            <div className="w-full h-23/25 pt-1">
               <TableBase columns={columns} data={items} renderCell={renderCell} isLoading={isLoading} error={error} height="100%" />
             </div>
           </div>

@@ -83,40 +83,29 @@ export function TipoProduccionTable() {
     () => AgregadoService.listar(1, 500)
   );
   const lineasMap = useMemo(() => {
-    const list = (lineasLookup?.data?.data || []) as any[];
-    // Incluir TODAS las líneas (activas e inactivas) para el mapeo
+    const list = ((lineasLookup as any)?.data?.items || (lineasLookup as any)?.data?.data || []) as any[];
     return Object.fromEntries(list.map((l: any) => [l.id, l.codigo]));
   }, [lineasLookup]);
   const agregadosMap = useMemo(() => {
-    const list = (agregadosLookup?.data?.data || []) as any[];
-    // Incluir TODOS los agregados (activos e inactivos) para el mapeo
+    const list = ((agregadosLookup as any)?.data?.items || (agregadosLookup as any)?.data?.data || []) as any[];
     return Object.fromEntries(list.map((a: any) => [a.id, a.codigo]));
   }, [agregadosLookup]);
 
-  // Tolerar respuestas camelCase (estándar) y PascalCase (legacy)
-  const respCamel: any = dataTipos?.data;
-  const respPascal: any = (dataTipos as any)?.Data ? (dataTipos as any) : undefined;
-  const itemsRaw: any[] = respCamel?.data ?? respPascal?.Data ?? [];
-  const items: any[] = itemsRaw.map((it: any) => ({
-    ...it,
-    id: it.id ?? it.Id,
-    codigo: it.codigo ?? it.Codigo,
-    nombre: it.nombre ?? it.Nombre,
-    descripcion: it.descripcion ?? it.Descripcion ?? "",
-    activo: typeof it.activo === "boolean" ? it.activo : (it.Activo as boolean),
-    linea_produccion_id:
-      it.linea_produccion_id || it.LineaProduccionId || it.lineaProduccionId,
-    agregado_id: it.agregado_id || it.AgregadoId || it.agregadoId,
-  }));
-  const pagCamel = respCamel?.pagination;
-  const pagPascal = respPascal?.Pagination;
-  const paginationCurrentPage = pagCamel?.currentPage ?? pagPascal?.CurrentPage ?? page;
-  const paginationTotalPages = pagCamel?.totalPages ?? pagPascal?.TotalPages ?? 1;
-  const paginationTotalItems = pagCamel?.totalCount ?? pagPascal?.TotalCount ?? 0;
-  const hasPrevious = pagCamel?.hasPrevious ?? pagPascal?.HasPrevious;
-  const hasNext = pagCamel?.hasNext ?? pagPascal?.HasNext;
-  const previousPage = pagCamel?.previousPage ?? pagPascal?.PreviousPage;
-  const nextPage = pagCamel?.nextPage ?? pagPascal?.NextPage;
+  let payload: any = dataTipos?.data || (dataTipos as any)?.Data;
+  if (!payload && dataTipos && Array.isArray((dataTipos as any).items)) {
+    payload = dataTipos as any;
+  }
+  
+  const items: any[] = (payload?.items || payload?.data || []);
+  const {
+    currentPage: paginationCurrentPage = page,
+    totalPages: paginationTotalPages = 1,
+    totalCount: paginationTotalItems = 0,
+    hasPrevious,
+    hasNext,
+    previousPage,
+    nextPage,
+  } = payload?.pagination ?? {};
 
   const [openPanel, setOpenPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -146,8 +135,8 @@ export function TipoProduccionTable() {
     setOpenPanel(false);
 
     setTimeout(() => {
-      setIdTipo(undefined); // importante limpiar el ID
-      setMode("crear"); // o el modo por defecto
+      setIdTipo(undefined); 
+      setMode("crear"); 
     }, 30);
   };
   const handleCloseModal = () => {
@@ -164,23 +153,29 @@ export function TipoProduccionTable() {
 
   const renderCell = (item: any, columnKey: string) => {
     switch (columnKey) {
+      case "codigo":
+        return item.codigo;
+      case "nombre":
+        return item.nombre;
+      case "descripcion":
+        return item.descripcion ?? "Sin descripción";
       case "linea_produccion_id":
-        const lineaId = item.linea_produccion_id || item.LineaProduccionId || item.lineaProduccionId;
-        return lineasMap[lineaId] || "No encontrado";
+   
+        return item.lineaProduccion?.codigo || lineasMap[item.linea_produccion_id || item.LineaProduccionId || item.lineaProduccionId] || "No encontrado";
       case "agregado_id":
-        const agregadoId = item.agregado_id || item.AgregadoId || item.agregadoId;
-        return agregadosMap[agregadoId] || "No encontrado";
+        return item.agregado?.codigo || agregadosMap[item.agregado_id || item.AgregadoId || item.agregadoId] || "No encontrado";
       case "activo":
         const statusColorMap: Record<string, string> = {
           Activo: OrgColors.serotAzul,
           Inactivo: OrgColors.rojo,
         };
+        const isActive = item.activo ?? item.Activo;
         return (
           <Badge
             appearance="filled"
             style={{
               backgroundColor:
-                statusColorMap[(item.activo ?? item.Activo) ? "Activo" : "Inactivo"] || "#666",
+                statusColorMap[isActive ? "Activo" : "Inactivo"] || "#666",
               color: "#fff",
               width: "100%",
             }}
@@ -254,7 +249,7 @@ export function TipoProduccionTable() {
 
     await deleteAction.execute(
       async () => {
-        await TipoProduccionService.eliminar(infoTipo.id.toString(), userId);
+        await TipoProduccionService.eliminar(infoTipo.id.toString());
         return { success: true, message: "Tipo de Producción eliminado correctamente" };
       },
       buildTipoProduccionKey(page, pageSize, serviceFilters)

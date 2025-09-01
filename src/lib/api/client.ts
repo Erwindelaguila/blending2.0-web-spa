@@ -40,11 +40,8 @@ api.interceptors.request.use(
 // Obtiene token almacenado y valida expiración
 async function getAzureAdToken(): Promise<string | null> {
   try {
-    // Primero buscar token ya guardado en storage
+    // Solo usar sessionStorage para mayor seguridad
     let token = sessionStorage.getItem("azure-ad-token");
-    if (token && isTokenValid(token)) return token;
-    
-    token = localStorage.getItem("azure-ad-token");
     if (token && isTokenValid(token)) return token;
     
     // Solo si no hay token válido, intentar obtener uno nuevo del AuthService

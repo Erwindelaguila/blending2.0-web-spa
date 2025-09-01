@@ -7,22 +7,25 @@ import {
   ICalidadParametroUpsertBatchResponse
 } from "@/interface/admin/calidad-parametros";
 import { api } from "@/lib/api";
-import { withCreateAudit, withUpdateAudit } from "./audit.util";
-
-const BASE_URL = "/api/core/configuraciones/calidadparametro";
+import { 
+  getCalidadParametrosMatrizKey, 
+  getCalidadParametrosPorCalidadKey, 
+  upsertCalidadParametrosKey 
+} from "@/lib/constants/key-fetch";
 
 export class CalidadParametrosService {
   static async obtenerMatriz(): Promise<BaseResponse<IMatrizCalidadParametros>> {
-    const response = await api.get<BaseResponse<IMatrizCalidadParametros>>(`${BASE_URL}/matriz`);
+    const response = await api.get<BaseResponse<IMatrizCalidadParametros>>(getCalidadParametrosMatrizKey());
+    return response.data;
+  }
+
+  static async obtenerMatrizPorCalidad(codigoCalidad: string): Promise<BaseResponse<IMatrizCalidadParametros>> {
+    const response = await api.get<BaseResponse<IMatrizCalidadParametros>>(getCalidadParametrosPorCalidadKey(codigoCalidad));
     return response.data;
   }
 
   static async upsertValor(data: ICalidadParametroUpsertRequest): Promise<BaseResponse<ICalidadParametroUpsertResponse>> {
-    const payload: any = withUpdateAudit(data as any);
-    delete payload.creadoPorId;
-    delete payload.modificadoPorId;
-    
-    const response = await api.post<BaseResponse<ICalidadParametroUpsertResponse>>(`${BASE_URL}/upsert`, payload);
+    const response = await api.post<BaseResponse<ICalidadParametroUpsertResponse>>(upsertCalidadParametrosKey(), data);
     return response.data;
   }
 
@@ -31,11 +34,7 @@ export class CalidadParametrosService {
       cambios
     };
     
-    const payload: any = withUpdateAudit(batchPayload as any);
-    delete payload.creadoPorId;
-    delete payload.modificadoPorId;
-    
-    const response = await api.post<BaseResponse<ICalidadParametroUpsertBatchResponse>>(`${BASE_URL}/upsert`, payload);
+    const response = await api.post<BaseResponse<ICalidadParametroUpsertBatchResponse>>(upsertCalidadParametrosKey(), batchPayload);
     return response.data;
   }
 }
