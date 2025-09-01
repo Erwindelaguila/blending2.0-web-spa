@@ -1,12 +1,12 @@
 # Docs: https://github.com/Azure/webapps-deploy
-# Deploy CSR Next.js app (export) to Azure App Service
+# Deploy CSR Next.js app (static export) to Azure App Service
 
 name: Build and deploy Next.js SPA to Azure App Service - app-blending2-web-prod
 
 on:
   push:
     branches:
-      - develop
+      - develop   
   workflow_dispatch:
 
 jobs:
@@ -23,16 +23,16 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: Install dependencies and build
+      - name: Install dependencies and build (Next.js static export)
         run: |
           npm install
-          npm run export   #
+          npm run build  
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: static-site
-          path: ./out   # 
+          path: ./out   
 
   deploy:
     runs-on: ubuntu-latest
