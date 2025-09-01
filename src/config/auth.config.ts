@@ -39,4 +39,3 @@ export const graphRequest = {
   scopes: [process.env.NEXT_PUBLIC_GRAPH_SCOPE!], // User.Read
 };
 
-
