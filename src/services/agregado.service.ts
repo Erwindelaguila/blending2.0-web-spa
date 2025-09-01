@@ -1,11 +1,21 @@
 import { BaseResponse } from "@/interface";
-import { IAgregado, IAgregadoRequest, IAgregadoUpdate, PagedAgregadoResponse, AgregadoFiltersParams } from "@/interface/admin/agregado";
+import {
+  IAgregado,
+  IAgregadoRequest,
+  IAgregadoUpdate,
+  PagedAgregadoResponse,
+  AgregadoFiltersParams,
+} from "@/interface/admin/agregado";
 import { api } from "@/lib/api";
 import { withCreateAudit, withUpdateAudit } from "./audit.util";
 import { getAllAgregadoKey } from "@/lib/constants/key-fetch";
 
 export class AgregadoService {
-  static async listar(page: number = 1, size: number = 10, filters?: AgregadoFiltersParams): Promise<BaseResponse<PagedAgregadoResponse>> {
+  static async listar(
+    page: number = 1,
+    size: number = 10,
+    filters?: AgregadoFiltersParams
+  ): Promise<BaseResponse<PagedAgregadoResponse>> {
     let url = `${getAllAgregadoKey()}?page=${page}&size=${size}`;
 
     if (filters) {
@@ -28,29 +38,33 @@ export class AgregadoService {
     return response.data;
   }
 
-  static async crear(
-      data: IAgregadoRequest
-    ): Promise<BaseResponse<IAgregado>> {
-      const response = await api.post<BaseResponse<IAgregado>>(
-        getAllAgregadoKey(),
-  withCreateAudit(data as any)
-      );
-      return response.data;
-    }
+  static async crear(data: IAgregadoRequest): Promise<BaseResponse<IAgregado>> {
+    const response = await api.post<BaseResponse<IAgregado>>(
+      getAllAgregadoKey(),
+      withCreateAudit(data as any)
+    );
+    return response.data;
+  }
 
-    static async actualizar(
-      data: IAgregadoUpdate
-    ): Promise<BaseResponse<IAgregado>> {
-      const response = await api.put<BaseResponse<IAgregado>>(
-        getAllAgregadoKey(),
-  withUpdateAudit(data as any)
-      );
-      return response.data;
-    }
+  static async actualizar(
+    data: IAgregadoUpdate
+  ): Promise<BaseResponse<IAgregado>> {
+    const response = await api.put<BaseResponse<IAgregado>>(
+      getAllAgregadoKey(),
+      withUpdateAudit(data as any)
+    );
+    return response.data;
+  }
 
-    static async eliminar(id: string, eliminadoPorId: string): Promise<BaseResponse<void>> {
-      const response = await api.delete<BaseResponse<void>>(`${getAllAgregadoKey()}?id=${encodeURIComponent(id)}&eliminadoPorId=${encodeURIComponent(eliminadoPorId)}`);
-      return response.data;
-    }
-
+  static async eliminar(
+    id: string,
+    eliminadoPorId: string
+  ): Promise<BaseResponse<void>> {
+    const response = await api.delete<BaseResponse<void>>(
+      `${getAllAgregadoKey()}?id=${encodeURIComponent(
+        id
+      )}&eliminadoPorId=${encodeURIComponent(eliminadoPorId)}`
+    );
+    return response.data;
+  }
 }

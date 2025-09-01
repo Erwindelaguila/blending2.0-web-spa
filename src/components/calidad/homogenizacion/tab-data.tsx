@@ -10,6 +10,9 @@ import {
   Checkbox,
   Label,
   Spinner,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
 } from "@fluentui/react-components";
 import { DatePicker } from "@fluentui/react-datepicker-compat";
 import { useEffect, useMemo, useState } from "react";
@@ -41,7 +44,7 @@ import {
   parseCommaSeparatedArray,
 } from "@/utils/process-data";
 import { resetBlobData, setBlobData } from "@/lib/store/slices/blobSlice";
-import { datePickerStringsEs, onFormatDate } from "@/utils/date";
+import { datePickerStringsEs, formatDate, onFormatDate } from "@/utils/date";
 import {
   IPlantaDataShort,
   ITabData,
@@ -51,7 +54,13 @@ import useSWR from "swr";
 import { buildPaginatedSWRKey } from "@/utils";
 import { PlantasService } from "@/services";
 import { getAppParamOrDefault } from "@/lib/store/slices/appParamsSlice";
+import { CadmioService } from "@/services/cadmio.service";
+import { ErrorAlertContent } from "@/interface/components/message-alert";
 
+interface IObtenerCadmio {
+  rumaNro: string;
+  valor: string;
+}
 
 const buildPlantasKey = (
   page: number,
@@ -178,7 +187,7 @@ export function TabData() {
 
   const [responseObtnerCadmio, setResponseOpteneCadmio] = useState<{
     error: string;
-    success: any | null;
+    success: BaseResponse<IObtenerCadmio[]> | null;
   }>({
     error: "",
     success: null,
@@ -222,6 +231,7 @@ export function TabData() {
   const [calidadPlanta, setCalidadPlanta] = useState<string[]>([]);
   const [dataFiltered, setDataFiltered] = useState<StockDisponibleItem[]>([]);
   const [rumasSeries, setRumasSeries] = useState<string[]>([]);
+  const [dataSendTabData, setDataSendTabData] = useState<ITabData | null>(null);
 
   const swrKey = buildPlantasKey(1, 10, { estado: 1, isHarina: 1 });
 
@@ -276,13 +286,28 @@ export function TabData() {
     }
   }, [data, dataPlantas, APP_CAL_PLANTA_HOMO_DEFAULT, setValue]);
 
+  //Error evaluar
+  const [visibleErrorObtenerCadmio, setVisibleErrorObtenerCadmio] =
+    useState<boolean>(false);
+  const [errorObtenerCadmio, setErrorObtenerCadmio] =
+    useState<ErrorAlertContent>({
+      descripcion: "",
+      typeError: "info",
+    });
+
   const onSubmit: SubmitHandler<IFilterHomogenizacionHarina> = async (
     dataSubmit
   ) => {
+    setVisibleErrorObtenerCadmio(false);
+    setErrorObtenerCadmio({
+      descripcion: "",
+      typeError: "info",
+    });
+    setDataSendTabData(null);
     setResponseOpteneCadmio({ error: "", success: null });
     const fecha_corte = formatDate(dataSubmit.fecha_corte ?? new Date());
 
-    console.log("Fecha de corte: ", fecha_corte);
+    //console.log("Fecha de corte: ", fecha_corte);
 
     let dataFilter: StockDisponibleItem[] = [...dataFiltered];
 
@@ -291,24 +316,25 @@ export function TabData() {
       dataSubmit.centro_ubicacion.includes(item.fijos.centroUbicacion)
     );
 
-    console.log("Centro ubicacion: ", dataFilter);
+    //console.log("Centro ubicacion: ", dataFilter);
 
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.centro_produccion.includes(item.fijos.centroProduccion)
     );
 
-    console.log("Centro centro produccion: ", dataFilter);
+    //console.log("Centro centro produccion: ", dataFilter);
 
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.ubicacion_almacen.includes(item.fijos.almacenUbicacion)
     );
-    console.log("Ubicacion alamacen: ", dataFilter);
+
+    //console.log("Ubicacion alamacen: ", dataFilter);
 
     dataFilter = dataFilter.filter((item) =>
       dataSubmit.tipo_produccion.includes(item.fijos.tipoProduccion)
     );
 
-    console.log("Tipo de Produccion", dataFilter);
+    //console.log("Tipo de Produccion", dataFilter);
 
     /*
 
@@ -370,10 +396,56 @@ export function TabData() {
       planta: dataSubmit.plata_Homogenizado,
       incluirCadmio: checkedCadmio == true ? true : false,
     };
-    
+
+    if (checkedCadmio) {
+      setDataSendTabData(TabDataExport);
+      await asyncAction.execute(
+        () => CadmioService.obtener(rumaNros),
+        undefined,
+        setResponseOpteneCadmio
+      );
+      return;
+    } else {
+    }
   };
 
+  useEffect(() => {
+    if (responseObtnerCadmio.success?.succeeded && dataSendTabData) {
+      console.log("Data cadmio obtenida: ", responseObtnerCadmio.success.data);
+      console.log("Data a enviar tab data: ", dataSendTabData);
 
+      const dataCadmio = responseObtnerCadmio.success.data;
+
+      if (!dataCadmio || dataCadmio.length === 0) {
+        return;
+      }
+
+      if (Array.isArray(dataCadmio) && dataCadmio.length > 0) {
+        const dataFiltrada = {
+          ...dataSendTabData,
+          stockFiltrado: dataSendTabData.stockFiltrado.map((item) => {
+            const cadmioMatch = dataCadmio.find(
+              (c) => c.rumaNro === item.rumaNro
+            );
+
+            return cadmioMatch
+              ? {
+                  ...item,
+                  parametros: {
+                    ...item.parametros,
+                    cadmio: cadmioMatch.valor,
+                  },
+                }
+              : item;
+          }),
+        };
+
+        console.log("Data final con cadmio asignado: ", dataFiltrada);
+      }
+    } else if (responseObtnerCadmio.error) {
+      console.log("Error al obtener cadmio: ", responseObtnerCadmio.error);
+    }
+  }, [responseObtnerCadmio]);
 
   const sendData = () => {
     handleSubmit(onSubmit)();
@@ -578,8 +650,6 @@ export function TabData() {
 
   useEffect(() => {
     if (data && data.length > 0) {
-      console.log("Data: ", data);
-
       let dataFilter: StockDisponibleItem[] = [...data];
       const valoresUnicos = extraerValoresUnicos(data);
 
@@ -691,13 +761,6 @@ export function TabData() {
       );
     });
     setTipoProduccion(opcionesFiltradas);
-  }
-
-  function formatDate(date: Date): string {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth() es 0-based
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
   }
 
   const processData = useMemo(() => {
@@ -991,18 +1054,35 @@ export function TabData() {
                     </div>
                   </div>
 
-                  <div className="w-full flex justify-end">
-                    <Button appearance="subtle">
-                      Coincidencias encontradas {dataFiltradaSocketCount.length}
-                    </Button>
+                  <div className="w-full bg-amber-400 flex justify-between">
+                    <div>
+                      {visibleErrorObtenerCadmio && (
+                        <>
+                          <MessageBar intent={errorObtenerCadmio.typeError}>
+                            <MessageBarBody>
+                              <MessageBarTitle>
+                                {errorObtenerCadmio.typeError}
+                              </MessageBarTitle>
+                              {errorObtenerCadmio.descripcion}
+                            </MessageBarBody>
+                          </MessageBar>
+                        </>
+                      )}
+                    </div>
+                    <div className="w-full flex justify-end bg-amber-300">
+                      <Button appearance="subtle">
+                        Coincidencias encontradas{" "}
+                        {dataFiltradaSocketCount.length}
+                      </Button>
 
-                    <Button
-                      size="large"
-                      className={`w-[13rem] ${style.buttonCelesteBase}`}
-                      onClick={() => sendData()}
-                    >
-                      Continuar
-                    </Button>
+                      <Button
+                        size="large"
+                        className={`w-[13rem] ${style.buttonCelesteBase}`}
+                        onClick={() => sendData()}
+                      >
+                        Continuar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1025,6 +1105,9 @@ export function TabData() {
     sendData,
     loadingPlantas,
     dataFiltradaSocketCount,
+    visibleErrorObtenerCadmio,
+    errorObtenerCadmio,
+    errorPlantas,
   ]);
 
   return (

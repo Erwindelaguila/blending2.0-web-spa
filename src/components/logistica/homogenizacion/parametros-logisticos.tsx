@@ -17,7 +17,7 @@ import {
   MessageBarTitle,
 } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
-import TablaContenedores from "./TablaContenedores";
+import TablaContenedores from "./tabla-contenedores";
 import { ErrorAlertContent } from "@/interface/components/message-alert";
 import { ICapacidades } from "@/interface/logistics/asignacion";
 import { useAppSelector } from "@/lib/store/hooks";
