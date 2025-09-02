@@ -1,5 +1,8 @@
 import { LogLevel, Configuration } from "@azure/msal-browser";
 
+console.log("API_SCOPE runtime:", process.env.NEXT_PUBLIC_AZURE_API_SCOPE);
+console.log("GRAPH_SCOPE runtime:", process.env.NEXT_PUBLIC_GRAPH_SCOPE);
+
 export const msalConfig: Configuration = {
   auth: {
     clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID!,   // SPA
