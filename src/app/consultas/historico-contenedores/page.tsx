@@ -1,13 +1,14 @@
 "use client";
 
-import { Filter, TableHistoricoLogistica } from "@/components/";
+import {  TableHistoricoLogistica } from "@/components/";
+import { FilterLogistics } from "@/components/ui/app-filter-logistics";
 
 export default function HistoricoLogisticaPage() {
   return (
     <>
       <div className="w-full flex flex-col h-full">
         <div className="w-full h-3/20 pb-2">
-          <Filter
+          <FilterLogistics
             title_filter="Buscar Ejecucion"
             title_input="Codigo de ejecucion"
           />

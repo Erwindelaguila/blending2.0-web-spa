@@ -379,8 +379,7 @@ export function TableHistorico() {
                 <TeachingPopoverBody>
                   <div>
                     <TableDynamic
-                      calidades={item.calidades}
-                      title={`Parámetros`}
+                      data={item.calidades}
                       height="auto"
                     ></TableDynamic>
                   </div>
@@ -435,10 +434,14 @@ export function TableHistorico() {
 
           <div className="w-full h-1/10">
             <Pagination
-              totalItems={180}
-              currentPage={page}
-              totalPages={5}
+              currentPage={1}
+              totalPages={7}
+              totalItems={6}
               onPageChange={setPage}
+              hasPrevious={false}
+              hasNext={false}
+              previousPage={10}
+              nextPage={6}
             />
           </div>
         </div>

@@ -12,7 +12,6 @@ import {
 import { ITableBase } from "@/interface";
 import { useTableBaseStyles } from "@/styles/table.styles";
 
-
 type Data = { [key: string]: any };
 
 export function TableBase({
@@ -22,6 +21,7 @@ export function TableBase({
   isLoading,
   error,
   height = "auto",
+  width = "100%",
 }: ITableBase) {
   const styles = useTableBaseStyles();
 
@@ -46,7 +46,11 @@ export function TableBase({
         <TableRow>
           <TableCell colSpan={columns.length} className={styles.bodyCell}>
             <div style={{ textAlign: "center" }}>
-              <Spinner size="medium" labelPosition="after" label="Cargando datos ..." />
+              <Spinner
+                size="medium"
+                labelPosition="after"
+                label="Cargando datos ..."
+              />
             </div>
           </TableCell>
         </TableRow>
@@ -85,7 +89,7 @@ export function TableBase({
   };
 
   return (
-    <div className={styles.container} style={{ height }}>
+    <div className={styles.container} style={{ height, width }}>
       <Table>
         <TableHeader>
           <TableRow>

@@ -16,19 +16,26 @@ import {
   TeachingPopoverSurface,
   TeachingPopoverTrigger,
 } from "@fluentui/react-components";
-import { DataUsage24Regular, Options24Regular } from "@fluentui/react-icons";
+import {
+  ArrowForwardDownLightning24Regular,
+  Checkmark24Regular,
+  DataUsage24Regular,
+  Options24Regular,
+  ProhibitedMultiple24Regular,
+} from "@fluentui/react-icons";
 import { Pagination } from "@/components/ui/pagination-base";
 import { useState } from "react";
 import { useButtonsStyles } from "@/styles/button.styles";
 
 const columns = [
   { uid: "code", name: "Codigo", width: 5 },
-  { uid: "datoN", name: "Dato-N", width: 7 },
-  { uid: "datoM", name: "Dato-M", width: 7 },
-  { uid: "usuario", name: "Usuario", width: 7 },
-  { uid: "procesado", name: "Procesado", width: 10 },
-  { uid: "status", name: "Estado", width: 7 },
-  { uid: "action", name: "Acciones", width: 12 },
+  { uid: "datoN", name: "Dato-N", width: 5 },
+  { uid: "datoM", name: "Dato-M", width: 5 },
+  { uid: "usuario", name: "Usuario", width: 5 },
+  { uid: "procesado", name: "Procesado", width: 5 },
+  { uid: "status", name: "Estado", width: 5 },
+  { uid: "confirmado", name: "Confirmado", width: 5 },
+  { uid: "action", name: "Acciones", width: 15 },
 ];
 
 const data = [
@@ -39,6 +46,7 @@ const data = [
     usuario: "Ivan Sanchez",
     procesado: "2025-05-05 14:52:24",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Modificada_2025.05.05.xlsx",
       contrato: "HPE-24 0160 G2",
@@ -69,6 +77,7 @@ const data = [
     usuario: "Victor Castañeda",
     procesado: "2025-05-05 14:52:24",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.05.05.xlsx",
       contrato: "HPE-24 0160 G3",
@@ -98,6 +107,7 @@ const data = [
     usuario: "Marcela Ríos",
     procesado: "2025-06-15 09:45:10",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Confirmada_2025.06.15.xlsx",
       contrato: "HPE-24 0170 A1",
@@ -127,6 +137,7 @@ const data = [
     usuario: "Carlos Pérez",
     procesado: "2025-06-17 11:20:45",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.17.xlsx",
       contrato: "HPE-24 0170 A2",
@@ -156,6 +167,7 @@ const data = [
     usuario: "Ana Gómez",
     procesado: "2025-06-18 13:10:30",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Procesada_2025.06.18.xlsx",
       contrato: "HPE-24 0170 A3",
@@ -185,6 +197,7 @@ const data = [
     usuario: "Luis Herrera",
     procesado: "2025-06-20 08:35:12",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.20.xlsx",
       contrato: "HPE-24 0170 A4",
@@ -214,6 +227,7 @@ const data = [
     usuario: "Sofía Ramírez",
     procesado: "2025-06-21 10:00:00",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Final_2025.06.21.xlsx",
       contrato: "HPE-24 0170 A5",
@@ -244,6 +258,7 @@ const data = [
     usuario: "Elena Torres",
     procesado: "2025-06-22 12:15:42",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.22.xlsx",
       contrato: "HPE-24 0170 A6",
@@ -273,6 +288,7 @@ const data = [
     usuario: "Diego Morales",
     procesado: "2025-06-23 09:50:11",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Procesada_2025.06.23.xlsx",
       contrato: "HPE-24 0170 A7",
@@ -302,6 +318,7 @@ const data = [
     usuario: "Verónica Díaz",
     procesado: "2025-06-24 14:05:37",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.24.xlsx",
       contrato: "HPE-24 0170 A8",
@@ -331,6 +348,7 @@ const data = [
     usuario: "Renato Valdez",
     procesado: "2025-06-25 10:40:00",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Lista_2025.06.25.xlsx",
       contrato: "HPE-24 0170 A9",
@@ -360,6 +378,7 @@ const data = [
     usuario: "Gabriela Montenegro",
     procesado: "2025-06-26 16:25:15",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.26.xlsx",
       contrato: "HPE-24 0170 B0",
@@ -389,6 +408,7 @@ const data = [
     usuario: "Mario Lozano",
     procesado: "2025-06-27 09:15:00",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Completa_2025.06.27.xlsx",
       contrato: "HPE-24 0170 B1",
@@ -418,6 +438,7 @@ const data = [
     usuario: "Lucía Fernández",
     procesado: "2025-06-28 13:30:25",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.28.xlsx",
       contrato: "HPE-24 0170 B2",
@@ -447,6 +468,7 @@ const data = [
     usuario: "José Robles",
     procesado: "2025-06-29 11:05:00",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Verificada_2025.06.29.xlsx",
       contrato: "HPE-24 0170 B3",
@@ -476,6 +498,7 @@ const data = [
     usuario: "Natalia Cabrera",
     procesado: "2025-06-30 14:22:18",
     status: "Pendiente",
+    confirmado: false,
     detalles: {
       nombreArchivo: "Asignación_Pendiente_2025.06.30.xlsx",
       contrato: "HPE-24 0170 B4",
@@ -505,6 +528,7 @@ const data = [
     usuario: "Esteban León",
     procesado: "2025-07-01 08:10:47",
     status: "Procesado",
+    confirmado: true,
     detalles: {
       nombreArchivo: "Asignación_Finalizada_2025.07.01.xlsx",
       contrato: "HPE-24 0170 B5",
@@ -546,6 +570,13 @@ export function TableHistoricoLogistica() {
           </span>
         );
 
+      case "confirmado":
+        return (
+          <span style={{ fontSize: "0.9rem", color: "#666" }}>
+            {item.confirmado ? "Confirmado" : "Borrador"}
+          </span>
+        );
+
       case "status":
         const statusColorMap: Record<string, string> = {
           Procesado: OrgColors.serotAzul,
@@ -569,11 +600,49 @@ export function TableHistoricoLogistica() {
 
       case "action":
         return (
-          <div className="flex gap-2 justify-center w-full">
+          <div className="flex gap-2 justify-start w-full">
+            {item.confirmado ? (
+              <>
+                <Button
+                  size="medium"
+                  icon={<ProhibitedMultiple24Regular />}
+                  className={style.buttonNaranjaBase}
+                  onClick={() => handleDownloadReport(item.code)}
+                >
+                  Borrador
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="medium"
+                  icon={<Checkmark24Regular />}
+                  className={
+                    item.status !== "Procesado"
+                      ? style.buttonDisabled
+                      : style.buttonNaranjaBase
+                  }
+                  onClick={() => handleDownloadReport(item.code)}
+                  disabled={item.status !== "Procesado"}
+                >
+                  Confirmar
+                </Button>
+              </>
+            )}
+
+            <Button
+              size="medium"
+              icon={<ArrowForwardDownLightning24Regular />}
+              className={style.buttonAzulOscuroBase}
+              onClick={() => handleDownloadReport(item.code)}
+            >
+              Ejecutar de nuevo
+            </Button>
+
             <TeachingPopover size="large" positioning={{ position: "below" }}>
               <TeachingPopoverTrigger>
                 <Button
-                  className={style.buttonAzulOscuroBase}
+                  className={style.buttonCelesteBase}
                   icon={<Options24Regular />}
                 >
                   Ver Datos
@@ -610,7 +679,7 @@ export function TableHistoricoLogistica() {
             <Title title="Ejecuciones"></Title>
           </div>
 
-          <div className="w-full h-14/15 ">
+          <div className="w-full h-14/15 overflow-y-hidden overflow-x-auto">
             <TableBase
               columns={columns}
               data={data}
@@ -618,15 +687,21 @@ export function TableHistoricoLogistica() {
               isLoading={false}
               error={null}
               height="100%"
+              width="140rem"
             />
           </div>
         </div>
 
         <div className="w-full h-1/10">
           <Pagination
-            currentPage={page}
-            totalPages={5}
+            currentPage={1}
+            totalPages={7}
+            totalItems={6}
             onPageChange={setPage}
+            hasPrevious={false}
+            hasNext={false}
+            previousPage={10}
+            nextPage={6}
           />
         </div>
       </div>

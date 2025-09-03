@@ -13,6 +13,7 @@ export interface ITableBase {
   isLoading: boolean;
   error: any;
   height?: string;
+  width?: string;
 }
 
 export type DynamicRow = {
