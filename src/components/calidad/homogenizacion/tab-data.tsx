@@ -1109,9 +1109,10 @@ export function TabData({ onChange }: { onChange?: (data: ITabData) => void }) {
                             <Spinner size="tiny"></Spinner>
                           ) : undefined
                         }
+                        /*
                         disabled={
                           dataFiltradaSocketCount.length > 0 ? false : true
-                        }
+                        }*/
                         onClick={() => sendData()}
                       >
                         {loadingobteniendoValoresCadmio
