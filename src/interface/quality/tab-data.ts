@@ -1,7 +1,7 @@
 export interface StockFiltradoItem {
   rumaNro: string;
   cantidad: number;
-  parametros: Record<string, number>;
+  parametros: Record<string, string>;
 }
 
 export interface ValorParametro {

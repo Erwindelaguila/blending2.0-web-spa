@@ -70,7 +70,7 @@ const buildPlantasKey = (
   return buildPaginatedSWRKey("plantas", page, size, filters);
 };
 
-export function TabData() {
+export function TabData({ onChange }: { onChange?: (data: ITabData) => void }) {
   const APP_CAL_PLANTA_HOMO_DEFAULT = useAppSelector((state) =>
     getAppParamOrDefault(state, "APP_CAL_PLANTA_HOMO_DEFAULT", "")
   );
@@ -412,6 +412,8 @@ export function TabData() {
       setLoadingObteniendoValoresCadmio(false);
       return;
     } else {
+      onChange?.(TabDataExport);
+      dispatch(nextStep());
     }
   };
 
@@ -452,7 +454,8 @@ export function TabData() {
           }),
         };
 
-        console.log("Data final con cadmio asignado: ", dataFiltrada);
+        onChange?.(dataFiltrada);
+        dispatch(nextStep());
       }
     } else if (responseObtnerCadmio.error) {
       setVisibleErrorObtenerCadmio(true);
@@ -1093,11 +1096,14 @@ export function TabData() {
 
                       <Button
                         size="large"
+                        /*
                         className={`w-[16rem] ${
                           dataFiltradaSocketCount.length > 0
                             ? style.buttonCelesteBase
                             : style.buttonDisabled
                         }`}
+                        */
+                        className={`w-[16rem] ${style.buttonAzulOscuroBase} `}
                         icon={
                           loadingobteniendoValoresCadmio ? (
                             <Spinner size="tiny"></Spinner>
