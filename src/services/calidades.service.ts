@@ -23,7 +23,7 @@ export class CalidadesService {
     return response.data;
   }
 
-  // Método específico para combos - solo activos
+  // Método específico para combos - solo activos-
   static async obtenerActivos(): Promise<BaseResponse<{ id: string; codigo: string }[]>> {
     const url = `${getAllCalidadKey()}?activo=true`;
     const response = await api.get<BaseResponse<{ id: string; codigo: string }[]>>(url);
